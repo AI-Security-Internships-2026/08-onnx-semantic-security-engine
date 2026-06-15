@@ -1,3 +1,5 @@
+# Literature Review: ONNX-Based Semantic Security Engine
+
 **Student:** Muhammad Sikandar Hussain
 **Updated:** 12-June-2026
 
@@ -149,7 +151,7 @@ Use Google Scholar, IEEE Xplore, ACM DL, arXiv, or USENIX Security.
 |---|---|---|---|
 | ToN-IoT | Dataset | https://research.unsw.edu.au/projects/toniot-datasets | IoT + logs; multi-modal; Week 2 priority |
 | CIC-IoT2023 | Dataset | https://www.unb.ca/cic/datasets/iotdataset-2023.html | IoT edge deployment testing |
-| CSE-CIC-IDS2018 | Dataset | | **URL** | https://www.unb.ca/cic/datasets/ids-2018.html | | for training |
+| CSE-CIC-IDS2018 | Dataset | https://www.unb.ca/cic/datasets/ids-2018.html | for training |
 | ONNX Runtime | Library / Tool | https://onnxruntime.ai | Core inference engine for this project |
 | CICFlowMeter | Library / Tool | https://github.com/ahlashkari/CICFlowMeter | Feature extraction from raw network traffic |
 | Zeek | Library / Tool | https://zeek.org | Network monitor; potential data source |

@@ -14,8 +14,6 @@ Be honest — problems and blockers are normal and help your supervisor support 
 
 ## Week 1
 
-# Weekly Progress Log
-
 **Name:** Muhammad Sikandar Hussain
 **GitHub Username:** sikandarhussain6858  
 **Project:** 08 — ONNX-Based Semantic Security Engine for Edge Inference  
@@ -35,7 +33,7 @@ Be honest — problems and blockers are normal and help your supervisor support 
 - [x] Created weekly branch `sikandarhussain6858-week-01`
 - [x] Added personal introduction to docs/weekly-progress.md
 - [x] Identified 5 references in docs/literature-review.md
-- [ ] Opened Week 1 Pull Request
+- [x] Opened Week 1 Pull Request
 
 ### Personal Introduction
 My name is Muhammad Sikandar Hussain. I am studying BS Artificial Intelligence at National University of Science and Technology.
@@ -65,6 +63,9 @@ intersection of machine learning and cybersecurity.
       or other)?
 - [ ] Is the classifier expected to use classical ML (Random Forest, XGBoost)
       or a neural network approach?
+
+### PR Link
+https://github.com/AI-Security-Internships-2026/08-onnx-semantic-security-engine/pull/1
 
 ### Next Week Plan
 - Read the 5 identified references in depth
