@@ -25,6 +25,9 @@ if "Timestamp" in df.columns:
 df.replace([np.inf, -np.inf], np.nan, inplace=True)
 df = df.dropna()
 
+# Drop duplicate rows to prevent data leakage during train/test split
+df = df.drop_duplicates()
+
 print(f"Dataset shape after preprocessing: {df.shape}")
 
 # Separate features and labels
