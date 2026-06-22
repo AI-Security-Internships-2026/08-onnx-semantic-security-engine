@@ -25,6 +25,9 @@ if "Timestamp" in df.columns:
 df.replace([np.inf, -np.inf], np.nan, inplace=True)
 df = df.dropna()
 
+# Drop duplicate rows to prevent data leakage during train/test split
+df = df.drop_duplicates()
+
 print(f"Dataset shape after preprocessing: {df.shape}")
 
 # Separate features and labels
@@ -39,16 +42,18 @@ num_classes = len(label_encoder.classes_)
 print(f"Number of classes: {num_classes}")
 print(f"Classes: {label_encoder.classes_}")
 
-# Scale features
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
-
-# Split data: 80/20 with stratification
+# Split data FIRST: 80/20 with stratification
 print("Splitting data (80/20)...")
 X_train, X_test, y_train, y_test = train_test_split(
-    X_scaled, y_encoded, test_size=0.2, stratify=y_encoded, random_state=42
+    X, y_encoded, test_size=0.2, stratify=y_encoded, random_state=42
 )
 print(f"Training set size: {X_train.shape[0]}, Test set size: {X_test.shape[0]}")
+
+# Scale features AFTER split — fit only on training data to prevent leakage
+print("Scaling features...")
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)   # fit only on training data
+X_test = scaler.transform(X_test)         # transform test using train stats
 
 # Convert to PyTorch tensors
 X_train_tensor = torch.FloatTensor(X_train)
