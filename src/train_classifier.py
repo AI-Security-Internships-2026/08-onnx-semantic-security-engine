@@ -11,6 +11,8 @@ from sklearn.utils.class_weight import compute_class_weight
 import joblib
 from pathlib import Path
 
+from model import ThreatMLP
+
 # Load and preprocess dataset
 print("Loading dataset...")
 dataset_path = Path(__file__).parent.parent / "datasets" / "CSE-CIC-IDS2018" / "02-14-2018.csv"
@@ -24,6 +26,9 @@ if "Timestamp" in df.columns:
 # Replace inf/-inf with NaN and drop rows with NaN
 df.replace([np.inf, -np.inf], np.nan, inplace=True)
 df = df.dropna()
+
+# Drop duplicate rows to prevent data leakage during train/test split
+df = df.drop_duplicates()
 
 print(f"Dataset shape after preprocessing: {df.shape}")
 
@@ -39,48 +44,24 @@ num_classes = len(label_encoder.classes_)
 print(f"Number of classes: {num_classes}")
 print(f"Classes: {label_encoder.classes_}")
 
-# Scale features
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
-
-# Split data: 80/20 with stratification
+# Split data FIRST: 80/20 with stratification
 print("Splitting data (80/20)...")
 X_train, X_test, y_train, y_test = train_test_split(
-    X_scaled, y_encoded, test_size=0.2, stratify=y_encoded, random_state=42
+    X, y_encoded, test_size=0.2, stratify=y_encoded, random_state=42
 )
 print(f"Training set size: {X_train.shape[0]}, Test set size: {X_test.shape[0]}")
+
+# Scale features AFTER split — fit only on training data to prevent leakage
+print("Scaling features...")
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)   # fit only on training data
+X_test = scaler.transform(X_test)         # transform test using train stats
 
 # Convert to PyTorch tensors
 X_train_tensor = torch.FloatTensor(X_train)
 y_train_tensor = torch.LongTensor(y_train)
 X_test_tensor = torch.FloatTensor(X_test)
 y_test_tensor = torch.LongTensor(y_test)
-
-# Define MLP model
-class ThreatMLP(nn.Module):
-    def __init__(self, input_dim, num_classes):
-        super(ThreatMLP, self).__init__()
-        self.fc1 = nn.Linear(input_dim, 128)
-        self.relu1 = nn.ReLU()
-        self.dropout1 = nn.Dropout(0.3)
-        
-        self.fc2 = nn.Linear(128, 64)
-        self.relu2 = nn.ReLU()
-        self.dropout2 = nn.Dropout(0.3)
-        
-        self.fc3 = nn.Linear(64, num_classes)
-    
-    def forward(self, x):
-        x = self.fc1(x)
-        x = self.relu1(x)
-        x = self.dropout1(x)
-        
-        x = self.fc2(x)
-        x = self.relu2(x)
-        x = self.dropout2(x)
-        
-        x = self.fc3(x)
-        return x
 
 # Initialize model and move to device
 input_dim = X_train.shape[1]
