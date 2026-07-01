@@ -97,4 +97,42 @@ My name is Muhammad Sikandar Hussain. I am studying BS Artificial Intelligence a
 
 ---
 
+## Week 3 & 4
+
+**Branch:** `sikandarhussain6858-week-04`
+**PR link:** _[Add link after opening PR]_
+
+### Checklist
+- [x] Refactored architecture to extract shared `ThreatMLP` model (`src/model.py`)
+- [x] Implemented INT8 Static Quantization pipeline using ONNX Runtime
+- [x] Evaluated and benchmarked quantized model size, latency, and Macro-F1 delta
+- [x] Developed semantic labeling mapping for MITRE ATT&CK (`src/mitre_mapping.py`)
+- [x] Built and tested `FastAPI` Inference Engine (`src/inference_engine.py`)
+- [x] Conducted Cross-Dataset Generalization testing on ToN-IoT dataset (RQ3)
+- [x] Migrated heavy computation to Kaggle to bypass local memory constraints
+
+### What I Did These Weeks
+- **Kaggle Training Pipeline:** Migrated training to Kaggle to overcome local memory constraints and leverage free GPUs. Modified the code to load multiple days of the CIC-IDS2018 dataset (using Parquet format).
+- **Data Leakage & Class Imbalance:** Addressed data leakage by stripping identifying features (IPs, Ports, Flow IDs). Implemented undersampling for majority classes (Benign) and oversampling for minority classes, plus a learning rate scheduler, stabilizing the Macro-F1 score at ~0.83 on the valid features.
+- **Model Quantization (RQ2):** Exported the PyTorch model to FP32 ONNX format and applied INT8 Static Quantization using `onnxruntime.quantization`. 
+- **Cross-Dataset Evaluation (RQ3):** Tested the CIC-IDS2018-trained model on the completely unseen ToN-IoT dataset without retraining to evaluate out-of-distribution generalization.
+- **Inference Engine:** Built `src/inference_engine.py` using FastAPI. It acts as the core "engine" by accepting raw network features, applying the saved standard scaler, running ONNX inference, and mapping predictions to MITRE ATT&CK tactics and techniques.
+
+### Key Findings & Results
+- **Quantization Benchmarks (RQ2):** The INT8 quantized model reduced the storage footprint by roughly 70% (from ~75 KB down to ~22 KB). The latency and Macro-F1 impact were successfully benchmarked and stored in `experiments/results/quantization_comparison.json`.
+- **Cross-Dataset Generalization (RQ3):** The evaluation on ToN-IoT yielded a massive Macro-F1 drop from 0.8296 (in-distribution) down to 0.0843. 
+  - *Analysis of the Drop:* This drop definitively answers RQ3. It is primarily caused by feature space incompatibility. Only 21 out of 76 features (28%) could be semantically mapped between NetFlow (ToN-IoT) and CICFlowMeter (CIC-IDS2018). This negative result is highly valuable, confirming that IDS models are tightly coupled to their feature extraction tools and do not easily generalize out-of-the-box.
+
+### Problems / Blockers Addressed
+- **Memory & Resource Constraints:** Loading the entire CIC-IDS2018 dataset crashed the local environment. Resolved by moving computation to Kaggle, using Parquet files, and selectively sampling data.
+- **Data Leakage & Overfitting:** The baseline model initially achieved a perfect 1.0 F1. Discovered this was due to the model memorizing identifiers like `Src IP` and `Src Port`. Dropping these columns resolved the leakage.
+- **Feature Alignment for RQ3:** Aligning ToN-IoT and CIC-IDS2018 features programmatically failed because the underlying extraction tools name features differently. Resolved by manually creating a semantic `FEATURE_MAP` connecting 21 common features.
+
+### Next Week Plan
+- Review and finalize the technical implementation.
+- Address any code review feedback from the supervisor on the Week 3/4 PR.
+- Draft the final project report (`docs/final-report.md`) outlining the methodology, evaluation, and conclusions.
+
+---
+
 _(Add a new section each week)_
