@@ -132,6 +132,123 @@ Use Google Scholar, IEEE Xplore, ACM DL, arXiv, or USENIX Security.
 
 ---
 
+### Paper 6 — Cross-Dataset Generalization of ML for Network Intrusion Detection
+
+| Field | Content |
+|---|---|
+| **Full title** | On the Cross-Dataset Generalization of Machine Learning for Network Intrusion Detection |
+| **Authors** | Marco Cantone, Claudio Marrocco, Alessandro Bria |
+| **Year** | 2024 |
+| **Venue** | arXiv / IEEE Access 2024 |
+| **URL / DOI** | https://arxiv.org/abs/2402.10974 |
+| **Method** | Trains 4 ML classifiers on one NIDS dataset and evaluates on another (CIC-IDS-2017, CSE-CIC-IDS2018, LycoS-IDS2017, LycoS-Unicas-IDS2018); introduces LycoS-Unicas-IDS2018 with corrected features |
+| **Dataset** | CIC-IDS-2017, CSE-CIC-IDS2018, LycoS-IDS2017, LycoS-Unicas-IDS2018 |
+| **Key result** | Cross-dataset accuracy drops to near-random chance in most cases; models learn dataset-specific artifacts rather than attack semantics |
+| **Limitation** | Does not propose solutions — only diagnoses the generalization failure |
+| **Relevance to our project** | **Directly motivates RQ3.** If cross-dataset generalization is this hard, any success our model achieves on ToN-IoT (trained on CIC-IDS2018) would be a meaningful contribution. Also warns us about pitfalls in feature alignment. |
+
+**Notes / Quotes:**
+> "Classification accuracy in cross-dataset experiments was found to be largely
+> commensurate with random chance."
+> This sets the bar for our RQ3 experiment: even modest cross-dataset F1 would
+> be noteworthy. We should cite this paper when justifying why generalization
+> testing matters.
+
+---
+
+### Paper 7 — Towards a Standard Feature Set for NIDS Datasets
+
+| Field | Content |
+|---|---|
+| **Full title** | Towards a Standard Feature Set for Network Intrusion Detection System Datasets |
+| **Authors** | Mohanad Sarhan, Siamak Layeghy, Marius Portmann |
+| **Year** | 2021 |
+| **Venue** | Mobile Networks and Applications / arXiv |
+| **URL / DOI** | https://arxiv.org/abs/2101.11315 |
+| **Method** | Proposes a NetFlow-based standard feature set (12 and 43 features) and converts 4 major NIDS datasets into a common schema: NF-UNSW-NB15, NF-BoT-IoT, NF-ToN-IoT, NF-CSE-CIC-IDS2018 |
+| **Dataset** | UNSW-NB15, BoT-IoT, ToN-IoT, CSE-CIC-IDS2018 (all converted to NetFlow format) |
+| **Key result** | Standardized features enable fair cross-dataset comparison; attack detection accuracy improves when using the common feature set |
+| **Limitation** | NetFlow features are coarser than CICFlowMeter features — some discriminative power may be lost |
+| **Relevance to our project** | **Critical for RQ3 feature alignment.** When we align CIC-IDS2018 and ToN-IoT feature schemas, this paper's NF-standardized versions provide a proven methodology. We could use their NF-ToN-IoT and NF-CSE-CIC-IDS2018 directly. |
+
+**Notes / Quotes:**
+> Converts ToN-IoT and CSE-CIC-IDS2018 into a common 43-feature NetFlow format.
+> This solves our biggest technical challenge for RQ3: instead of manually
+> aligning Zeek features to CICFlowMeter features, we can use these
+> pre-standardized datasets. Essential reference for our methodology section.
+
+---
+
+### Paper 8 — Improved Deep Learning for IDS on CIC-IDS2018
+
+| Field | Content |
+|---|---|
+| **Full title** | Improved Deep Learning Model for Network Intrusion Detection Based on the CSE-CIC-IDS2018 Dataset |
+| **Authors** | M. H. Al-Ambusaidi et al. |
+| **Year** | 2023 |
+| **Venue** | Engineering, Technology & Applied Science Research (ETASR), Vol. 13, No. 5 |
+| **URL / DOI** | https://etasr.com/index.php/ETASR/article/view/6210 |
+| **Method** | DNN with L2 regularization for multi-class classification on CSE-CIC-IDS2018; aggregates rare attack types into broader categories to reduce misclassification |
+| **Dataset** | CSE-CIC-IDS2018 |
+| **Key result** | Achieves 99.91% accuracy and 94.78% F1-score after attack-category aggregation; demonstrates that class grouping significantly improves minority-class detection |
+| **Limitation** | Same-dataset evaluation only — no cross-dataset testing; attack grouping may hide per-class weaknesses |
+| **Relevance to our project** | **Direct baseline for our MLP classifier.** Provides benchmark accuracy/F1 numbers on the same dataset we use for training. Their label-grouping strategy is relevant to our preprocessing. |
+
+**Notes / Quotes:**
+> Reports 99.91% accuracy and 94.78% F1 with attack-category aggregation.
+> Our MLP should aim to match or exceed these numbers. Their approach to
+> grouping rare attacks (SQL Injection, Brute Force-XSS) into broader
+> categories could improve our model's handling of extreme class imbalance.
+
+---
+
+### Paper 9 — Edge-IIoTset: IoT/IIoT Cybersecurity Dataset for Edge
+
+| Field | Content |
+|---|---|
+| **Full title** | Edge-IIoTset: A New Comprehensive Realistic Cyber Security Dataset of IoT and IIoT Applications for Centralized and Federated Learning |
+| **Authors** | Mohamed Amine Ferrag, Othmane Friha, Djallel Hamouda, Leandros Maglaras, Helge Janicke |
+| **Year** | 2022 |
+| **Venue** | IEEE Access, Vol. 10 |
+| **URL / DOI** | https://doi.org/10.1109/ACCESS.2022.3165809 |
+| **Method** | Purpose-built IoT/IIoT testbed with 10+ device types; captures 14 attack types across 5 categories; evaluates ML and DL models in centralized and federated settings |
+| **Dataset** | Edge-IIoTset — 61 features extracted from network traffic, logs, and alerts |
+| **Key result** | DL models achieve >95% accuracy on multi-class classification; dataset captures realistic edge IoT traffic patterns including Modbus and MQTT protocols |
+| **Limitation** | Different feature set from CIC/ToN-IoT datasets — not directly comparable without alignment |
+| **Relevance to our project** | **Validates edge deployment relevance.** Demonstrates that IDS models need to be evaluated on IoT-specific traffic. If our engine is deployed on edge IoT hardware, this dataset's attack taxonomy (including Modbus/MQTT) represents the real threat landscape. Potential stretch-goal dataset. |
+
+**Notes / Quotes:**
+> Covers 14 attack types including IoT-specific threats (Modbus attacks, MQTT
+> exploitation) not present in CIC-IDS2018 or ToN-IoT.
+> While we won't use this dataset directly, citing it strengthens our argument
+> that edge-deployed IDS engines face unique IoT threats — exactly the gap
+> our ONNX engine aims to fill.
+
+---
+
+### Paper 10 — Systematic Survey of ML and DL for Network Intrusion Detection
+
+| Field | Content |
+|---|---|
+| **Full title** | Network Intrusion Detection System: A Systematic Study of Machine Learning and Deep Learning Approaches |
+| **Authors** | Zeeshan Ahmad, Adnan Shahid Khan, Cheah Wai Shiang, Johari Abdullah, Farhan Ahmad |
+| **Year** | 2021 |
+| **Venue** | Transactions on Emerging Telecommunications Technologies, Vol. 32, No. 1 |
+| **URL / DOI** | https://doi.org/10.1002/ett.4150 |
+| **Method** | Systematic literature review of ML and DL techniques for NIDS; provides taxonomy of detection methods, evaluation metrics, and dataset usage patterns |
+| **Dataset** | Survey of multiple datasets including KDD Cup 99, NSL-KDD, CICIDS2017, CSE-CIC-IDS2018, UNSW-NB15 |
+| **Key result** | DL-based approaches outperform traditional ML for complex multi-class attacks; identifies key challenges including class imbalance, high-dimensional features, and real-time processing constraints |
+| **Limitation** | Survey paper — no novel experiments; coverage ends ~2020 |
+| **Relevance to our project** | **Foundational survey.** Provides the academic context for why we chose a DNN/MLP approach over traditional ML. Justifies our design decisions in the Background and Related Work sections. Over 1,000 citations makes it a canonical reference. |
+
+**Notes / Quotes:**
+> Over 1,000 citations — the most widely referenced survey in our domain.
+> Useful for the Background section to establish that DL-based NIDS is a
+> well-established research direction, and for justifying why MLP is a
+> reasonable architecture choice for our classifier.
+
+---
+
 ## Reference Table (Quick Overview)
 
 | # | Title (short) | Authors | Year | Method | Dataset | Relevance |
@@ -141,6 +258,11 @@ Use Google Scholar, IEEE Xplore, ACM DL, arXiv, or USENIX Security.
 | 3 | Quantization on Edge Devices | arXiv 2303.05016 | 2023 | INT8/FP16 benchmarks | MobileNetV2, VGG-19 | Quantization strategy validation |
 | 4 | EdgeMLOps / Raspberry Pi | arXiv 2501.17062 | 2025 | ONNX on RPi 4 | IoT edge deployment | Concrete edge benchmark numbers |
 | 5 | Edge AI Survey | MDPI Electronics | 2025 | PRISMA literature review | Survey | Full edge deployment landscape |
+| 6 | Cross-Dataset ML IDS | Cantone et al. | 2024 | Cross-dataset testing | Multiple IDS datasets | Highlights generalization gaps |
+| 7 | Standard NIDS Feature Set | Sarhan et al. | 2021 | NetFlow standard | UNSW, BoT, ToN, CSE-CIC | Feature alignment methodology |
+| 8 | DNN on CSE-CIC-IDS2018 | Al-Ambusaidi et al. | 2023 | DNN + L2 multi-class | CSE-CIC-IDS2018 | MLP baseline metrics |
+| 9 | Edge-IIoTset | Ferrag et al. | 2022 | Testbed creation | Edge-IIoTset | Edge/IoT attack relevance |
+| 10 | ML/DL NIDS Survey | Ahmad et al. | 2021 | Systematic review | Various datasets | Academic context for DL use |
 
 
 ---
