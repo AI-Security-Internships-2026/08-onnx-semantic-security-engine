@@ -135,4 +135,35 @@ My name is Muhammad Sikandar Hussain. I am studying BS Artificial Intelligence a
 
 ---
 
+## Week 5
+
+**Branch:** `sikandarhussain6858-week-04` (Continued on the same branch)
+**PR link:** _[Add link after opening PR]_
+
+### Checklist
+- [x] Cleaned up proposal.md formatting and merged draft into template
+- [x] Added 5 additional papers to the literature review (total 10)
+- [x] Refactored architecture and trained on full multi-day CIC-IDS2018 (all 15 attack types)
+- [x] Implemented and benchmarked FP16 quantization alongside INT8 (RQ2)
+- [x] Generated confusion matrices and quantization comparison plots (Task 5)
+
+### What I Did This Week
+- **Expanded Literature Review & Proposal:** Cleaned up `docs/proposal.md` and added 5 new research papers to `docs/literature-review.md`, bringing the total to 10 foundational papers.
+- **Full Dataset Training:** Updated the Kaggle training pipeline to load all 10 days of the CSE-CIC-IDS2018 dataset. Widened the `ThreatMLP` architecture to `256 -> 128 -> 64 -> 15` classes with BatchNorm layers for stable training across all 15 MITRE attack categories.
+- **FP16 vs INT8 Quantization (RQ2):** Introduced FP16 (half-precision) quantization as an alternative to INT8. We ran benchmarks comparing FP32, FP16, and INT8 models in terms of size, latency, and Macro-F1 score, confirming that FP16 preserves accuracy much better than INT8 on this architecture.
+- **Evaluation Plots:** Wrote code to automatically generate high-resolution PNG plots for the final report, including confusion matrices for both in-distribution (CIC-IDS2018) and cross-dataset (ToN-IoT) evaluations, as well as a bar chart comparing quantization methods.
+
+### Key Findings & Results
+- **Full 15-Class Training:** The widened model successfully achieved an in-distribution Macro-F1 score of **0.8134** across all 15 classes, hitting the ≥ 0.80 target.
+- **Cross-Dataset Model Collapse (RQ3):** Testing on the ToN-IoT dataset resulted in a Macro-F1 of **0.0427** (a drop of 0.7707). Analysis revealed this is due to a severe feature mismatch: only 21 of 76 CIC features exist in the ToN-IoT NetFlow schema. The remaining 55 zero-filled features caused the model to collapse and predict the "Infilteration" class for almost all traffic. This aligns with Cantone et al. (2024), confirming that generalization fails catastrophically without feature-schema alignment.
+
+### Problems / Blockers Addressed
+- **INT8 Precision Loss:** Static INT8 quantization previously caused a severe drop in the F1 score. We addressed this by implementing FP16 quantization, which serves as a highly effective middle ground for edge devices by cutting the model size in half without degrading the F1 score.
+- **Cross-Dataset Feature Mismatch:** The model collapsed to a single class during cross-dataset evaluation. We identified the root cause (55 unmapped/zero-filled features) and documented it as a valid research finding for RQ3 rather than a bug.
+- **ONNX Type Mismatch:** Encountered an `INVALID_ARGUMENT` error when benchmarking the FP16 model because the input array was still `float32`. Fixed this by explicitly casting the evaluation inputs to `float16` during benchmarking.
+
+### Next Week Plan
+
+---
+
 _(Add a new section each week)_
