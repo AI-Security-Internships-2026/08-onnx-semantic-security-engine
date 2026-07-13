@@ -97,4 +97,73 @@ My name is Muhammad Sikandar Hussain. I am studying BS Artificial Intelligence a
 
 ---
 
+## Week 3 & 4
+
+**Branch:** `sikandarhussain6858-week-04`
+**PR link:** _[Add link after opening PR]_
+
+### Checklist
+- [x] Refactored architecture to extract shared `ThreatMLP` model (`src/model.py`)
+- [x] Implemented INT8 Static Quantization pipeline using ONNX Runtime
+- [x] Evaluated and benchmarked quantized model size, latency, and Macro-F1 delta
+- [x] Developed semantic labeling mapping for MITRE ATT&CK (`src/mitre_mapping.py`)
+- [x] Built and tested `FastAPI` Inference Engine (`src/inference_engine.py`)
+- [x] Conducted Cross-Dataset Generalization testing on ToN-IoT dataset (RQ3)
+- [x] Migrated heavy computation to Kaggle to bypass local memory constraints
+
+### What I Did These Weeks
+- **Kaggle Training Pipeline:** Migrated training to Kaggle to overcome local memory constraints and leverage free GPUs. Modified the code to load multiple days of the CIC-IDS2018 dataset (using Parquet format).
+- **Data Leakage & Class Imbalance:** Addressed data leakage by stripping identifying features (IPs, Ports, Flow IDs). Implemented undersampling for majority classes (Benign) and oversampling for minority classes, plus a learning rate scheduler, stabilizing the Macro-F1 score at ~0.83 on the valid features.
+- **Model Quantization (RQ2):** Exported the PyTorch model to FP32 ONNX format and applied INT8 Static Quantization using `onnxruntime.quantization`. 
+- **Cross-Dataset Evaluation (RQ3):** Tested the CIC-IDS2018-trained model on the completely unseen ToN-IoT dataset without retraining to evaluate out-of-distribution generalization.
+- **Inference Engine:** Built `src/inference_engine.py` using FastAPI. It acts as the core "engine" by accepting raw network features, applying the saved standard scaler, running ONNX inference, and mapping predictions to MITRE ATT&CK tactics and techniques.
+
+### Key Findings & Results
+- **Quantization Benchmarks (RQ2):** The INT8 quantized model reduced the storage footprint by roughly 70% (from ~75 KB down to ~22 KB). The latency and Macro-F1 impact were successfully benchmarked and stored in `experiments/results/quantization_comparison.json`.
+- **Cross-Dataset Generalization (RQ3):** The evaluation on ToN-IoT yielded a massive Macro-F1 drop from 0.8296 (in-distribution) down to 0.0843. 
+  - *Analysis of the Drop:* This drop definitively answers RQ3. It is primarily caused by feature space incompatibility. Only 21 out of 76 features (28%) could be semantically mapped between NetFlow (ToN-IoT) and CICFlowMeter (CIC-IDS2018). This negative result is highly valuable, confirming that IDS models are tightly coupled to their feature extraction tools and do not easily generalize out-of-the-box.
+
+### Problems / Blockers Addressed
+- **Memory & Resource Constraints:** Loading the entire CIC-IDS2018 dataset crashed the local environment. Resolved by moving computation to Kaggle, using Parquet files, and selectively sampling data.
+- **Data Leakage & Overfitting:** The baseline model initially achieved a perfect 1.0 F1. Discovered this was due to the model memorizing identifiers like `Src IP` and `Src Port`. Dropping these columns resolved the leakage.
+- **Feature Alignment for RQ3:** Aligning ToN-IoT and CIC-IDS2018 features programmatically failed because the underlying extraction tools name features differently. Resolved by manually creating a semantic `FEATURE_MAP` connecting 21 common features.
+
+### Next Week Plan
+- Review and finalize the technical implementation.
+- Address any code review feedback from the supervisor on the Week 3/4 PR.
+- Draft the final project report (`docs/final-report.md`) outlining the methodology, evaluation, and conclusions.
+
+---
+
+## Week 5
+
+**Branch:** `sikandarhussain6858-week-04` (Continued on the same branch)
+**PR link:** _[Add link after opening PR]_
+
+### Checklist
+- [x] Cleaned up proposal.md formatting and merged draft into template
+- [x] Added 5 additional papers to the literature review (total 10)
+- [x] Refactored architecture and trained on full multi-day CIC-IDS2018 (all 15 attack types)
+- [x] Implemented and benchmarked FP16 quantization alongside INT8 (RQ2)
+- [x] Generated confusion matrices and quantization comparison plots (Task 5)
+
+### What I Did This Week
+- **Expanded Literature Review & Proposal:** Cleaned up `docs/proposal.md` and added 5 new research papers to `docs/literature-review.md`, bringing the total to 10 foundational papers.
+- **Full Dataset Training:** Updated the Kaggle training pipeline to load all 10 days of the CSE-CIC-IDS2018 dataset. Widened the `ThreatMLP` architecture to `256 -> 128 -> 64 -> 15` classes with BatchNorm layers for stable training across all 15 MITRE attack categories.
+- **FP16 vs INT8 Quantization (RQ2):** Introduced FP16 (half-precision) quantization as an alternative to INT8. We ran benchmarks comparing FP32, FP16, and INT8 models in terms of size, latency, and Macro-F1 score, confirming that FP16 preserves accuracy much better than INT8 on this architecture.
+- **Evaluation Plots:** Wrote code to automatically generate high-resolution PNG plots for the final report, including confusion matrices for both in-distribution (CIC-IDS2018) and cross-dataset (ToN-IoT) evaluations, as well as a bar chart comparing quantization methods.
+
+### Key Findings & Results
+- **Full 15-Class Training:** The widened model successfully achieved an in-distribution Macro-F1 score of **0.8134** across all 15 classes, hitting the ≥ 0.80 target.
+- **Cross-Dataset Model Collapse (RQ3):** Testing on the ToN-IoT dataset resulted in a Macro-F1 of **0.0427** (a drop of 0.7707). Analysis revealed this is due to a severe feature mismatch: only 21 of 76 CIC features exist in the ToN-IoT NetFlow schema. The remaining 55 zero-filled features caused the model to collapse and predict the "Infilteration" class for almost all traffic. This aligns with Cantone et al. (2024), confirming that generalization fails catastrophically without feature-schema alignment.
+
+### Problems / Blockers Addressed
+- **INT8 Precision Loss:** Static INT8 quantization previously caused a severe drop in the F1 score. We addressed this by implementing FP16 quantization, which serves as a highly effective middle ground for edge devices by cutting the model size in half without degrading the F1 score.
+- **Cross-Dataset Feature Mismatch:** The model collapsed to a single class during cross-dataset evaluation. We identified the root cause (55 unmapped/zero-filled features) and documented it as a valid research finding for RQ3 rather than a bug.
+- **ONNX Type Mismatch:** Encountered an `INVALID_ARGUMENT` error when benchmarking the FP16 model because the input array was still `float32`. Fixed this by explicitly casting the evaluation inputs to `float16` during benchmarking.
+
+### Next Week Plan
+
+---
+
 _(Add a new section each week)_
