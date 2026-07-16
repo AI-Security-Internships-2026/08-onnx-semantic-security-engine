@@ -15,7 +15,7 @@ state_dict = torch.load(model_path, map_location="cpu")
 
 # Infer input_dim from first layer weight shape
 input_dim = state_dict["fc1.weight"].shape[1]
-num_classes = state_dict["fc3.weight"].shape[0]
+num_classes = state_dict["fc4.weight"].shape[0]
 print(f"Model dimensions: input_dim={input_dim}, num_classes={num_classes}")
 
 # Initialize and load model
@@ -49,7 +49,7 @@ print(f"ONNX model exported to: {onnx_path}")
 print("\nValidating ONNX model structure...")
 onnx_model = onnx.load(str(onnx_path))
 onnx.checker.check_model(onnx_model)
-print("✓ ONNX model structure is valid")
+print("[PASS] ONNX model structure is valid")
 
 # Critical validation: compare PyTorch vs ONNX Runtime outputs
 print("\nRunning CRITICAL VALIDATION (PyTorch vs ONNX Runtime)...")
@@ -82,13 +82,13 @@ print("=" * 70)
 
 # Report result
 if not all_match:
-    print("\n❌ ERROR: PyTorch and ONNX outputs do NOT match!")
+    print("\n[FAIL] ERROR: PyTorch and ONNX outputs do NOT match!")
     print("Validation FAILED. Exiting with code 1.")
     exit(1)
 
 # Success: print validation passed and file size
-print("\n✓ VALIDATION PASSED: All 10 samples match between PyTorch and ONNX!")
+print("\n[PASS] VALIDATION PASSED: All 10 samples match between PyTorch and ONNX!")
 
 file_size_mb = os.path.getsize(onnx_path) / (1024 * 1024)
-print(f"✓ Model file size: {file_size_mb:.2f} MB")
-print(f"✓ ONNX export complete and validated: {onnx_path}")
+print(f"[PASS] Model file size: {file_size_mb:.2f} MB")
+print(f"[PASS] ONNX export complete and validated: {onnx_path}")
