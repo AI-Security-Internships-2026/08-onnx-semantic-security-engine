@@ -13,11 +13,23 @@ from pathlib import Path
 
 from model import ThreatMLP
 
-# Load and preprocess dataset
-print("Loading dataset...")
-dataset_path = Path(__file__).parent.parent / "datasets" / "CSE-CIC-IDS2018" / "02-14-2018.csv"
-df = pd.read_csv(dataset_path)
-df.columns = df.columns.str.strip()
+# Load and preprocess dataset — all 10 days
+print("Loading all CSE-CIC-IDS2018 CSV files...")
+dataset_dir = Path(__file__).parent.parent / "datasets" / "CSE-CIC-IDS2018"
+csv_files = sorted(dataset_dir.glob("*.csv"))
+print(f"Found {len(csv_files)} CSV files")
+
+frames = []
+for csv_file in csv_files:
+    print(f"  Loading {csv_file.name}...")
+    chunk = pd.read_csv(csv_file, low_memory=False)
+    chunk.columns = chunk.columns.str.strip()
+    frames.append(chunk)
+    print(f"    → {chunk.shape[0]:,} rows, {chunk.shape[1]} cols")
+
+df = pd.concat(frames, ignore_index=True)
+del frames  # free memory
+print(f"Combined dataset: {df.shape[0]:,} rows, {df.shape[1]} cols")
 
 # Drop Timestamp column if present
 if "Timestamp" in df.columns:
