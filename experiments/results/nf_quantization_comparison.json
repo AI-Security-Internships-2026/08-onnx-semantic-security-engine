@@ -1,0 +1,20 @@
+{
+  "fp32": {
+    "model": "FP32",
+    "size_mb": 0.184,
+    "latency_ms": 0.020,
+    "macro_f1": 0.7813
+  },
+  "fp16": {
+    "model": "FP16",
+    "size_mb": 0.093,
+    "latency_ms": 0.016,
+    "macro_f1": 0.7813
+  },
+  "int8": {
+    "model": "INT8",
+    "size_mb": 0.052,
+    "latency_ms": 0.022,
+    "macro_f1": 0.7612
+  }
+}

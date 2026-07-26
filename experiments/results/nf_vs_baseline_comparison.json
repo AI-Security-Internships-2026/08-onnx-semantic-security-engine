@@ -1,0 +1,57 @@
+{
+  "comparison": "Baseline (76 features) vs NF-Standardized (21 NetFlow features)",
+  "baseline_76_features": {
+    "model": "ThreatMLP (76 CICFlowMeter features)",
+    "input_dim": 76,
+    "total_parameters": 86543,
+    "in_distribution": {
+      "dataset": "CSE-CIC-IDS2018",
+      "macro_f1": 0.8134,
+      "accuracy": 0.92,
+      "test_samples": 155073
+    },
+    "cross_dataset": {
+      "dataset": "ToN-IoT",
+      "macro_f1": 0.0427,
+      "samples_evaluated": 500000,
+      "features_matched": 21,
+      "features_zero_filled": 55,
+      "failure_mode": "Model collapsed to Infilteration class due to 55 zero-filled features"
+    },
+    "quantization": {
+      "fp32_size_mb": 0.238,
+      "fp16_size_mb": 0.119,
+      "int8_size_mb": 0.065
+    }
+  },
+  "nf_standardized_21_features": {
+    "model": "ThreatMLP NF-Standardized (21 NetFlow features)",
+    "input_dim": 21,
+    "total_parameters": 48655,
+    "in_distribution": {
+      "dataset": "CSE-CIC-IDS2018",
+      "macro_f1": 0.7813,
+      "accuracy": 0.87,
+      "test_samples": 138069
+    },
+    "cross_dataset": {
+      "dataset": "ToN-IoT (full dataset)",
+      "macro_f1": 0.0304,
+      "samples_evaluated": 13135881,
+      "features_matched": 21,
+      "features_zero_filled": 0,
+      "failure_mode": "Still poor generalization despite all features matched — indicates semantic gap between CICFlowMeter and NetFlow feature extraction, not just schema mismatch"
+    },
+    "quantization": {
+      "fp32_size_mb": 0.184,
+      "fp16_size_mb": 0.093,
+      "int8_size_mb": 0.052
+    }
+  },
+  "analysis": {
+    "in_distribution_f1_delta": -0.0321,
+    "cross_dataset_f1_delta": -0.0123,
+    "key_finding": "NF-standardization eliminated zero-filling but did NOT improve cross-dataset generalization (ToN-IoT F1 dropped from 0.0427 to 0.0304). This proves the generalization failure is NOT caused by feature schema mismatch alone — the underlying feature distributions between CICFlowMeter and NetFlow/IPFIX extractors are fundamentally different. The model learned CICFlowMeter-specific statistical patterns, not universal semantic attack behavior.",
+    "implication": "Cross-dataset generalization requires domain adaptation techniques beyond feature alignment — e.g., adversarial domain adaptation, feature distribution normalization, or training on multi-source data."
+  }
+}
