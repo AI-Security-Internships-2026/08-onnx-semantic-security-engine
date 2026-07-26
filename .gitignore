@@ -40,11 +40,7 @@ datasets/**/*.zip
 datasets/**/*.tar.gz
 datasets/**/*.pcap
 
-# Model checkpoints
-*.pt
-*.pth
-*.onnx
-*.bin
+# Model checkpoints (large files only)
 checkpoints/
 models/weights/
 

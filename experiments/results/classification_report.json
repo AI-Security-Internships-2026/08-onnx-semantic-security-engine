@@ -1,0 +1,117 @@
+{
+  "model": "ThreatMLP (76 features, 15 classes, all 10 CIC-IDS2018 days)",
+  "architecture": "Input(76) -> 256 -> 128 -> 64 -> 15 (BatchNorm + Dropout 0.3)",
+  "dataset": "CSE-CIC-IDS2018",
+  "split": "80/20 stratified, random_state=42",
+  "training": {
+    "epochs": 30,
+    "batch_size": 1024,
+    "optimizer": "Adam (lr=1e-3)",
+    "scheduler": "ReduceLROnPlateau (factor=0.5, patience=3)",
+    "loss": "CrossEntropyLoss (class-weighted, balanced)",
+    "resampling": "cap majority at 100K, oversample minority to 5K",
+    "train_samples": 620289,
+    "test_samples": 155073
+  },
+  "overall": {
+    "accuracy": 0.92,
+    "macro_avg_precision": 0.79,
+    "macro_avg_recall": 0.87,
+    "macro_avg_f1": 0.8134,
+    "weighted_avg_precision": 0.93,
+    "weighted_avg_recall": 0.92,
+    "weighted_avg_f1": 0.92
+  },
+  "per_class": {
+    "Benign": {
+      "precision": 0.92,
+      "recall": 0.56,
+      "f1": 0.70,
+      "support": 20000
+    },
+    "Bot": {
+      "precision": 1.00,
+      "recall": 0.99,
+      "f1": 0.99,
+      "support": 20000
+    },
+    "Brute Force -Web": {
+      "precision": 0.63,
+      "recall": 0.74,
+      "f1": 0.68,
+      "support": 1000
+    },
+    "Brute Force -XSS": {
+      "precision": 0.49,
+      "recall": 0.93,
+      "f1": 0.64,
+      "support": 1000
+    },
+    "DDOS attack-HOIC": {
+      "precision": 1.00,
+      "recall": 1.00,
+      "f1": 1.00,
+      "support": 20000
+    },
+    "DDOS attack-LOIC-UDP": {
+      "precision": 0.97,
+      "recall": 1.00,
+      "f1": 0.98,
+      "support": 1000
+    },
+    "DDoS attacks-LOIC-HTTP": {
+      "precision": 1.00,
+      "recall": 1.00,
+      "f1": 1.00,
+      "support": 20000
+    },
+    "DoS attacks-GoldenEye": {
+      "precision": 1.00,
+      "recall": 1.00,
+      "f1": 1.00,
+      "support": 8281
+    },
+    "DoS attacks-Hulk": {
+      "precision": 1.00,
+      "recall": 1.00,
+      "f1": 1.00,
+      "support": 20000
+    },
+    "DoS attacks-SlowHTTPTest": {
+      "precision": 0.00,
+      "recall": 0.00,
+      "f1": 0.00,
+      "support": 1000
+    },
+    "DoS attacks-Slowloris": {
+      "precision": 0.97,
+      "recall": 1.00,
+      "f1": 0.98,
+      "support": 1982
+    },
+    "FTP-BruteForce": {
+      "precision": 0.50,
+      "recall": 1.00,
+      "f1": 0.67,
+      "support": 1000
+    },
+    "Infilteration": {
+      "precision": 0.69,
+      "recall": 0.91,
+      "f1": 0.78,
+      "support": 20000
+    },
+    "SQL Injection": {
+      "precision": 0.67,
+      "recall": 0.95,
+      "f1": 0.78,
+      "support": 1000
+    },
+    "SSH-Bruteforce": {
+      "precision": 1.00,
+      "recall": 1.00,
+      "f1": 1.00,
+      "support": 18810
+    }
+  }
+}
