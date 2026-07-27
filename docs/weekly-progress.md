@@ -163,6 +163,109 @@ My name is Muhammad Sikandar Hussain. I am studying BS Artificial Intelligence a
 - **ONNX Type Mismatch:** Encountered an `INVALID_ARGUMENT` error when benchmarking the FP16 model because the input array was still `float32`. Fixed this by explicitly casting the evaluation inputs to `float16` during benchmarking.
 
 ### Next Week Plan
+- Investigate NF-standardization approach: retrain model using only the 21 NetFlow-compatible features
+- Design and develop `nf-standardized-training.ipynb` notebook
+- Research semantic feature mapping between CICFlowMeter and NetFlow/IPFIX schemas
+
+---
+
+## Week 6
+
+**Branch:** `sikandarhussain6858-week-06`
+**PR link:** _[Add link after opening PR]_
+
+### Checklist
+- [x] Researched NetFlow feature standardization approach to address RQ3 feature mismatch
+- [x] Identified 21 common features between CICFlowMeter (CIC-IDS2018) and NetFlow/IPFIX (ToN-IoT)
+- [x] Designed feature mapping between the two schemas
+- [x] Developed `nf-standardized-training.ipynb` notebook on Kaggle
+- [x] Configured NF model architecture: Input(21) → 256 → 128 → 64 → 15
+
+### What I Did This Week
+- **NF-Standardization Research:** Investigated why the baseline model collapsed on ToN-IoT (Macro-F1: 0.0427). The root cause — 55 of 76 features were zero-filled because ToN-IoT uses NetFlow/IPFIX feature extraction while CIC-IDS2018 uses CICFlowMeter. The hypothesis: if we retrain using only the 21 features common to both schemas, cross-dataset generalization should improve.
+- **Feature Mapping Design:** Created a semantic mapping between the 21 overlapping features. For example: `FLOW_DURATION_MILLISECONDS` (NetFlow) ↔ `Flow Duration` (CIC), `IN_PKTS` ↔ `Total Fwd Packets`, `IN_BYTES` ↔ `Fwd Packets Length Total`, etc. The full mapping is documented in `experiments/results/nf_cross_dataset_comparison.json`.
+- **Notebook Development:** Built `experiments/notebooks/nf-standardized-training.ipynb` on Kaggle, including:
+  - Data loading for all 10 days of CIC-IDS2018 using only the 21 NF-compatible features
+  - Class resampling strategy (cap majority at 100K, oversample minority to 5K)
+  - Training with ReduceLROnPlateau scheduler for 30 epochs
+  - Cross-dataset evaluation pipeline against full ToN-IoT dataset (13.1M samples)
+  - Automated ONNX export with FP32/FP16/INT8 quantization variants
+
+### What I Learned
+- The feature mismatch between CICFlowMeter and NetFlow is not just a naming problem — the features are extracted by fundamentally different tools with different statistical properties.
+- Reducing feature dimensionality from 76 → 21 cuts model parameters from 86,543 → 48,655 (a 44% reduction), which is favorable for edge deployment.
+- Class resampling is critical when training on the full 10-day CIC-IDS2018 dataset, as some classes (e.g., DDOS attack-HOIC) dominate while others (e.g., SQL Injection) have very few samples.
+
+### Challenges / Questions for Supervisor
+- Will feature alignment alone be enough to improve cross-dataset generalization, or are the underlying distributions too different?
+- Should we explore domain adaptation techniques if NF-standardization doesn't help?
+
+### Next Week Plan
+- Execute the NF-standardized training notebook on Kaggle
+- Download and commit all result artifacts
+- Create baseline-vs-NF comparison JSON
+- Analyze whether NF-standardization improves ToN-IoT generalization
+
+---
+
+## Week 7
+
+**Branch:** `sikandarhussain6858-week-07`
+**PR link:** _[Add link after opening PR]_
+
+### Checklist
+- [x] Executed `nf-standardized-training.ipynb` on Kaggle (full run)
+- [x] Committed NF classification report with per-class metrics
+- [x] Committed NF cross-dataset evaluation results (ToN-IoT, 13.1M samples)
+- [x] Committed NF quantization comparison (FP32/FP16/INT8)
+- [x] Created `nf_vs_baseline_comparison.json` with side-by-side analysis
+- [x] Documented key findings and implications
+
+### What I Did This Week
+- **NF-Standardized Model Training:** Executed the complete notebook on Kaggle. The NF model was trained on 552,275 samples (80/20 split, stratified) for 30 epochs with Adam optimizer (lr=1e-3), ReduceLROnPlateau scheduler (factor=0.5, patience=3), and class-weighted CrossEntropyLoss.
+- **In-Distribution Evaluation (CIC-IDS2018):** The NF-standardized model achieved:
+  - **Macro-F1: 0.7813** (vs. baseline 0.8134 — a small -0.032 delta, expected given fewer features)
+  - **Accuracy: 0.87** | Weighted-F1: 0.87
+  - **Best classes:** SSH-Bruteforce (F1: 1.00), DDOS attack-HOIC (F1: 1.00), DDOS attack-LOIC-UDP (F1: 0.99)
+  - **Worst class:** DoS attacks-SlowHTTPTest (F1: 0.00 — this attack is indistinguishable with only 21 features)
+- **Cross-Dataset Evaluation (ToN-IoT):** Tested the NF model on the **full** ToN-IoT dataset (13,135,881 samples — vs. the baseline which only used 500K):
+  - **Macro-F1: 0.0304** (vs. baseline 0.0427 — actually *worse*)
+  - **Zero features zero-filled** (vs. baseline's 55 zero-filled) — the schema mismatch was eliminated
+  - But generalization still failed catastrophically
+- **NF Model Quantization:** Exported and benchmarked all three precision levels:
+
+  | Precision | Size (MB) | Latency (ms) | Macro-F1 |
+  |---|---|---|---|
+  | FP32 | 0.184 | 0.020 | 0.7813 |
+  | FP16 | 0.093 | 0.016 | 0.7813 |
+  | INT8 | 0.052 | 0.022 | 0.7612 |
+
+- **Baseline vs NF Comparison:** Created `experiments/results/nf_vs_baseline_comparison.json` documenting the full side-by-side analysis.
+
+### Key Findings & Results
+
+> **Critical Finding:** NF-standardization eliminated the zero-filling problem but did **NOT** improve cross-dataset generalization. ToN-IoT Macro-F1 actually dropped from 0.0427 → 0.0304.
+
+This is a significant negative result that conclusively answers a key research question:
+
+1. **The generalization failure is NOT caused by feature schema mismatch alone.** Even with all 21 features properly matched (0 zero-filled), the model cannot generalize.
+2. **The underlying feature distributions are fundamentally different.** CICFlowMeter and NetFlow/IPFIX extractors compute semantically similar features (e.g., packet counts, byte counts) but produce statistically different distributions. The model learned CICFlowMeter-specific patterns, not universal attack behavior.
+3. **Implication for the field:** Cross-dataset generalization in NIDS requires domain adaptation techniques (e.g., adversarial domain adaptation, feature distribution normalization, or multi-source training) — simple feature alignment is insufficient.
+
+**Model Size Comparison:**
+- Baseline: 86,543 parameters (76-dim input) → FP32: 0.238 MB, INT8: 0.065 MB
+- NF-Standardized: 48,655 parameters (21-dim input) → FP32: 0.184 MB, INT8: 0.052 MB
+- **44% parameter reduction** — favorable for edge deployment even though generalization didn't improve
+
+### Problems / Blockers Addressed
+- **Kaggle Execution Time:** The full ToN-IoT evaluation (13.1M samples) required careful memory management on Kaggle's free tier. Used chunked evaluation to avoid OOM errors.
+- **Negative Result Framing:** Initially expected NF-standardization to improve generalization. Reframed the negative result as a valuable empirical finding that advances understanding of why NIDS models fail to generalize.
+
+### Next Week Plan
+- Download NF model weight files from Kaggle and commit to repo
+- Update `src/export_onnx.py` to support NF model (21-feature input)
+- Begin building the semantic engine layer (confidence flagging, drift detection)
+- Start KV-cache literature survey for edge-efficiency track
 
 ---
 
