@@ -40,11 +40,7 @@ datasets/**/*.zip
 datasets/**/*.tar.gz
 datasets/**/*.pcap
 
-# Model checkpoints
-*.pt
-*.pth
-*.onnx
-*.bin
+# Model checkpoints (large files only)
 checkpoints/
 models/weights/
 
@@ -65,3 +61,6 @@ credentials/
 # Results that can be reproduced
 experiments/results/*.png
 experiments/results/*.pdf
+
+# Personal plans / notes (not for GitHub)
+sikandar-plans/
