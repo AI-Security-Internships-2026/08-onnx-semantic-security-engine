@@ -224,31 +224,31 @@ My name is Muhammad Sikandar Hussain. I am studying BS Artificial Intelligence a
 ### What I Did This Week
 - **NF-Standardized Model Training:** Executed the complete notebook on Kaggle. The NF model was trained on 552,275 samples (80/20 split, stratified) for 30 epochs with Adam optimizer (lr=1e-3), ReduceLROnPlateau scheduler (factor=0.5, patience=3), and class-weighted CrossEntropyLoss.
 - **In-Distribution Evaluation (CIC-IDS2018):** The NF-standardized model achieved:
-  - **Macro-F1: 0.7813** (vs. baseline 0.8134 — a small -0.032 delta, expected given fewer features)
+  - **Macro-F1: 0.7658** (vs. baseline 0.8134 — a -0.048 delta, expected given fewer features)
   - **Accuracy: 0.87** | Weighted-F1: 0.87
   - **Best classes:** SSH-Bruteforce (F1: 1.00), DDOS attack-HOIC (F1: 1.00), DDOS attack-LOIC-UDP (F1: 0.99)
   - **Worst class:** DoS attacks-SlowHTTPTest (F1: 0.00 — this attack is indistinguishable with only 21 features)
 - **Cross-Dataset Evaluation (ToN-IoT):** Tested the NF model on the **full** ToN-IoT dataset (13,135,881 samples — vs. the baseline which only used 500K):
-  - **Macro-F1: 0.0304** (vs. baseline 0.0427 — actually *worse*)
+  - **Macro-F1: 0.0571** (vs. baseline 0.0427 — a marginal +33.7% relative improvement)
   - **Zero features zero-filled** (vs. baseline's 55 zero-filled) — the schema mismatch was eliminated
-  - But generalization still failed catastrophically
+  - But generalization still failed catastrophically despite the marginal improvement
 - **NF Model Quantization:** Exported and benchmarked all three precision levels:
 
   | Precision | Size (MB) | Latency (ms) | Macro-F1 |
   |---|---|---|---|
-  | FP32 | 0.184 | 0.020 | 0.7813 |
-  | FP16 | 0.093 | 0.016 | 0.7813 |
-  | INT8 | 0.052 | 0.022 | 0.7612 |
+  | FP32 | 0.184 | 0.019 | 0.7658 |
+  | FP16 | 0.093 | 0.021 | 0.7657 |
+  | INT8 | 0.052 | 0.024 | 0.7686 |
 
 - **Baseline vs NF Comparison:** Created `experiments/results/nf_vs_baseline_comparison.json` documenting the full side-by-side analysis.
 
 ### Key Findings & Results
 
-> **Critical Finding:** NF-standardization eliminated the zero-filling problem but did **NOT** improve cross-dataset generalization. ToN-IoT Macro-F1 actually dropped from 0.0427 → 0.0304.
+> **Critical Finding:** NF-standardization eliminated the zero-filling problem and produced a marginal improvement in cross-dataset F1 (0.0427 → 0.0571, +33.7% relative). However, the absolute cross-dataset F1 remains catastrophically low (0.0571), confirming that feature schema alignment alone is insufficient.
 
-This is a significant negative result that conclusively answers a key research question:
+This is a significant finding that conclusively answers a key research question:
 
-1. **The generalization failure is NOT caused by feature schema mismatch alone.** Even with all 21 features properly matched (0 zero-filled), the model cannot generalize.
+1. **The generalization failure is NOT caused by feature schema mismatch alone.** Even with all 21 features properly matched (0 zero-filled), the model cannot meaningfully generalize (F1: 0.0571).
 2. **The underlying feature distributions are fundamentally different.** CICFlowMeter and NetFlow/IPFIX extractors compute semantically similar features (e.g., packet counts, byte counts) but produce statistically different distributions. The model learned CICFlowMeter-specific patterns, not universal attack behavior.
 3. **Implication for the field:** Cross-dataset generalization in NIDS requires domain adaptation techniques (e.g., adversarial domain adaptation, feature distribution normalization, or multi-source training) — simple feature alignment is insufficient.
 
