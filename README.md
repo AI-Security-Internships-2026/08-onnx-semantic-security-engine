@@ -99,6 +99,24 @@ python src/main.py
 
 ---
 
+## Roadmap to September 8, 2026
+
+**Current state:** week-06 submission is currently thin — mostly deletions from the training notebook, not yet the standardized-data retraining described in its own PR body (issue #13). A Phase 2 assignment already exists (issue #12): KV-cache memory/eviction strategy for edge-deployed models.
+
+**Novel contribution target:** tie the "semantic security engine" name to something ONNX-Runtime-specific — detecting semantic drift or adversarial inputs at inference time using the exported graph itself, combined with the KV-cache memory/eviction work for edge deployment.
+
+| Date | Milestone |
+|---|---|
+| Aug 2 | Finish the week-6 standardized-data retraining and ONNX export properly (issue #13) |
+| Aug 9 | Phase 2 start (issue #12): investigate KV-cache memory/eviction strategy for edge-deployed models |
+| Aug 16 | Tie ONNX-Runtime-based semantic-drift/adversarial-input detection into the memory/eviction work |
+| Aug 23 | Benchmark detection latency/accuracy on ONNX Runtime vs. the pre-export model |
+| Aug 30 | Full write-up |
+| Sep 6 | Paper draft |
+| **Sep 8** | **Final submission** |
+
+---
+
 ## Supervisor Note
 
 This repository is managed by **CNIT/PNTLab Pisa, TECIP, Scuola Superiore Sant'Anna**.
