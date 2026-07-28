@@ -269,4 +269,86 @@ This is a significant finding that conclusively answers a key research question:
 
 ---
 
+## Week 8
+
+**Branch:** `sikandarhussain6858-week-08`
+**PR link:** _[Add link after opening PR]_
+
+### Checklist
+- [x] Built `src/semantic_analyzer.py` — core semantic engine module with 4 classes
+- [x] Implemented Feature B: ONNX intermediate-layer drift detection (fc3 embedding, 64-dim)
+- [x] Implemented Feature C: Input validation (schema, range, z-score, zero-fill, NaN/Inf checks)
+- [x] Re-exported NF ONNX model with dual outputs (logits + embedding) — all 10 validation samples match
+- [x] Created `src/embedding_reference.py` — reference embedding generator (works without training dataset)
+- [x] Added `ThreatMLPWithEmbedding` wrapper to `src/model.py`
+- [x] Updated `src/export_onnx.py` with `--with-embeddings` / `--no-embeddings` flags
+- [x] Updated `src/inference_engine.py` with `/predict/secure` endpoint
+- [x] Created `tests/test_semantic.py` — 28 unit tests, all passing
+- [x] Generated `experiments/reference_embeddings_nf.npz` and `experiments/training_feature_stats_nf.json`
+
+### What I Did This Week
+
+- **Semantic Analyzer Module (`src/semantic_analyzer.py`):** Created the core semantic engine module containing four classes:
+  - `ConfidenceAnalyzer` — Feature A refactored from `inference_engine.py`. Flags `LOW_CONFIDENCE` when `max(softmax) < 0.70`.
+  - `DriftDetector` — **Feature B (NEW).** Loads 64-dim reference embeddings from training data. At inference time, extracts the fc3 hidden layer output from the ONNX model and computes cosine distance + Mahalanobis distance to training centroids. Flags `DRIFT_DETECTED` when either distance exceeds its 95th-percentile threshold.
+  - `InputValidator` — **Feature C (NEW).** Validates raw input vectors before model inference: schema check (correct feature count), NaN/Inf rejection, range check (±5σ from training mean), z-score outlier detection (|z| > 5), and zero-fill detection (>50% zero features). The zero-fill check directly catches the RQ3 failure mode — when a cross-dataset feature extractor produces incompatible distributions.
+  - `SemanticSecurityEngine` — Orchestrator that composes all three analyzers and returns a unified `SemanticResult` with `engine_verdict` (CLEAN / SUSPICIOUS / REJECTED).
+
+- **ONNX Dual-Output Re-export:** Added `ThreatMLPWithEmbedding` wrapper class to `src/model.py` that returns both the final logits and the fc3 hidden layer activation (64-dim embedding) as a tuple. Updated `src/export_onnx.py` with `--with-embeddings` flag (default: True). Re-exported the NF model — validation confirmed all 10 samples match between PyTorch and ONNX Runtime, with maximum embedding diff of 0.000027.
+
+  | ONNX Output | Shape | Purpose |
+  |---|---|---|
+  | `output` | [batch, 15] | Classification logits (15 attack classes) |
+  | `embedding` | [batch, 64] | fc3 hidden layer for drift detection |
+
+- **Reference Embedding Generator (`src/embedding_reference.py`):** Since the CIC-IDS2018 dataset is not available locally, this script derives training statistics directly from the fitted `StandardScaler` (which stores the training data's mean and variance). It generates 5,000 synthetic samples from the training distribution, runs them through the ONNX model, and computes:
+  - Global centroid (64-dim mean embedding)
+  - 15 per-class centroids
+  - 64×64 covariance matrix + inverse (for Mahalanobis distance)
+  - Cosine threshold: 0.6837 (95th percentile)
+  - Mahalanobis threshold: 13.1733 (95th percentile)
+  - Per-feature training stats: mean, std, min_approx, max_approx for all 21 NF features
+
+- **Inference Engine Update (`src/inference_engine.py`):** Added new `/predict/secure` and `/predict/secure/batch` endpoints that run all three semantic checks on every prediction. The response includes `drift_score`, `drift_flag`, `validation_passed`, `validation_alerts[]`, and a `semantic_summary` with `engine_verdict`. Original `/predict` and `/predict/batch` endpoints are preserved unchanged for backward compatibility. Updated `/health` endpoint to report semantic feature availability. Bumped API version to 3.0.0.
+
+- **Unit Tests (`tests/test_semantic.py`):** Created 28 test cases using synthetic fixtures (no ONNX model or dataset dependency):
+
+  | Test Suite | Tests | Status |
+  |---|---|---|
+  | `TestConfidenceAnalyzer` | 7 | ✅ All pass |
+  | `TestDriftDetector` | 6 | ✅ All pass |
+  | `TestInputValidator` | 10 | ✅ All pass |
+  | `TestSemanticSecurityEngine` | 5 | ✅ All pass |
+
+### Key Findings & Results
+
+> **This is what makes the project a "semantic security engine" rather than just a classifier.** The semantic layer uses ONNX Runtime's unique capability — intermediate-layer extraction — to detect distribution drift at inference time. This directly addresses the supervisor's feedback: *"tying in something ONNX-Runtime-specific (e.g., detecting semantic drift or adversarial inputs at inference time, using the exported graph itself rather than just the pre-export model) would be a more novel angle."*
+
+**Files created/modified this week:**
+
+| File | Action | Purpose |
+|---|---|---|
+| `src/semantic_analyzer.py` | **NEW** | Core semantic engine — drift detection, input validation, confidence scoring |
+| `src/embedding_reference.py` | **NEW** | Reference embedding + training stats generator |
+| `tests/test_semantic.py` | **NEW** | 28 unit tests for semantic layer |
+| `src/model.py` | MODIFIED | Added `ThreatMLPWithEmbedding` wrapper |
+| `src/export_onnx.py` | MODIFIED | Dual-output ONNX export (logits + embedding) |
+| `src/inference_engine.py` | MODIFIED | `/predict/secure` endpoint, semantic engine integration |
+| `experiments/reference_embeddings_nf.npz` | **NEW** | Centroids, covariance, thresholds for drift detection |
+| `experiments/training_feature_stats_nf.json` | **NEW** | Per-feature training stats for input validation |
+
+### Problems / Blockers Addressed
+- **Dataset not available locally:** Solved by deriving training statistics from the fitted `StandardScaler`'s stored parameters (mean, variance). This is mathematically equivalent to computing stats from the data directly, since the scaler was fit on the training set.
+- **Cosine distance NaN:** When either the embedding or centroid is a zero vector, `scipy.spatial.distance.cosine` returns NaN. Fixed by adding `np.nan_to_num` fallback in `DriftDetector.analyze()`.
+
+### Next Week Plan
+- Integration testing: feed ToN-IoT data through `/predict/secure` → verify drift detection fires
+- Feed random noise → verify anomaly flagging fires
+- Feed zero-filled data → verify input validation catches it
+- Benchmark latency overhead of semantic features vs plain classification
+- Save all results to `experiments/results/semantic_engine_evaluation.json`
+
+---
+
 _(Add a new section each week)_
+

@@ -39,3 +39,26 @@ class ThreatMLP(nn.Module):
         x = self.dropout2(self.relu2(self.bn2(self.fc2(x))))
         x = self.dropout3(self.relu3(self.bn3(self.fc3(x))))
         return self.fc4(x)
+
+
+class ThreatMLPWithEmbedding(nn.Module):
+    """Wrapper that returns both logits and fc3 embeddings (64-dim).
+
+    Used for ONNX export with dual outputs — the embedding vector enables
+    drift detection by comparing inference-time activations against
+    training-data reference centroids.
+
+    Architecture: Same as ThreatMLP, but forward() returns (logits, embedding).
+    """
+
+    def __init__(self, base_model: ThreatMLP):
+        super().__init__()
+        self.base = base_model
+
+    def forward(self, x):
+        x = self.base.dropout1(self.base.relu1(self.base.bn1(self.base.fc1(x))))
+        x = self.base.dropout2(self.base.relu2(self.base.bn2(self.base.fc2(x))))
+        embedding = self.base.relu3(self.base.bn3(self.base.fc3(x)))
+        x = self.base.dropout3(embedding)
+        logits = self.base.fc4(x)
+        return logits, embedding
