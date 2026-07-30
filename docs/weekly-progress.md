@@ -269,9 +269,9 @@ This is a significant finding that conclusively answers a key research question:
 
 ---
 
-## Week 8
+## Week 7 (Part 2)
 
-**Branch:** `sikandarhussain6858-week-08`
+**Branch:** `sikandarhussain6858-week-07`
 **PR link:** _[Add link after opening PR]_
 
 ### Checklist
@@ -338,7 +338,7 @@ This is a significant finding that conclusively answers a key research question:
 | `experiments/training_feature_stats_nf.json` | **NEW** | Per-feature training stats for input validation |
 
 ### Problems / Blockers Addressed
-- **Dataset not available locally:** Solved by deriving training statistics from the fitted `StandardScaler`'s stored parameters (mean, variance). This is mathematically equivalent to computing stats from the data directly, since the scaler was fit on the training set.
+- **Dataset not available locally:** Initially, I derived training statistics from the fitted `StandardScaler` and generated synthetic `N(0,1)` noise for reference embeddings. However, this destroyed the correlation structure of the network-flow features and caused inaccurate class centroids. This was corrected by loading a subset of the real training dataset to generate the embeddings, ensuring the true underlying correlations and ground-truth labels are used.
 - **Cosine distance NaN:** When either the embedding or centroid is a zero vector, `scipy.spatial.distance.cosine` returns NaN. Fixed by adding `np.nan_to_num` fallback in `DriftDetector.analyze()`.
 
 ### Next Week Plan
