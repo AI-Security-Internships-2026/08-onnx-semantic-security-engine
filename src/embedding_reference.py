@@ -7,11 +7,12 @@ security engine's drift detector and input validator.
 Since the training dataset may not be available locally, this script derives
 training feature statistics from the fitted StandardScaler (which stores the
 training data's mean and variance) and generates reference embeddings by
-sampling from the training distribution and running through the ONNX model.
+loading a subset of the real training dataset and running it through the
+ONNX model to capture the true correlation structure.
 
 Outputs:
     experiments/reference_embeddings.npz
-        - global_centroid:   (64,) mean embedding across all synthetic samples
+        - global_centroid:   (64,) mean embedding across all training samples
         - class_centroids:   (num_classes, 64) per-class centroids (if labels available)
         - covariance:        (64, 64) covariance matrix of embedding space
         - cosine_threshold:  scalar — 95th percentile of cosine distances (for drift cutoff)
@@ -30,6 +31,7 @@ Usage:
 import argparse
 import json
 import numpy as np
+import pandas as pd
 import joblib
 import onnxruntime as ort
 from pathlib import Path
@@ -42,8 +44,8 @@ parser.add_argument(
     help="Use NF-standardized model (21 features)"
 )
 parser.add_argument(
-    "--num-samples", type=int, default=5000,
-    help="Number of synthetic samples to generate for reference embeddings (default: 5000)"
+    "--num-samples", type=int, default=100000,
+    help="Number of real samples to load for reference embeddings (default: 100000)"
 )
 args = parser.parse_args()
 
@@ -80,7 +82,7 @@ NF_FEATURE_NAMES = [
 ]
 
 print(f"Reference Embedding Generator — {model_label}")
-print(f"  Synthetic samples: {args.num_samples}")
+print(f"  Real training samples to load: {args.num_samples}")
 
 # ── Load StandardScaler ──
 scaler_path = EXPERIMENTS / f"standard_scaler{suffix}.joblib"
@@ -136,7 +138,7 @@ with open(stats_path, "w") as f:
 print(f"  Saved: {stats_path}")
 
 # ── Step 2: Load ONNX Model and Generate Embeddings ──
-print("\n[Step 2/3] Loading ONNX model and generating synthetic embeddings...")
+print("\n[Step 2/3] Loading ONNX model and generating reference embeddings...")
 
 onnx_path = EXPERIMENTS / f"threat_mlp{suffix}_fp32.onnx"
 if not onnx_path.exists():
@@ -155,11 +157,44 @@ if not has_embedding:
     print("       Re-export with: python src/export_onnx.py --nf --with-embeddings")
     print("       Falling back to logits-only mode for reference stats.")
 
-# Generate synthetic samples from the training distribution
-# Since StandardScaler normalizes to N(0,1), we sample from N(0,1) in scaled space
-# and inverse-transform to get realistic raw feature values
-np.random.seed(42)
-scaled_samples = np.random.randn(args.num_samples, n_features).astype(np.float32)
+# Load a sample of real training data to preserve feature correlations
+print(f"  Loading real training data from datasets/CSE-CIC-IDS2018 (up to {args.num_samples} samples)...")
+dataset_dir = BASE_DIR / "datasets" / "CSE-CIC-IDS2018"
+csv_files = sorted(dataset_dir.glob("*.csv"))
+if not csv_files:
+    print(f"[FAIL] No CSV files found in {dataset_dir}")
+    exit(1)
+
+frames = []
+loaded_samples = 0
+for csv_file in csv_files:
+    if loaded_samples >= args.num_samples:
+        break
+    # Read chunk
+    chunk = pd.read_csv(csv_file, low_memory=False, nrows=args.num_samples - loaded_samples)
+    chunk.columns = chunk.columns.str.strip()
+    frames.append(chunk)
+    loaded_samples += len(chunk)
+
+df = pd.concat(frames, ignore_index=True)
+if "Timestamp" in df.columns:
+    df = df.drop(columns=["Timestamp"])
+df.replace([np.inf, -np.inf], np.nan, inplace=True)
+df = df.dropna()
+df = df.drop_duplicates()
+
+if args.nf:
+    available_nf = [f for f in NF_FEATURE_NAMES if f in df.columns]
+    X_raw = df[available_nf].values
+else:
+    X_raw = df.drop(columns=["Label"]).values
+
+y_raw = df["Label"].values
+y_encoded = encoder.transform(y_raw)
+
+# Scale features using the loaded StandardScaler
+print("  Scaling features...")
+scaled_samples = scaler.transform(X_raw).astype(np.float32)
 
 # Run through ONNX model in batches
 batch_size = 256
@@ -198,11 +233,10 @@ covariance = np.cov(all_embeddings.T)
 covariance += np.eye(emb_dim) * 1e-6
 print(f"  Covariance matrix shape: {covariance.shape}")
 
-# Per-class centroids (based on predicted labels from synthetic data)
-pred_classes = np.argmax(all_logits, axis=1)
+# Per-class centroids (based on true ground-truth labels)
 class_centroids = np.zeros((num_classes, emb_dim))
 for cls_idx in range(num_classes):
-    mask = pred_classes == cls_idx
+    mask = y_encoded == cls_idx
     if mask.sum() > 0:
         class_centroids[cls_idx] = np.mean(all_embeddings[mask], axis=0)
     else:

@@ -446,7 +446,7 @@ class SemanticSecurityEngine:
         if not validation_result.validation_passed:
             verdict = "REJECTED"
         elif total_alerts >= 2:
-            verdict = "SUSPICIOUS"
+            verdict = "HIGH_RISK"
         elif total_alerts >= 1:
             verdict = "SUSPICIOUS"
         else:

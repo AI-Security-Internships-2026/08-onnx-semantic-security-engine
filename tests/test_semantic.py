@@ -339,7 +339,19 @@ class TestSemanticSecurityEngine:
         result = mock_engine.analyze(raw_features, softmax_probs, embedding)
 
         assert result.confidence_flag == "LOW_CONFIDENCE"
-        assert result.engine_verdict in ("SUSPICIOUS", "REJECTED")
+        assert result.engine_verdict == "SUSPICIOUS"
+
+    def test_high_risk_multiple_alerts(self, mock_engine):
+        """Multiple alerts (low confidence + drift) should produce HIGH_RISK verdict."""
+        raw_features = np.array([100.0, 100.0, 100.0, 100.0, 100.0])
+        softmax_probs = np.array([0.35, 0.35, 0.30])  # low confidence
+        embedding = np.ones(64) * 100.0  # extreme drift
+        
+        result = mock_engine.analyze(raw_features, softmax_probs, embedding)
+        
+        assert result.confidence_flag == "LOW_CONFIDENCE"
+        assert result.drift_flag == "DRIFT_DETECTED"
+        assert result.engine_verdict == "HIGH_RISK"
 
     def test_rejected_invalid_input(self, mock_engine):
         """Invalid input (NaN) should produce REJECTED verdict."""
