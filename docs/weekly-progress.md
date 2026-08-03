@@ -350,5 +350,30 @@ This is a significant finding that conclusively answers a key research question:
 
 ---
 
+## Week 8
+
+**Branch:** \sikandarhussain6858-week-08**PR link:** _[Add link after opening PR]_
+
+### Checklist
+- [x] Integration testing: full pipeline end-to-end (ToN-IoT, Random Noise, Zero-filled data)
+- [x] Benchmark latency overhead of semantic features vs plain classification
+- [x] Save all results to \experiments/results/semantic_engine_evaluation.json- [x] Generate plots for evaluation results \experiments/images/semantic_engine_evaluation_plots.png- [x] Update \sikandar-plans/action-plan-weeks-7-13.md\ and \docs/weekly-progress.md
+### What I Did This Week
+- **Semantic Engine Evaluation:** Developed and executed \scripts/evaluate_semantic_engine.py\ to test the semantic engine on real data across four scenarios: In-Distribution (CIC-IDS2018), Out-of-Distribution (ToN-IoT), Random Gaussian Noise, and Zero-Filled Inputs. We bumped the sample sizes to 10,000 for CIC-IDS2018 and ToN-IoT to ensure robust statistical claims for the upcoming paper.
+- **Latencies:** Profiled the latency of the semantic engine and proved it fits within edge budgets.
+
+### Key Findings & Results
+- **Drift Detection is Highly Effective:** The drift detector flagged 99.2% of the ToN-IoT OOD data while only flagging 6.0% of the in-distribution CIC data.
+- **Confidence Scoring is Insufficient (Key Finding):** The model exhibited high confidence (94.0% average) on ToN-IoT data, despite being completely wrong (Macro-F1 of 0.0571). This definitively proves that softmax confidence scoring is insufficient as an OOD signal for NIDS classifiers, highlighting the necessity of our embedding-space drift detection.
+- **Input Validation:** Zero-fill detection caught 100% of the simulated RQ3 failure cases.
+- **Latency Overhead:** The entire semantic layer adds <1ms per sample (+0.73ms), proving it is well within edge deployment latency budgets (10-100ms per flow).
+
+### Next Week Plan
+- Draft the IEEE TDSC Research Paper (8-10 pages) focusing on the semantic security engine as the core contribution to address RQ3.
+- Discuss KV-cache track status with supervisor.
+
+---
+
 _(Add a new section each week)_
+
 

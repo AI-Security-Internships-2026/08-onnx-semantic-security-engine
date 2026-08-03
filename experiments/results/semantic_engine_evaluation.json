@@ -1,0 +1,215 @@
+{
+  "experiment": "Semantic Security Engine Integration Evaluation",
+  "model": "ThreatMLP NF-Standardized (21 features, 15 classes)",
+  "onnx_model": "threat_mlp_nf_fp32.onnx",
+  "thresholds": {
+    "confidence_threshold": 0.7,
+    "cosine_drift_threshold": 0.6837329864501953,
+    "mahalanobis_drift_threshold": 13.173317522130768,
+    "zscore_threshold": 5.0,
+    "zero_fill_ratio": 0.5,
+    "range_tolerance_sigmas": 5.0
+  },
+  "scenarios": {
+    "in_distribution": {
+      "scenario": "Scenario 1: In-Distribution (CIC-IDS2018)",
+      "n_samples": 10000,
+      "drift_detected_count": 603,
+      "drift_detected_pct": 6.03,
+      "low_confidence_count": 1726,
+      "low_confidence_pct": 17.26,
+      "validation_passed_count": 10000,
+      "validation_passed_pct": 100.0,
+      "drift_score_stats": {
+        "mean": 0.7015,
+        "std": 0.1568,
+        "min": 0.6018,
+        "max": 2.0,
+        "median": 0.6197,
+        "p95": 1.0098
+      },
+      "cosine_distance_stats": {
+        "mean": 0.4786,
+        "std": 0.1025,
+        "median": 0.4237,
+        "p95": 0.6893
+      },
+      "mahalanobis_distance_stats": {
+        "mean": 6.1221,
+        "std": 1.3767,
+        "median": 6.2492,
+        "p95": 6.251
+      },
+      "confidence_stats": {
+        "mean": 0.9068,
+        "std": 0.1793,
+        "min": 0.3531,
+        "median": 1.0
+      },
+      "engine_verdicts": {
+        "CLEAN": 7794,
+        "SUSPICIOUS": 662,
+        "HIGH_RISK": 1544,
+        "REJECTED": 0
+      },
+      "validation_alert_types": {
+        "OUT_OF_RANGE": 332,
+        "EXTREME_OUTLIERS": 332,
+        "ZERO_FILLED": 1188
+      }
+    },
+    "out_of_distribution": {
+      "scenario": "Scenario 2: Out-of-Distribution (ToN-IoT, real data)",
+      "n_samples": 10000,
+      "drift_detected_count": 9924,
+      "drift_detected_pct": 99.24,
+      "low_confidence_count": 93,
+      "low_confidence_pct": 0.93,
+      "validation_passed_count": 10000,
+      "validation_passed_pct": 100.0,
+      "drift_score_stats": {
+        "mean": 1.313,
+        "std": 0.4108,
+        "min": 0.8024,
+        "max": 2.0,
+        "median": 1.0684,
+        "p95": 2.0
+      },
+      "cosine_distance_stats": {
+        "mean": 0.6997,
+        "std": 0.0514,
+        "median": 0.7305,
+        "p95": 0.7305
+      },
+      "mahalanobis_distance_stats": {
+        "mean": 61602890253071.72,
+        "std": 6159940117240568.0,
+        "median": 12.5901,
+        "p95": 1030.2042
+      },
+      "confidence_stats": {
+        "mean": 0.9403,
+        "std": 0.0596,
+        "min": 0.2872,
+        "median": 0.9253
+      },
+      "engine_verdicts": {
+        "CLEAN": 0,
+        "SUSPICIOUS": 3,
+        "HIGH_RISK": 9997,
+        "REJECTED": 0
+      },
+      "validation_alert_types": {
+        "OUT_OF_RANGE": 9978,
+        "EXTREME_OUTLIERS": 9978,
+        "ZERO_FILLED": 7399
+      }
+    },
+    "random_noise": {
+      "scenario": "Scenario 3: Random Gaussian Noise",
+      "n_samples": 1000,
+      "drift_detected_count": 138,
+      "drift_detected_pct": 13.8,
+      "low_confidence_count": 518,
+      "low_confidence_pct": 51.8,
+      "validation_passed_count": 1000,
+      "validation_passed_pct": 100.0,
+      "drift_score_stats": {
+        "mean": 0.8959,
+        "std": 0.1115,
+        "min": 0.4601,
+        "max": 1.5846,
+        "median": 0.9074,
+        "p95": 1.0387
+      },
+      "cosine_distance_stats": {
+        "mean": 0.6094,
+        "std": 0.0703,
+        "median": 0.6188,
+        "p95": 0.7059
+      },
+      "mahalanobis_distance_stats": {
+        "mean": 4.7099,
+        "std": 2.4709,
+        "median": 3.7672,
+        "p95": 10.1658
+      },
+      "confidence_stats": {
+        "mean": 0.6943,
+        "std": 0.1354,
+        "min": 0.2375,
+        "median": 0.6923
+      },
+      "engine_verdicts": {
+        "CLEAN": 258,
+        "SUSPICIOUS": 254,
+        "HIGH_RISK": 488,
+        "REJECTED": 0
+      },
+      "validation_alert_types": {
+        "OUT_OF_RANGE": 485,
+        "EXTREME_OUTLIERS": 485
+      }
+    },
+    "zero_filled": {
+      "scenario": "Scenario 4: Zero-Filled Inputs (RQ3 failure mode)",
+      "n_samples": 500,
+      "drift_detected_count": 500,
+      "drift_detected_pct": 100.0,
+      "low_confidence_count": 0,
+      "low_confidence_pct": 0.0,
+      "validation_passed_count": 500,
+      "validation_passed_pct": 100.0,
+      "drift_score_stats": {
+        "mean": 1.001,
+        "std": 0.0,
+        "min": 1.001,
+        "max": 1.001,
+        "median": 1.001,
+        "p95": 1.001
+      },
+      "cosine_distance_stats": {
+        "mean": 0.6844,
+        "std": 0.0,
+        "median": 0.6844,
+        "p95": 0.6844
+      },
+      "mahalanobis_distance_stats": {
+        "mean": 3.8811,
+        "std": 0.0,
+        "median": 3.8811,
+        "p95": 3.8811
+      },
+      "confidence_stats": {
+        "mean": 0.7315,
+        "std": 0.0,
+        "min": 0.7315,
+        "median": 0.7315
+      },
+      "engine_verdicts": {
+        "CLEAN": 0,
+        "SUSPICIOUS": 0,
+        "HIGH_RISK": 500,
+        "REJECTED": 0
+      },
+      "validation_alert_types": {
+        "ZERO_FILLED": 500
+      }
+    }
+  },
+  "latency": {
+    "iterations": 1000,
+    "plain_inference": {
+      "mean_ms": 0.0894,
+      "median_ms": 0.084,
+      "p95_ms": 0.099
+    },
+    "semantic_inference": {
+      "mean_ms": 0.8173,
+      "median_ms": 0.796,
+      "p95_ms": 0.9399
+    },
+    "overhead_pct": 813.66,
+    "overhead_ms": 0.7278
+  }
+}
