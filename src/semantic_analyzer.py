@@ -343,10 +343,10 @@ class InputValidator:
             )
 
         # Determine pass/fail
-        # Hard failures: schema, nan, inf
-        # Soft warnings: zero-fill, range, outliers (still pass but with alerts)
+        # Hard failures: schema, nan, inf, zero-fill (RQ3)
+        # Soft warnings: range, outliers (still pass but with alerts)
         validation_passed = len(alerts) == 0 or all(
-            not alert.startswith(("SCHEMA_", "NAN_", "INF_"))
+            not alert.startswith(("SCHEMA_", "NAN_", "INF_", "ZERO_FILLED"))
             for alert in alerts
         )
 

@@ -8,6 +8,25 @@
   "toniot_samples_evaluated": 13135881,
   "features_used": 21,
   "zero_filled_features": 0,
+  "feature_mapping_quality_caveat": {
+    "note": "Post-hoc review against nProbe's authoritative NetFlow field documentation (https://www.ntop.org/guides/nprobe/flow_information_elements.html) revealed that 8 of the 21 mapped features are semantic mismatches — the NetFlow and CICFlowMeter fields measure different physical quantities. The remaining 13 pairs are genuinely equivalent (7 exact, 5 approximate). This means the 'schema mismatch eliminated' premise is only partially met: while zero features were zero-filled, ~38% of mapped features were feeding semantically incorrect data. The cross-dataset failure is likely caused by a combination of residual schema mismatch AND distributional shift, rather than distributional shift alone.",
+    "exact_matches": 7,
+    "approximate_matches": 5,
+    "mismatched_pairs": 8,
+    "total_mapped": 21,
+    "corrected_total": 12,
+    "mismatched_fields": [
+      {"netflow": "SRC_TO_DST_AVG_THROUGHPUT", "cic": "Fwd Header Length", "reason": "Throughput rate (bps) mapped to header byte count — different physical quantities"},
+      {"netflow": "DST_TO_SRC_AVG_THROUGHPUT", "cic": "Bwd Header Length", "reason": "Throughput rate (bps) mapped to header byte count — different physical quantities"},
+      {"netflow": "TCP_FLAGS", "cic": "Fwd PSH Flags", "reason": "Cumulative TCP flag bitmask mapped to directional PSH-specific packet count — different data shape and semantics"},
+      {"netflow": "RETRANSMITTED_IN_PKTS", "cic": "Fwd Avg Packets/Bulk", "reason": "TCP retransmission packet count mapped to bulk transfer statistic — unrelated concepts"},
+      {"netflow": "RETRANSMITTED_OUT_PKTS", "cic": "Bwd Avg Packets/Bulk", "reason": "TCP retransmission packet count mapped to bulk transfer statistic — unrelated concepts"},
+      {"netflow": "RETRANSMITTED_IN_BYTES", "cic": "Fwd Avg Bytes/Bulk", "reason": "TCP retransmitted bytes mapped to bulk transfer bytes — unrelated concepts"},
+      {"netflow": "RETRANSMITTED_OUT_BYTES", "cic": "Bwd Avg Bytes/Bulk", "reason": "TCP retransmitted bytes mapped to bulk transfer bytes — unrelated concepts"},
+      {"netflow": "NUM_PKTS_UP_TO_128_BYTES", "cic": "Subflow Fwd Packets", "reason": "Packet-size-bucket count mapped to TCP subflow packet count — different concepts"},
+      {"netflow": "NUM_PKTS_1024_TO_1514_BYTES", "cic": "Subflow Bwd Packets", "reason": "Packet-size-bucket count mapped to TCP subflow packet count — different concepts"}
+    ]
+  },
   "feature_mapping_used": {
     "FLOW_DURATION_MILLISECONDS": "Flow Duration",
     "IN_PKTS": "Total Fwd Packets",
@@ -30,5 +49,20 @@
     "RETRANSMITTED_OUT_BYTES": "Bwd Avg Bytes/Bulk",
     "NUM_PKTS_UP_TO_128_BYTES": "Subflow Fwd Packets",
     "NUM_PKTS_1024_TO_1514_BYTES": "Subflow Bwd Packets"
+  },
+  "corrected_feature_mapping": {
+    "note": "Only the 12 genuinely equivalent pairs (7 exact + 5 approximate). Model retraining on Kaggle with this corrected subset is a required follow-up.",
+    "FLOW_DURATION_MILLISECONDS": {"cic": "Flow Duration", "quality": "exact"},
+    "IN_PKTS": {"cic": "Total Fwd Packets", "quality": "exact"},
+    "OUT_PKTS": {"cic": "Total Backward Packets", "quality": "exact"},
+    "IN_BYTES": {"cic": "Fwd Packets Length Total", "quality": "exact"},
+    "OUT_BYTES": {"cic": "Bwd Packets Length Total", "quality": "exact"},
+    "LONGEST_FLOW_PKT": {"cic": "Packet Length Max", "quality": "exact"},
+    "SHORTEST_FLOW_PKT": {"cic": "Packet Length Min", "quality": "exact"},
+    "MAX_IP_PKT_LEN": {"cic": "Fwd Packet Length Max", "quality": "approximate — nProbe is bidirectional, CIC is fwd-only"},
+    "MIN_IP_PKT_LEN": {"cic": "Fwd Packet Length Min", "quality": "approximate — nProbe is bidirectional, CIC is fwd-only"},
+    "SRC_TO_DST_SECOND_BYTES": {"cic": "Flow Bytes/s", "quality": "approximate — nProbe is src→dst, CIC is bidirectional"},
+    "TCP_WIN_MAX_IN": {"cic": "Init Fwd Win Bytes", "quality": "approximate — nProbe is max window, CIC is initial window"},
+    "TCP_WIN_MAX_OUT": {"cic": "Init Bwd Win Bytes", "quality": "approximate — nProbe is max window, CIC is initial window"}
   }
 }

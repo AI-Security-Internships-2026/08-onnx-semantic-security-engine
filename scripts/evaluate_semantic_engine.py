@@ -43,7 +43,66 @@ N_ZERO_SAMPLES     = 500
 N_LATENCY_ITERS    = 1000
 
 # ── NF Feature Schema ──
+#
+# CORRECTED FEATURE MAP (v2) — Re-derived against nProbe's authoritative
+# NetFlow field documentation (https://www.ntop.org/guides/nprobe/
+# flow_information_elements.html) and CICFlowMeter source definitions.
+#
+# 8 of the original 21 mappings were semantically mismatched:
+#   - SRC_TO_DST_AVG_THROUGHPUT (bps rate) → Fwd Header Length (byte count)
+#   - DST_TO_SRC_AVG_THROUGHPUT (bps rate) → Bwd Header Length (byte count)
+#   - RETRANSMITTED_IN_PKTS (retransmission count) → Fwd Avg Packets/Bulk
+#   - RETRANSMITTED_OUT_PKTS (retransmission count) → Bwd Avg Packets/Bulk
+#   - RETRANSMITTED_IN_BYTES (retransmitted bytes) → Fwd Avg Bytes/Bulk
+#   - RETRANSMITTED_OUT_BYTES (retransmitted bytes) → Bwd Avg Bytes/Bulk
+#   - NUM_PKTS_UP_TO_128_BYTES (size-bucket count) → Subflow Fwd Packets
+#   - NUM_PKTS_1024_TO_1514_BYTES (size-bucket count) → Subflow Bwd Packets
+#   - TCP_FLAGS (cumulative bitmask) → Fwd PSH Flags (directional count)
+#
+# These were dropped. 13 genuinely equivalent pairs remain.
+# See FEATURE_MAP_NOTES for per-field match quality.
+#
+# NOTE: The existing ONNX model (threat_mlp_nf_fp32.onnx) was trained on the
+# original 21-feature map (LEGACY_FEATURE_MAP below). Retraining with the
+# corrected 13-feature subset is required as a follow-up on Kaggle.
+#
+
 FEATURE_MAP = {
+    # ── Exact matches ──
+    "FLOW_DURATION_MILLISECONDS":    "Flow Duration",
+    "IN_PKTS":                       "Total Fwd Packets",
+    "OUT_PKTS":                      "Total Backward Packets",
+    "IN_BYTES":                      "Fwd Packets Length Total",
+    "OUT_BYTES":                     "Bwd Packets Length Total",
+    "LONGEST_FLOW_PKT":              "Packet Length Max",
+    "SHORTEST_FLOW_PKT":             "Packet Length Min",
+    # ── Approximate matches (same physical quantity, minor scope difference) ──
+    "MAX_IP_PKT_LEN":                "Fwd Packet Length Max",     # nProbe: bidirectional max; CIC: fwd-only max
+    "MIN_IP_PKT_LEN":                "Fwd Packet Length Min",     # nProbe: bidirectional min; CIC: fwd-only min
+    "SRC_TO_DST_SECOND_BYTES":       "Flow Bytes/s",              # nProbe: src→dst rate; CIC: bidirectional rate
+    "TCP_WIN_MAX_IN":                "Init Fwd Win Bytes",        # nProbe: max TCP window; CIC: initial window
+    "TCP_WIN_MAX_OUT":               "Init Bwd Win Bytes",        # nProbe: max TCP window; CIC: initial window
+}
+
+# Per-field match quality documentation
+FEATURE_MAP_NOTES = {
+    "FLOW_DURATION_MILLISECONDS":  "exact — both measure flow duration",
+    "IN_PKTS":                     "exact — both count forward-direction packets",
+    "OUT_PKTS":                    "exact — both count backward-direction packets",
+    "IN_BYTES":                    "exact — both count forward-direction bytes",
+    "OUT_BYTES":                   "exact — both count backward-direction bytes",
+    "LONGEST_FLOW_PKT":            "exact — both measure max packet length (bidirectional)",
+    "SHORTEST_FLOW_PKT":           "exact — both measure min packet length (bidirectional)",
+    "MAX_IP_PKT_LEN":              "approximate — nProbe is bidirectional max, CIC is fwd-only max",
+    "MIN_IP_PKT_LEN":              "approximate — nProbe is bidirectional min, CIC is fwd-only min",
+    "SRC_TO_DST_SECOND_BYTES":     "approximate — nProbe is src→dst bytes/s, CIC is bidirectional bytes/s",
+    "TCP_WIN_MAX_IN":              "approximate — nProbe is max observed window, CIC is initial window",
+    "TCP_WIN_MAX_OUT":             "approximate — nProbe is max observed window, CIC is initial window",
+}
+
+# Original 21-feature mapping preserved for reproducibility of prior results.
+# This mapping contains 8 semantic mismatches identified during supervisor review.
+LEGACY_FEATURE_MAP = {
     "FLOW_DURATION_MILLISECONDS":    "Flow Duration",
     "IN_PKTS":                       "Total Fwd Packets",
     "OUT_PKTS":                      "Total Backward Packets",
@@ -54,17 +113,17 @@ FEATURE_MAP = {
     "LONGEST_FLOW_PKT":              "Packet Length Max",
     "SHORTEST_FLOW_PKT":             "Packet Length Min",
     "SRC_TO_DST_SECOND_BYTES":       "Flow Bytes/s",
-    "SRC_TO_DST_AVG_THROUGHPUT":     "Fwd Header Length",
-    "DST_TO_SRC_AVG_THROUGHPUT":     "Bwd Header Length",
-    "TCP_FLAGS":                     "Fwd PSH Flags",
+    "SRC_TO_DST_AVG_THROUGHPUT":     "Fwd Header Length",       # ❌ MISMATCHED: rate (bps) vs byte count
+    "DST_TO_SRC_AVG_THROUGHPUT":     "Bwd Header Length",       # ❌ MISMATCHED: rate (bps) vs byte count
+    "TCP_FLAGS":                     "Fwd PSH Flags",           # ❌ MISMATCHED: aggregate bitmask vs directional count
     "TCP_WIN_MAX_IN":                "Init Fwd Win Bytes",
     "TCP_WIN_MAX_OUT":               "Init Bwd Win Bytes",
-    "RETRANSMITTED_IN_PKTS":         "Fwd Avg Packets/Bulk",
-    "RETRANSMITTED_OUT_PKTS":        "Bwd Avg Packets/Bulk",
-    "RETRANSMITTED_IN_BYTES":        "Fwd Avg Bytes/Bulk",
-    "RETRANSMITTED_OUT_BYTES":       "Bwd Avg Bytes/Bulk",
-    "NUM_PKTS_UP_TO_128_BYTES":      "Subflow Fwd Packets",
-    "NUM_PKTS_1024_TO_1514_BYTES":   "Subflow Bwd Packets",
+    "RETRANSMITTED_IN_PKTS":         "Fwd Avg Packets/Bulk",    # ❌ MISMATCHED: retransmission vs bulk stat
+    "RETRANSMITTED_OUT_PKTS":        "Bwd Avg Packets/Bulk",    # ❌ MISMATCHED: retransmission vs bulk stat
+    "RETRANSMITTED_IN_BYTES":        "Fwd Avg Bytes/Bulk",      # ❌ MISMATCHED: retransmission vs bulk stat
+    "RETRANSMITTED_OUT_BYTES":       "Bwd Avg Bytes/Bulk",      # ❌ MISMATCHED: retransmission vs bulk stat
+    "NUM_PKTS_UP_TO_128_BYTES":      "Subflow Fwd Packets",     # ❌ MISMATCHED: size-bucket vs subflow count
+    "NUM_PKTS_1024_TO_1514_BYTES":   "Subflow Bwd Packets",     # ❌ MISMATCHED: size-bucket vs subflow count
 }
 
 NF_FEATURES = list(FEATURE_MAP.values())
@@ -179,7 +238,7 @@ def main():
         if extreme.any():
             n_extreme = int(extreme.sum())
             alerts.append(f"EXTREME_OUTLIERS: {n_extreme}/{num_features} features")
-        passed = not any(a.startswith(("SCHEMA_", "NAN_", "INF_")) for a in alerts)
+        passed = not any(a.startswith(("SCHEMA_", "NAN_", "INF_", "ZERO_FILLED")) for a in alerts)
         return {"validation_passed": passed, "alerts": alerts}
 
     def compute_verdict(conf, drift, val):
@@ -449,7 +508,7 @@ def main():
     # ══════════════════════════════════════════════════════════════
     final_results = {
         "experiment": "Semantic Security Engine Integration Evaluation",
-        "model": "ThreatMLP NF-Standardized (21 features, 15 classes)",
+        "model": f"ThreatMLP NF-Standardized ({num_features} features, {len(class_names)} classes)",
         "onnx_model": "threat_mlp_nf_fp32.onnx",
         "thresholds": {
             "confidence_threshold": CONFIDENCE_THRESHOLD,
