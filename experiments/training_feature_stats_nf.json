@@ -1,65 +1,102 @@
 {
+  "model_variant": "NF-Standardized (12 features)",
   "num_features": 12,
   "features": [
     {
+      "index": 0,
       "name": "Flow Duration",
-      "mean": 10340608.40782581,
-      "std": 26704453.206543073
+      "mean": 10340608.407826,
+      "std": 26704453.206543,
+      "min_approx": -96477204.418346,
+      "max_approx": 117158421.233998
     },
     {
+      "index": 1,
       "name": "Total Fwd Packets",
-      "mean": 885.1931773120275,
-      "std": 10450.648344894456
+      "mean": 885.193177,
+      "std": 10450.648345,
+      "min_approx": -40917.400202,
+      "max_approx": 42687.786557
     },
     {
+      "index": 2,
       "name": "Total Backward Packets",
-      "mean": 6.994265538001901,
-      "std": 94.55669988500387
+      "mean": 6.994266,
+      "std": 94.5567,
+      "min_approx": -371.232534,
+      "max_approx": 385.221065
     },
     {
+      "index": 3,
       "name": "Fwd Packets Length Total",
-      "mean": 28909.77747136843,
-      "std": 334491.9850889677
+      "mean": 28909.777471,
+      "std": 334491.985089,
+      "min_approx": -1309058.162885,
+      "max_approx": 1366877.717827
     },
     {
+      "index": 4,
       "name": "Bwd Packets Length Total",
-      "mean": 3202.388462269703,
-      "std": 136658.13943608225
+      "mean": 3202.388462,
+      "std": 136658.139436,
+      "min_approx": -543430.169282,
+      "max_approx": 549834.946207
     },
     {
+      "index": 5,
       "name": "Packet Length Max",
-      "mean": 541.7914462903445,
-      "std": 508.6025559718215
+      "mean": 541.791446,
+      "std": 508.602556,
+      "min_approx": -1492.618778,
+      "max_approx": 2576.20167
     },
     {
+      "index": 6,
       "name": "Packet Length Min",
-      "mean": 4.877660585758906,
-      "std": 24.96497819954352
+      "mean": 4.877661,
+      "std": 24.964978,
+      "min_approx": -94.982252,
+      "max_approx": 104.737573
     },
     {
+      "index": 7,
       "name": "Fwd Packet Length Max",
-      "mean": 243.33264949526958,
-      "std": 280.20458782021603
+      "mean": 243.332649,
+      "std": 280.204588,
+      "min_approx": -877.485702,
+      "max_approx": 1364.151001
     },
     {
+      "index": 8,
       "name": "Fwd Packet Length Min",
-      "mean": 4.970081933819203,
-      "std": 25.653109824491793
+      "mean": 4.970082,
+      "std": 25.65311,
+      "min_approx": -97.642357,
+      "max_approx": 107.582521
     },
     {
+      "index": 9,
       "name": "Flow Bytes/s",
-      "mean": 61379.995363293834,
-      "std": 1096384.4267273718
+      "mean": 61379.995363,
+      "std": 1096384.426727,
+      "min_approx": -4324157.711546,
+      "max_approx": 4446917.702273
     },
     {
+      "index": 10,
       "name": "Init Fwd Win Bytes",
-      "mean": 17454.83465483681,
-      "std": 21579.937460986024
+      "mean": 17454.834655,
+      "std": 21579.937461,
+      "min_approx": -68864.915189,
+      "max_approx": 103774.584499
     },
     {
+      "index": 11,
       "name": "Init Bwd Win Bytes",
-      "mean": 3386.2257226924994,
-      "std": 13315.620304905902
+      "mean": 3386.225723,
+      "std": 13315.620305,
+      "min_approx": -49876.255497,
+      "max_approx": 56648.706942
     }
   ]
 }

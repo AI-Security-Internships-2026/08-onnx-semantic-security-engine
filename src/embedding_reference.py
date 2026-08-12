@@ -41,7 +41,7 @@ from scipy.spatial.distance import cosine
 parser = argparse.ArgumentParser(description="Generate reference embeddings and training stats")
 parser.add_argument(
     "--nf", action="store_true",
-    help="Use NF-standardized model (21 features)"
+    help="Use NF-standardized model (12 features)"
 )
 parser.add_argument(
     "--num-samples", type=int, default=100000,
@@ -54,31 +54,24 @@ BASE_DIR = Path(__file__).parent.parent
 EXPERIMENTS = BASE_DIR / "experiments"
 
 suffix = "_nf" if args.nf else ""
-model_label = "NF-Standardized (21 features)" if args.nf else "Baseline (76 features)"
+model_label = "NF-Standardized (12 features)" if args.nf else "Baseline (76 features)"
 
-# ── NF Feature Names ──
+# ── NF Feature Names (corrected 12-feature list) ──
+# Must match the retrained model's feature order exactly.
+# See evaluate_semantic_engine.py FEATURE_MAP for the authoritative mapping.
 NF_FEATURE_NAMES = [
     "Flow Duration",
     "Total Fwd Packets",
     "Total Backward Packets",
     "Fwd Packets Length Total",
     "Bwd Packets Length Total",
-    "Fwd Packet Length Max",
-    "Fwd Packet Length Min",
     "Packet Length Max",
     "Packet Length Min",
+    "Fwd Packet Length Max",
+    "Fwd Packet Length Min",
     "Flow Bytes/s",
-    "Fwd Header Length",
-    "Bwd Header Length",
-    "Fwd PSH Flags",
     "Init Fwd Win Bytes",
     "Init Bwd Win Bytes",
-    "Fwd Avg Packets/Bulk",
-    "Bwd Avg Packets/Bulk",
-    "Fwd Avg Bytes/Bulk",
-    "Bwd Avg Bytes/Bulk",
-    "Subflow Fwd Packets",
-    "Subflow Bwd Packets",
 ]
 
 print(f"Reference Embedding Generator — {model_label}")
@@ -158,23 +151,23 @@ if not has_embedding:
     print("       Falling back to logits-only mode for reference stats.")
 
 # Load a sample of real training data to preserve feature correlations
-print(f"  Loading real training data from datasets/CSE-CIC-IDS2018 (up to {args.num_samples} samples)...")
-dataset_dir = BASE_DIR / "datasets" / "CSE-CIC-IDS2018"
-csv_files = sorted(dataset_dir.glob("*.csv"))
-if not csv_files:
-    print(f"[FAIL] No CSV files found in {dataset_dir}")
+print(f"  Loading real training data from datasets/CIC-IDS2018 (up to {args.num_samples} samples)...")
+dataset_dir = BASE_DIR / "datasets" / "CIC-IDS2018"
+parquet_files = sorted(dataset_dir.glob("*.parquet"))
+if not parquet_files:
+    print(f"[FAIL] No parquet files found in {dataset_dir}")
     exit(1)
 
 frames = []
 loaded_samples = 0
-for csv_file in csv_files:
+for pq_file in parquet_files:
     if loaded_samples >= args.num_samples:
         break
-    # Read chunk
-    chunk = pd.read_csv(csv_file, low_memory=False, nrows=args.num_samples - loaded_samples)
+    chunk = pd.read_parquet(pq_file)
     chunk.columns = chunk.columns.str.strip()
     frames.append(chunk)
     loaded_samples += len(chunk)
+    print(f"    Loaded {pq_file.name}: {len(chunk)} rows (total: {loaded_samples})")
 
 df = pd.concat(frames, ignore_index=True)
 if "Timestamp" in df.columns:
@@ -185,12 +178,13 @@ df = df.drop_duplicates()
 
 if args.nf:
     available_nf = [f for f in NF_FEATURE_NAMES if f in df.columns]
-    X_raw = df[available_nf].values
+    X_raw = df[available_nf].values[:args.num_samples]
 else:
-    X_raw = df.drop(columns=["Label"]).values
+    X_raw = df.drop(columns=["Label"]).values[:args.num_samples]
 
-y_raw = df["Label"].values
+y_raw = df["Label"].values[:args.num_samples]
 y_encoded = encoder.transform(y_raw)
+print(f"  Using {len(X_raw)} samples (requested {args.num_samples})")
 
 # Scale features using the loaded StandardScaler
 print("  Scaling features...")
