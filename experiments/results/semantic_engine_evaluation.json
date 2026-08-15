@@ -1,11 +1,11 @@
 {
   "experiment": "Semantic Security Engine Integration Evaluation",
-  "model": "ThreatMLP NF-Standardized (12 features, 15 classes)",
+  "model": "ThreatMLP NF-Standardized (13 features, 15 classes)",
   "onnx_model": "threat_mlp_nf_fp32.onnx",
   "thresholds": {
     "confidence_threshold": 0.7,
-    "cosine_drift_threshold": 0.540135383605957,
-    "mahalanobis_drift_threshold": 15.219731572058715,
+    "cosine_drift_threshold": 0.43774423003196716,
+    "mahalanobis_drift_threshold": 13.48849592666115,
     "zscore_threshold": 5.0,
     "zero_fill_ratio": 0.5,
     "range_tolerance_sigmas": 5.0
@@ -14,135 +14,135 @@
     "in_distribution": {
       "scenario": "Scenario 1: In-Distribution (CIC-IDS2018)",
       "n_samples": 10000,
-      "drift_detected_count": 1343,
-      "drift_detected_pct": 13.43,
-      "low_confidence_count": 1749,
-      "low_confidence_pct": 17.49,
+      "drift_detected_count": 1601,
+      "drift_detected_pct": 16.01,
+      "low_confidence_count": 1361,
+      "low_confidence_pct": 13.61,
       "validation_passed_count": 8855,
       "validation_passed_pct": 88.55,
       "drift_score_stats": {
-        "mean": 0.3046,
-        "std": 0.4675,
-        "min": 0.061,
+        "mean": 0.3843,
+        "std": 0.4405,
+        "min": 0.0845,
         "max": 2.0,
-        "median": 0.0614,
-        "p95": 1.1531
+        "median": 0.1447,
+        "p95": 1.189
       },
       "cosine_distance_stats": {
-        "mean": 0.1371,
-        "std": 0.2021,
-        "median": 0.0332,
-        "p95": 0.6107
+        "mean": 0.084,
+        "std": 0.157,
+        "median": 0.0113,
+        "p95": 0.4754
       },
       "mahalanobis_distance_stats": {
-        "mean": 4.0845,
-        "std": 7.5537,
-        "median": 0.7689,
-        "p95": 16.2179
+        "mean": 4.6902,
+        "std": 7.08,
+        "median": 1.9516,
+        "p95": 15.2654
       },
       "confidence_stats": {
-        "mean": 0.9103,
-        "std": 0.1798,
-        "min": 0.3476,
-        "median": 0.9999
+        "mean": 0.9258,
+        "std": 0.1737,
+        "min": 0.33,
+        "median": 1.0
       },
       "engine_verdicts": {
-        "CLEAN": 7717,
-        "SUSPICIOUS": 673,
-        "HIGH_RISK": 465,
+        "CLEAN": 0,
+        "SUSPICIOUS": 18,
+        "HIGH_RISK": 8837,
         "REJECTED": 1145
       },
       "validation_alert_types": {
-        "ZERO_FILLED": 1145,
-        "OUT_OF_RANGE": 37,
-        "EXTREME_OUTLIERS": 37
+        "OUT_OF_RANGE": 8819,
+        "EXTREME_OUTLIERS": 8819,
+        "ZERO_FILLED": 1145
       }
     },
     "out_of_distribution": {
       "scenario": "Scenario 2: Out-of-Distribution (ToN-IoT, real data)",
       "n_samples": 10000,
-      "drift_detected_count": 7843,
-      "drift_detected_pct": 78.43,
-      "low_confidence_count": 2859,
-      "low_confidence_pct": 28.59,
+      "drift_detected_count": 406,
+      "drift_detected_pct": 4.06,
+      "low_confidence_count": 9377,
+      "low_confidence_pct": 93.77,
       "validation_passed_count": 10000,
       "validation_passed_pct": 100.0,
       "drift_score_stats": {
-        "mean": 1.7665,
-        "std": 0.4358,
-        "min": 0.7584,
+        "mean": 0.9644,
+        "std": 0.157,
+        "min": 0.3079,
         "max": 2.0,
-        "median": 2.0,
-        "p95": 2.0
+        "median": 0.9347,
+        "p95": 0.9803
       },
       "cosine_distance_stats": {
-        "mean": 0.5237,
-        "std": 0.0394,
-        "median": 0.5426,
-        "p95": 0.5426
+        "mean": 0.2449,
+        "std": 0.0197,
+        "median": 0.2475,
+        "p95": 0.2475
       },
       "mahalanobis_distance_stats": {
-        "mean": 138514114469941.38,
-        "std": 1.3850626927328188e+16,
-        "median": 57.0647,
-        "p95": 57.0647
+        "mean": 111387163824665.86,
+        "std": 1.1138085406110446e+16,
+        "median": 12.6079,
+        "p95": 13.2228
       },
       "confidence_stats": {
-        "mean": 0.7114,
-        "std": 0.0664,
-        "min": 0.3205,
-        "median": 0.7491
+        "mean": 0.5611,
+        "std": 0.0736,
+        "min": 0.5046,
+        "median": 0.5429
       },
       "engine_verdicts": {
         "CLEAN": 0,
-        "SUSPICIOUS": 9288,
-        "HIGH_RISK": 712,
+        "SUSPICIOUS": 0,
+        "HIGH_RISK": 10000,
         "REJECTED": 0
       },
       "validation_alert_types": {
-        "OUT_OF_RANGE": 34,
-        "EXTREME_OUTLIERS": 34
+        "OUT_OF_RANGE": 10000,
+        "EXTREME_OUTLIERS": 10000
       }
     },
     "random_noise": {
       "scenario": "Scenario 3: Random Gaussian Noise",
       "n_samples": 1000,
-      "drift_detected_count": 971,
-      "drift_detected_pct": 97.1,
-      "low_confidence_count": 210,
-      "low_confidence_pct": 21.0,
+      "drift_detected_count": 1000,
+      "drift_detected_pct": 100.0,
+      "low_confidence_count": 1000,
+      "low_confidence_pct": 100.0,
       "validation_passed_count": 1000,
       "validation_passed_pct": 100.0,
       "drift_score_stats": {
-        "mean": 1.1397,
-        "std": 0.1061,
-        "min": 0.9353,
-        "max": 1.9966,
-        "median": 1.1294,
-        "p95": 1.3163
+        "mean": 1.1041,
+        "std": 0.1156,
+        "min": 1.0371,
+        "max": 2.0,
+        "median": 1.0863,
+        "p95": 1.1393
       },
       "cosine_distance_stats": {
-        "mean": 0.603,
-        "std": 0.022,
-        "median": 0.61,
-        "p95": 0.6227
+        "mean": 0.4749,
+        "std": 0.0081,
+        "median": 0.4752,
+        "p95": 0.4881
       },
       "mahalanobis_distance_stats": {
-        "mean": 11.9589,
-        "std": 3.7522,
-        "median": 10.8424,
-        "p95": 20.0334
+        "mean": 9.9069,
+        "std": 6.9754,
+        "median": 8.5379,
+        "p95": 15.2222
       },
       "confidence_stats": {
-        "mean": 0.787,
-        "std": 0.1364,
-        "min": 0.3832,
-        "median": 0.8465
+        "mean": 0.4652,
+        "std": 0.023,
+        "min": 0.4104,
+        "median": 0.4626
       },
       "engine_verdicts": {
         "CLEAN": 0,
-        "SUSPICIOUS": 819,
-        "HIGH_RISK": 181,
+        "SUSPICIOUS": 0,
+        "HIGH_RISK": 1000,
         "REJECTED": 0
       },
       "validation_alert_types": {}
@@ -152,35 +152,35 @@
       "n_samples": 500,
       "drift_detected_count": 500,
       "drift_detected_pct": 100.0,
-      "low_confidence_count": 0,
-      "low_confidence_pct": 0.0,
+      "low_confidence_count": 500,
+      "low_confidence_pct": 100.0,
       "validation_passed_count": 0,
       "validation_passed_pct": 0.0,
       "drift_score_stats": {
-        "mean": 1.1296,
+        "mean": 1.0855,
         "std": 0.0,
-        "min": 1.1296,
-        "max": 1.1296,
-        "median": 1.1296,
-        "p95": 1.1296
+        "min": 1.0855,
+        "max": 1.0855,
+        "median": 1.0855,
+        "p95": 1.0855
       },
       "cosine_distance_stats": {
-        "mean": 0.6101,
+        "mean": 0.4752,
         "std": 0.0,
-        "median": 0.6101,
-        "p95": 0.6101
+        "median": 0.4752,
+        "p95": 0.4752
       },
       "mahalanobis_distance_stats": {
-        "mean": 8.4416,
+        "mean": 6.1614,
         "std": 0.0,
-        "median": 8.4416,
-        "p95": 8.4416
+        "median": 6.1614,
+        "p95": 6.1614
       },
       "confidence_stats": {
-        "mean": 0.8499,
+        "mean": 0.4616,
         "std": 0.0,
-        "min": 0.8499,
-        "median": 0.8499
+        "min": 0.4616,
+        "median": 0.4616
       },
       "engine_verdicts": {
         "CLEAN": 0,
@@ -196,16 +196,16 @@
   "latency": {
     "iterations": 1000,
     "plain_inference": {
-      "mean_ms": 0.0844,
-      "median_ms": 0.0825,
-      "p95_ms": 0.0945
+      "mean_ms": 0.1227,
+      "median_ms": 0.1249,
+      "p95_ms": 0.1535
     },
     "semantic_inference": {
-      "mean_ms": 0.8892,
-      "median_ms": 0.788,
-      "p95_ms": 1.3735
+      "mean_ms": 0.8257,
+      "median_ms": 0.8127,
+      "p95_ms": 0.8602
     },
-    "overhead_pct": 953.62,
-    "overhead_ms": 0.8048
+    "overhead_pct": 572.95,
+    "overhead_ms": 0.703
   }
 }

@@ -42,7 +42,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 # ── NF-Standardized Feature Set ──
-# These 21 features are semantically shared between CICFlowMeter (CIC-IDS2018) and NetFlow/IPFIX (ToN-IoT)
+# These 13 features are semantically shared between CICFlowMeter (CIC-IDS2018) and NetFlow/IPFIX (ToN-IoT)
 NF_FEATURES = [
     "Flow Duration",
     "Total Fwd Packets",
@@ -54,17 +54,9 @@ NF_FEATURES = [
     "Packet Length Max",           # maps to LONGEST_FLOW_PKT
     "Packet Length Min",           # maps to SHORTEST_FLOW_PKT
     "Flow Bytes/s",                # maps to SRC_TO_DST_SECOND_BYTES
-    "Fwd Header Length",           # maps to SRC_TO_DST_AVG_THROUGHPUT
-    "Bwd Header Length",           # maps to DST_TO_SRC_AVG_THROUGHPUT
-    "Fwd PSH Flags",              # maps to TCP_FLAGS
-    "Init Fwd Win Bytes",         # maps to TCP_WIN_MAX_IN
-    "Init Bwd Win Bytes",         # maps to TCP_WIN_MAX_OUT
-    "Fwd Avg Packets/Bulk",       # maps to RETRANSMITTED_IN_PKTS
-    "Bwd Avg Packets/Bulk",       # maps to RETRANSMITTED_OUT_PKTS
-    "Fwd Avg Bytes/Bulk",         # maps to RETRANSMITTED_IN_BYTES
-    "Bwd Avg Bytes/Bulk",         # maps to RETRANSMITTED_OUT_BYTES
-    "Subflow Fwd Packets",        # maps to NUM_PKTS_UP_TO_128_BYTES
-    "Subflow Bwd Packets",        # maps to NUM_PKTS_1024_TO_1514_BYTES
+    "Init Fwd Win Bytes",          # maps to TCP_WIN_MAX_IN
+    "Init Bwd Win Bytes",          # maps to TCP_WIN_MAX_OUT
+    "Protocol",                    # maps to PROTOCOL
 ]
 
 # ── Configuration ──

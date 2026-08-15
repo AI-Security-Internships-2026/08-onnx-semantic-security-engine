@@ -82,6 +82,7 @@ FEATURE_MAP = {
     "SRC_TO_DST_SECOND_BYTES":       "Flow Bytes/s",              # nProbe: src→dst rate; CIC: bidirectional rate
     "TCP_WIN_MAX_IN":                "Init Fwd Win Bytes",        # nProbe: max TCP window; CIC: initial window
     "TCP_WIN_MAX_OUT":               "Init Bwd Win Bytes",        # nProbe: max TCP window; CIC: initial window
+    "PROTOCOL":                      "Protocol",                  # exact — both measure IP protocol number
 }
 
 # Per-field match quality documentation
@@ -98,6 +99,7 @@ FEATURE_MAP_NOTES = {
     "SRC_TO_DST_SECOND_BYTES":     "approximate — nProbe is src→dst bytes/s, CIC is bidirectional bytes/s",
     "TCP_WIN_MAX_IN":              "approximate — nProbe is max observed window, CIC is initial window",
     "TCP_WIN_MAX_OUT":             "approximate — nProbe is max observed window, CIC is initial window",
+    "PROTOCOL":                    "exact — both measure IP protocol number",
 }
 
 # Original 21-feature mapping preserved for reproducibility of prior results.
@@ -394,7 +396,7 @@ def main():
     # ══════════════════════════════════════════════════════════════
     # SCENARIO 2: Out-of-Distribution (ToN-IoT)
     # ══════════════════════════════════════════════════════════════
-    print(f"\n{'#' * 70}")
+    print(f"\n{'#' * 70}") 
     print("# SCENARIO 2: Out-of-Distribution (ToN-IoT)")
     print(f"{'#' * 70}")
 

@@ -72,6 +72,7 @@ NF_FEATURE_NAMES = [
     "Flow Bytes/s",
     "Init Fwd Win Bytes",
     "Init Bwd Win Bytes",
+    "Protocol",
 ]
 
 print(f"Reference Embedding Generator — {model_label}")
