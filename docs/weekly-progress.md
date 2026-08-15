@@ -457,5 +457,34 @@ This brings the potential corrected map to **13 features** (8 exact + 5 approxim
 
 ---
 
-_(Add a new section each week)_
+## Week 9
 
+**Branch:** `sikandarhussain6858-week-08` (Work continued on this branch)
+**PR link:** _[Add link after opening PR]_
+
+### Checklist
+- [x] Finalize Semantic Engine Evaluation on the updated 13-feature model.
+- [x] Switch from Dynamic to Static INT8 Quantization using `CalibrationDataReader` to recover model accuracy.
+- [x] Resolve `onnxruntime` inference issues with missing external `.data` weight files during FP32 evaluation.
+- [x] Add central `src/quantize_model.py` script to standardize FP16 and Static INT8 quantization.
+- [x] Clean up repository (remove extra ONNX files, exclude large datasets from Git).
+
+### What I Did This Week
+- **Static Quantization (INT8):** Resolved the massive accuracy drop (F1=0.33) caused by dynamic quantization. Implemented a Static Quantization pipeline using a `CalibrationDataReader` on 10,000 samples to compute precise activation scales, successfully recovering the INT8 Macro-F1 score to ~0.49. Created `src/quantize_model.py` to automate this.
+- **ONNX Dual-Output Refinement:** Re-exported the 13-feature (now including `Protocol`) PyTorch model using `export_onnx.py --nf --with-embeddings`. Encountered and fixed an issue where the ONNX exporter automatically created an external `.data` file (due to weights saving mechanism) which broke `onnxruntime.InferenceSession` when deleted.
+- **Final Semantic Engine Evaluation:** Executed `evaluate_semantic_engine.py` across all four evaluation scenarios on the new 13-feature model.
+- **Repository Cleanup:** Cleaned up obsolete 76-feature `.onnx` models and ensured datasets (`.npy`) and scratch scripts were properly excluded before pushing to the `week-08` branch on GitHub.
+
+### Key Findings & Results
+- **Out-of-Distribution Detection:** The Semantic Engine proved highly effective! On the ToN-IoT dataset (Scenario 2), 93.8% of the samples triggered a **Low Confidence** alert, and **100%** triggered **Extreme Outlier** and **Out of Range** alerts due to structural mismatches with the CIC-IDS2018 baseline.
+- **Engine Verdicts:** The engine successfully flagged **100% of the OOD traffic as HIGH_RISK**, preventing the model from silently failing and making highly confident incorrect predictions.
+- **Noise & Zero-Filled:** 100% of Random Noise and Zero-Filled inputs were successfully caught and rejected.
+- **Latency Overhead:** The semantic validation layer introduced only a +0.72 ms overhead per sample (~886% relative, but completely negligible in absolute terms for edge deployment), confirming it is highly efficient.
+
+### Next Week Plan
+- Draft the IEEE TDSC Research Paper (8-10 pages) focusing on the semantic security engine as the core contribution to address RQ3.
+- Discuss KV-cache track status with supervisor.
+
+---
+
+_(Add a new section each week)_
