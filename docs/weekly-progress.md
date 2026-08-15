@@ -482,6 +482,8 @@ This brings the potential corrected map to **13 features** (8 exact + 5 approxim
 - **Latency Overhead:** The semantic validation layer introduced only a +0.72 ms overhead per sample (~886% relative, but completely negligible in absolute terms for edge deployment), confirming it is highly efficient.
 
 ### Next Week Plan
+- Implement Docker container testbed simulation: Deploy 10 benign/normal nodes (generating in-distribution legitimate traffic) and 5 attacker nodes (generating DDoS, Brute Force, OOD ToN-IoT, Gaussian Noise, and Zero-filled evasion traffic) streaming to the central FastAPI ONNX Semantic Security Engine.
+- Benchmark real-time multi-node throughput, latency overhead, and intercept accuracy under concurrent container loads.
 - Draft the IEEE TDSC Research Paper (8-10 pages) focusing on the semantic security engine as the core contribution to address RQ3.
 - Discuss KV-cache track status with supervisor.
 
