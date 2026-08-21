@@ -61,6 +61,9 @@ credentials/
 # Results that can be reproduced
 experiments/results/*.png
 experiments/results/*.pdf
+experiments/*.npy
 
 # Personal plans / notes (not for GitHub)
 sikandar-plans/
+scratch/
+scratch_test_api.py

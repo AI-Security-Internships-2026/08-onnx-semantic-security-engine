@@ -1,0 +1,36 @@
+# ==============================================================================
+# Dockerfile.engine: ONNX Semantic Security Engine Service
+# ==============================================================================
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Prevent python from buffering stdout/stderr (vital for real-time docker logs)
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Default to the NF-standardized model for edge inference
+ENV USE_NF=true
+ENV USE_QUANTIZED=false
+
+# Install required Python packages
+RUN pip install --no-cache-dir \
+    fastapi>=0.110 \
+    uvicorn>=0.29 \
+    pydantic>=2.0 \
+    onnxruntime>=1.18 \
+    numpy \
+    pandas \
+    scipy \
+    joblib \
+    scikit-learn
+
+# Copy source code and pre-trained model artifacts
+COPY src/ /app/src/
+COPY experiments/ /app/experiments/
+
+# Expose API port
+EXPOSE 8000
+
+# Run FastAPI inference server with uvicorn
+CMD ["uvicorn", "src.inference_engine:app", "--host", "0.0.0.0", "--port", "8000"]

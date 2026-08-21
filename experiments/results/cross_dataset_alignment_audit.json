@@ -1,0 +1,54 @@
+{
+  "taxonomy_mapping": {
+    "benign": "Benign",
+    "password": "FTP-BruteForce",
+    "dos": "DoS attacks-Hulk",
+    "ddos": "DDoS attacks-LOIC-HTTP",
+    "injection": "SQL Injection",
+    "xss": "Brute Force -XSS",
+    "backdoor": "Infilteration",
+    "scanning": "Infilteration",
+    "ransomware": "Infilteration",
+    "mitm": "Infilteration"
+  },
+  "unmapped_toniot_classes": [
+    "scanning",
+    "backdoor",
+    "ransomware",
+    "mitm"
+  ],
+  "unmapped_fraction_pct": 23.06,
+  "evaluation_samples": 100000,
+  "methods_benchmark": {
+    "Source Standardization (No Adaptation)": {
+      "binary_f1": 0.8002012901974099,
+      "binary_accuracy": 0.67046,
+      "binary_tp": 65991,
+      "binary_fp": 26522,
+      "binary_tn": 1055,
+      "binary_fn": 6432,
+      "multiclass_macro_f1": 0.011813203244667272,
+      "multiclass_accuracy": 0.0367
+    },
+    "Target Re-Standardization (Z-score)": {
+      "binary_f1": 0.771318407960199,
+      "binary_accuracy": 0.63228,
+      "binary_tp": 62014,
+      "binary_fp": 26363,
+      "binary_tn": 1214,
+      "binary_fn": 10409,
+      "multiclass_macro_f1": 0.01871050002886918,
+      "multiclass_accuracy": 0.0656
+    },
+    "CORAL (Correlation Alignment)": {
+      "binary_f1": 0.7825081094314218,
+      "binary_accuracy": 0.64464,
+      "binary_tp": 63927,
+      "binary_fp": 27040,
+      "binary_tn": 537,
+      "binary_fn": 8496,
+      "multiclass_macro_f1": 0.004575024472806523,
+      "multiclass_accuracy": 0.01035
+    }
+  }
+}

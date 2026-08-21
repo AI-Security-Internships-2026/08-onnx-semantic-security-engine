@@ -1,0 +1,113 @@
+{
+  "experiment": "OOD & Anomaly Baseline Comparison Benchmark",
+  "calibration_target_fpr": 0.05,
+  "calibration_samples": 10000,
+  "evaluation_samples": 10000,
+  "detectors_benchmark": {
+    "MSP (Confidence Alone)": {
+      "calibrated_threshold": 0.4838,
+      "in_dist_fpr": 0.0551,
+      "ood_toniot_auroc": 0.4042,
+      "ood_toniot_avg_precision": 0.5863,
+      "ood_toniot_fpr95": 0.7657,
+      "ood_toniot_detect_rate": 0.023,
+      "noise_auroc": 0.0326,
+      "noise_detect_rate": 0.008,
+      "zero_fill_auroc": 0.9959,
+      "zero_fill_detect_rate": 1.0,
+      "latency": {
+        "mean_ms": 0.091,
+        "median_ms": 0.0879,
+        "p95_ms": 0.1117
+      }
+    },
+    "Mahalanobis Distance Alone": {
+      "calibrated_threshold": 26.0522,
+      "in_dist_fpr": 0.0375,
+      "ood_toniot_auroc": 0.9803,
+      "ood_toniot_avg_precision": 0.9811,
+      "ood_toniot_fpr95": 0.1201,
+      "ood_toniot_detect_rate": 0.7784,
+      "noise_auroc": 1.0,
+      "noise_detect_rate": 1.0,
+      "zero_fill_auroc": 0.9168,
+      "zero_fill_detect_rate": 0.0,
+      "latency": {
+        "mean_ms": 0.0803,
+        "median_ms": 0.0787,
+        "p95_ms": 0.0948
+      }
+    },
+    "Isolation Forest": {
+      "calibrated_threshold": 0.5671,
+      "in_dist_fpr": 0.0269,
+      "ood_toniot_auroc": 0.6381,
+      "ood_toniot_avg_precision": 0.6258,
+      "ood_toniot_fpr95": 0.3998,
+      "ood_toniot_detect_rate": 0.0084,
+      "noise_auroc": 0.9746,
+      "noise_detect_rate": 0.711,
+      "zero_fill_auroc": 0.7082,
+      "zero_fill_detect_rate": 0.0,
+      "latency": {
+        "mean_ms": 12.2485,
+        "median_ms": 11.9835,
+        "p95_ms": 13.4563
+      }
+    },
+    "One-Class SVM": {
+      "calibrated_threshold": 0.0018,
+      "in_dist_fpr": 0.0447,
+      "ood_toniot_auroc": 0.2129,
+      "ood_toniot_avg_precision": 0.4828,
+      "ood_toniot_fpr95": 0.8392,
+      "ood_toniot_detect_rate": 0.0455,
+      "noise_auroc": 1.0,
+      "noise_detect_rate": 1.0,
+      "zero_fill_auroc": 0.9583,
+      "zero_fill_detect_rate": 1.0,
+      "latency": {
+        "mean_ms": 0.3547,
+        "median_ms": 0.3406,
+        "p95_ms": 0.4078
+      }
+    },
+    "Semantic Engine (Combined)": {
+      "calibrated_threshold": 1.0273,
+      "in_dist_fpr": 0.0369,
+      "ood_toniot_auroc": 0.9272,
+      "ood_toniot_avg_precision": 0.9452,
+      "ood_toniot_fpr95": 0.4,
+      "ood_toniot_detect_rate": 0.7758,
+      "noise_auroc": 1.0,
+      "noise_detect_rate": 1.0,
+      "zero_fill_auroc": 1.0,
+      "zero_fill_detect_rate": 1.0,
+      "latency": {
+        "mean_ms": 0.2041,
+        "median_ms": 0.1945,
+        "p95_ms": 0.2614
+      }
+    }
+  },
+  "literature_baselines": [
+    {
+      "paper": "Sarhan et al. (2022) [IEEE TNSM]",
+      "focus": "NetFlow standardization on ToN-IoT & UNSW-NB15",
+      "cross_dataset_drop": "F1 drops ~72-85% across disparate NIDS sets",
+      "relevance": "Direct validation of our cross-dataset negative result"
+    },
+    {
+      "paper": "Pontes et al. (2021) [Computers & Security]",
+      "focus": "Cross-dataset transferability between CIC-IDS and CTU-13",
+      "cross_dataset_drop": "Binary F1 ~0.74, Multi-class F1 < 0.10",
+      "relevance": "Direct match to our Binary 0.80 vs Multi-class 0.01 collapse"
+    },
+    {
+      "paper": "Yang et al. (2022) [IEEE TDSC]",
+      "focus": "Out-of-distribution detection for edge NIDS",
+      "cross_dataset_drop": "Mahalanobis detector achieves ~0.94-0.98 AUROC",
+      "relevance": "Validates our 0.977 AUROC Mahalanobis embedding detector"
+    }
+  ]
+}

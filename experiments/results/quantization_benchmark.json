@@ -1,0 +1,91 @@
+{
+  "experiment": "Full Precision/Quantization Comparison Benchmark",
+  "test_samples": 138069,
+  "n_warmup": 500,
+  "n_latency_runs": 5000,
+  "batch_sizes_throughput": [
+    1,
+    32,
+    128
+  ],
+  "variants": {
+    "FP32": {
+      "variant": "FP32",
+      "model_file": "threat_mlp_nf_fp32.onnx",
+      "size_mb": 0.1765,
+      "macro_f1": 0.772347,
+      "accuracy": 0.868023,
+      "latency": {
+        "n_warmup": 500,
+        "n_runs": 5000,
+        "mean_ms": 0.0387,
+        "std_ms": 0.0064,
+        "min_ms": 0.0356,
+        "max_ms": 0.135,
+        "p50_ms": 0.0368,
+        "p95_ms": 0.0541,
+        "p99_ms": 0.0652
+      },
+      "throughput_samples_per_sec": {
+        "batch_1": 27113.6,
+        "batch_32": 427161.0,
+        "batch_128": 558109.7
+      },
+      "f1_drop_vs_fp32_pct": 0.0,
+      "size_reduction_vs_fp32_pct": 0.0,
+      "latency_change_vs_fp32_pct": 0.0
+    },
+    "FP16": {
+      "variant": "FP16",
+      "model_file": "threat_mlp_nf_fp16.onnx",
+      "size_mb": 0.0889,
+      "macro_f1": 0.772289,
+      "accuracy": 0.86782,
+      "latency": {
+        "n_warmup": 500,
+        "n_runs": 5000,
+        "mean_ms": 0.0407,
+        "std_ms": 0.0047,
+        "min_ms": 0.0386,
+        "max_ms": 0.1295,
+        "p50_ms": 0.0397,
+        "p95_ms": 0.0483,
+        "p99_ms": 0.0624
+      },
+      "throughput_samples_per_sec": {
+        "batch_1": 24204.8,
+        "batch_32": 413461.3,
+        "batch_128": 810242.0
+      },
+      "f1_drop_vs_fp32_pct": 0.01,
+      "size_reduction_vs_fp32_pct": 49.63,
+      "latency_change_vs_fp32_pct": 5.17
+    },
+    "INT8": {
+      "variant": "INT8",
+      "model_file": "threat_mlp_nf_int8.onnx",
+      "size_mb": 0.0479,
+      "macro_f1": 0.48918,
+      "accuracy": 0.5505,
+      "latency": {
+        "n_warmup": 500,
+        "n_runs": 5000,
+        "mean_ms": 0.0423,
+        "std_ms": 0.0051,
+        "min_ms": 0.0398,
+        "max_ms": 0.1451,
+        "p50_ms": 0.0407,
+        "p95_ms": 0.0525,
+        "p99_ms": 0.0607
+      },
+      "throughput_samples_per_sec": {
+        "batch_1": 24385.0,
+        "batch_32": 396893.3,
+        "batch_128": 887959.0
+      },
+      "f1_drop_vs_fp32_pct": 36.66,
+      "size_reduction_vs_fp32_pct": 72.86,
+      "latency_change_vs_fp32_pct": 9.3
+    }
+  }
+}

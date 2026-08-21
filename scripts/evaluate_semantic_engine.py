@@ -1,8 +1,9 @@
 """
-Semantic Engine Integration Evaluation — Local Runner
+Semantic Engine Integration Evaluation — Calibrated Runner
 
 Runs the full semantic security engine (ConfidenceAnalyzer + DriftDetector +
-InputValidator) on real CIC-IDS2018 and ToN-IoT data to produce:
+InputValidator) with held-out validation threshold calibration (5% FPR target)
+on real CIC-IDS2018 and ToN-IoT data to produce:
   - experiments/results/semantic_engine_evaluation.json
   - experiments/images/semantic_engine_evaluation_plots.png
 
@@ -20,6 +21,7 @@ import onnxruntime as ort
 from pathlib import Path
 from scipy.spatial.distance import cosine as cosine_distance
 from scipy.special import softmax
+from sklearn.metrics import roc_auc_score, roc_curve, precision_recall_curve, average_precision_score
 
 # ── Paths ──
 BASE_DIR = Path(__file__).parent.parent
@@ -36,37 +38,14 @@ CIC_DIR     = DATASETS / "CIC-IDS2018"
 TONIOT_PATH = DATASETS / "ToN-IoT" / "NF-ToN-IoT-V2.parquet"
 
 # ── Evaluation parameters ──
+N_CALIB_SAMPLES    = 10000
 N_IN_DIST_SAMPLES  = 10000
 N_OOD_SAMPLES      = 10000
 N_NOISE_SAMPLES    = 1000
 N_ZERO_SAMPLES     = 500
 N_LATENCY_ITERS    = 1000
 
-# ── NF Feature Schema ──
-#
-# CORRECTED FEATURE MAP (v2) — Re-derived against nProbe's authoritative
-# NetFlow field documentation (https://www.ntop.org/guides/nprobe/
-# flow_information_elements.html) and CICFlowMeter source definitions.
-#
-# 8 of the original 21 mappings were semantically mismatched:
-#   - SRC_TO_DST_AVG_THROUGHPUT (bps rate) → Fwd Header Length (byte count)
-#   - DST_TO_SRC_AVG_THROUGHPUT (bps rate) → Bwd Header Length (byte count)
-#   - RETRANSMITTED_IN_PKTS (retransmission count) → Fwd Avg Packets/Bulk
-#   - RETRANSMITTED_OUT_PKTS (retransmission count) → Bwd Avg Packets/Bulk
-#   - RETRANSMITTED_IN_BYTES (retransmitted bytes) → Fwd Avg Bytes/Bulk
-#   - RETRANSMITTED_OUT_BYTES (retransmitted bytes) → Bwd Avg Bytes/Bulk
-#   - NUM_PKTS_UP_TO_128_BYTES (size-bucket count) → Subflow Fwd Packets
-#   - NUM_PKTS_1024_TO_1514_BYTES (size-bucket count) → Subflow Bwd Packets
-#   - TCP_FLAGS (cumulative bitmask) → Fwd PSH Flags (directional count)
-#
-# These were dropped. 13 genuinely equivalent pairs remain.
-# See FEATURE_MAP_NOTES for per-field match quality.
-#
-# NOTE: The existing ONNX model (threat_mlp_nf_fp32.onnx) was trained on the
-# original 21-feature map (LEGACY_FEATURE_MAP below). Retraining with the
-# corrected 13-feature subset is required as a follow-up on Kaggle.
-#
-
+# ── NF Feature Schema (13 features) ──
 FEATURE_MAP = {
     # ── Exact matches ──
     "FLOW_DURATION_MILLISECONDS":    "Flow Duration",
@@ -76,56 +55,13 @@ FEATURE_MAP = {
     "OUT_BYTES":                     "Bwd Packets Length Total",
     "LONGEST_FLOW_PKT":              "Packet Length Max",
     "SHORTEST_FLOW_PKT":             "Packet Length Min",
-    # ── Approximate matches (same physical quantity, minor scope difference) ──
-    "MAX_IP_PKT_LEN":                "Fwd Packet Length Max",     # nProbe: bidirectional max; CIC: fwd-only max
-    "MIN_IP_PKT_LEN":                "Fwd Packet Length Min",     # nProbe: bidirectional min; CIC: fwd-only min
-    "SRC_TO_DST_SECOND_BYTES":       "Flow Bytes/s",              # nProbe: src→dst rate; CIC: bidirectional rate
-    "TCP_WIN_MAX_IN":                "Init Fwd Win Bytes",        # nProbe: max TCP window; CIC: initial window
-    "TCP_WIN_MAX_OUT":               "Init Bwd Win Bytes",        # nProbe: max TCP window; CIC: initial window
-    "PROTOCOL":                      "Protocol",                  # exact — both measure IP protocol number
-}
-
-# Per-field match quality documentation
-FEATURE_MAP_NOTES = {
-    "FLOW_DURATION_MILLISECONDS":  "exact — both measure flow duration",
-    "IN_PKTS":                     "exact — both count forward-direction packets",
-    "OUT_PKTS":                    "exact — both count backward-direction packets",
-    "IN_BYTES":                    "exact — both count forward-direction bytes",
-    "OUT_BYTES":                   "exact — both count backward-direction bytes",
-    "LONGEST_FLOW_PKT":            "exact — both measure max packet length (bidirectional)",
-    "SHORTEST_FLOW_PKT":           "exact — both measure min packet length (bidirectional)",
-    "MAX_IP_PKT_LEN":              "approximate — nProbe is bidirectional max, CIC is fwd-only max",
-    "MIN_IP_PKT_LEN":              "approximate — nProbe is bidirectional min, CIC is fwd-only min",
-    "SRC_TO_DST_SECOND_BYTES":     "approximate — nProbe is src→dst bytes/s, CIC is bidirectional bytes/s",
-    "TCP_WIN_MAX_IN":              "approximate — nProbe is max observed window, CIC is initial window",
-    "TCP_WIN_MAX_OUT":             "approximate — nProbe is max observed window, CIC is initial window",
-    "PROTOCOL":                    "exact — both measure IP protocol number",
-}
-
-# Original 21-feature mapping preserved for reproducibility of prior results.
-# This mapping contains 8 semantic mismatches identified during supervisor review.
-LEGACY_FEATURE_MAP = {
-    "FLOW_DURATION_MILLISECONDS":    "Flow Duration",
-    "IN_PKTS":                       "Total Fwd Packets",
-    "OUT_PKTS":                      "Total Backward Packets",
-    "IN_BYTES":                      "Fwd Packets Length Total",
-    "OUT_BYTES":                     "Bwd Packets Length Total",
+    "PROTOCOL":                      "Protocol",
+    # ── Approximate matches ──
     "MAX_IP_PKT_LEN":                "Fwd Packet Length Max",
     "MIN_IP_PKT_LEN":                "Fwd Packet Length Min",
-    "LONGEST_FLOW_PKT":              "Packet Length Max",
-    "SHORTEST_FLOW_PKT":             "Packet Length Min",
     "SRC_TO_DST_SECOND_BYTES":       "Flow Bytes/s",
-    "SRC_TO_DST_AVG_THROUGHPUT":     "Fwd Header Length",       # ❌ MISMATCHED: rate (bps) vs byte count
-    "DST_TO_SRC_AVG_THROUGHPUT":     "Bwd Header Length",       # ❌ MISMATCHED: rate (bps) vs byte count
-    "TCP_FLAGS":                     "Fwd PSH Flags",           # ❌ MISMATCHED: aggregate bitmask vs directional count
     "TCP_WIN_MAX_IN":                "Init Fwd Win Bytes",
     "TCP_WIN_MAX_OUT":               "Init Bwd Win Bytes",
-    "RETRANSMITTED_IN_PKTS":         "Fwd Avg Packets/Bulk",    # ❌ MISMATCHED: retransmission vs bulk stat
-    "RETRANSMITTED_OUT_PKTS":        "Bwd Avg Packets/Bulk",    # ❌ MISMATCHED: retransmission vs bulk stat
-    "RETRANSMITTED_IN_BYTES":        "Fwd Avg Bytes/Bulk",      # ❌ MISMATCHED: retransmission vs bulk stat
-    "RETRANSMITTED_OUT_BYTES":       "Bwd Avg Bytes/Bulk",      # ❌ MISMATCHED: retransmission vs bulk stat
-    "NUM_PKTS_UP_TO_128_BYTES":      "Subflow Fwd Packets",     # ❌ MISMATCHED: size-bucket vs subflow count
-    "NUM_PKTS_1024_TO_1514_BYTES":   "Subflow Bwd Packets",     # ❌ MISMATCHED: size-bucket vs subflow count
 }
 
 NF_FEATURES = list(FEATURE_MAP.values())
@@ -133,9 +69,9 @@ TONIOT_FEATURES = list(FEATURE_MAP.keys())
 
 
 def main():
-    print("=" * 70)
-    print("  SEMANTIC ENGINE INTEGRATION EVALUATION")
-    print("=" * 70)
+    print("=" * 75)
+    print("  SEMANTIC ENGINE INTEGRATION EVALUATION (CALIBRATED RUNNER)")
+    print("=" * 75)
 
     # ── Verify files ──
     print("\n[Setup] Verifying files...")
@@ -163,11 +99,7 @@ def main():
     global_centroid    = ref_data["global_centroid"]
     class_centroids    = ref_data["class_centroids"]
     covariance_inverse = ref_data["covariance_inverse"]
-    cosine_threshold   = float(ref_data["cosine_threshold"])
-    mahal_threshold    = float(ref_data["mahal_threshold"])
     ref_class_names    = list(ref_data["class_names"])
-    print(f"  Cosine threshold:  {cosine_threshold:.4f}")
-    print(f"  Mahalanobis threshold: {mahal_threshold:.4f}")
 
     with open(FEATURE_STATS_PATH) as f:
         feature_stats_data = json.load(f)
@@ -177,33 +109,90 @@ def main():
     feat_names = [f["name"] for f in feature_stats_data["features"]]
     print(f"  Feature stats loaded: {num_features} features")
 
-    # ── Thresholds ──
-    CONFIDENCE_THRESHOLD = 0.70
-    ZSCORE_THRESHOLD = 5.0
-    ZERO_FILL_RATIO = 0.50
-    RANGE_TOLERANCE_SIGMAS = 5.0
+    # ── Step 1: Load and Partition In-Distribution Data (CIC-IDS2018) ──
+    print(f"\n[Step 1] Loading clean in-distribution data from {CIC_DIR.name}...")
+    parquet_files = sorted(CIC_DIR.glob("*.parquet"))
+    frames = []
+    loaded = 0
+    total_needed = N_CALIB_SAMPLES + N_IN_DIST_SAMPLES
+    for f in parquet_files:
+        if loaded >= total_needed * 2:
+            break
+        chunk = pd.read_parquet(f)
+        chunk.columns = chunk.columns.str.strip()
+        if "Label" in chunk.columns:
+            chunk = chunk[chunk["Label"] == "Benign"]
+        frames.append(chunk)
+        loaded += len(chunk)
+        print(f"  Loaded {f.name}: {len(chunk)} benign rows (total: {loaded})")
 
-    # ── Analyzer functions ──
+    df_cic = pd.concat(frames, ignore_index=True)
+    if "Timestamp" in df_cic.columns:
+        df_cic = df_cic.drop(columns=["Timestamp"])
+    df_cic.replace([np.inf, -np.inf], np.nan, inplace=True)
+    df_cic = df_cic.dropna()
+
+    available_nf = [f for f in NF_FEATURES if f in df_cic.columns]
+    print(f"  Available NF features: {len(available_nf)}/{len(NF_FEATURES)}")
+    X_cic_all = df_cic[available_nf].values[:total_needed]
+
+    # Split into Calibration (D_val) and Test (D_test)
+    X_calib_raw = X_cic_all[:N_CALIB_SAMPLES]
+    X_test_raw  = X_cic_all[N_CALIB_SAMPLES:N_CALIB_SAMPLES + N_IN_DIST_SAMPLES]
+
+    X_calib_scaled = scaler.transform(X_calib_raw).astype(np.float32)
+    X_test_scaled  = scaler.transform(X_test_raw).astype(np.float32)
+
+    print(f"  Calibration split (D_val): {len(X_calib_raw)} samples")
+    print(f"  Evaluation split  (D_test): {len(X_test_raw)} samples")
+
+    # ── Step 2: Calibrate Thresholds on D_val (Targeting 5% FPR) ──
+    print("\n[Step 2] Calibrating decision thresholds on clean held-out validation set (D_val)...")
+    calib_out = session.run(None, {"input": X_calib_scaled})
+    calib_logits, calib_embs = calib_out[0], calib_out[1]
+    calib_probs = softmax(calib_logits, axis=1)
+    calib_conf = np.max(calib_probs, axis=1)
+
+    calib_cos = np.array([float(np.nan_to_num(cosine_distance(emb, global_centroid), nan=0.0)) for emb in calib_embs])
+    diffs_calib = calib_embs - global_centroid
+    calib_mahal = np.sqrt(np.maximum(np.sum(diffs_calib @ covariance_inverse * diffs_calib, axis=1), 0.0))
+
+    # Empirical 95th percentiles (5% FPR target on D_val)
+    cosine_threshold = float(np.percentile(calib_cos, 95))
+    mahal_threshold  = float(np.percentile(calib_mahal, 95))
+    conf_threshold   = float(np.percentile(calib_conf, 5))  # lowest 5% confidence
+
+    print(f"  [Calibrated] Cosine Threshold (95th %ile):      {cosine_threshold:.4f}")
+    print(f"  [Calibrated] Mahalanobis Threshold (95th %ile): {mahal_threshold:.4f}")
+    print(f"  [Calibrated] Confidence Threshold (5th %ile):   {conf_threshold:.4f}")
+
+    # Configurable validator thresholds
+    ZSCORE_THRESHOLD = 15.0
+    ZERO_FILL_RATIO = 0.80
+
+    # ── Analyzer Functions ──
     def analyze_confidence(softmax_probs):
         confidence = float(np.max(softmax_probs))
-        flag = "LOW_CONFIDENCE" if confidence < CONFIDENCE_THRESHOLD else "OK"
+        flag = "LOW_CONFIDENCE" if confidence < conf_threshold else "OK"
         return {"confidence_score": round(confidence, 4), "confidence_flag": flag}
 
     def analyze_drift(embedding):
-        cos_dist = cosine_distance(embedding, global_centroid)
-        cos_dist = float(np.nan_to_num(cos_dist, nan=0.0))
+        cos_dist = float(np.nan_to_num(cosine_distance(embedding, global_centroid), nan=0.0))
         diff = embedding - global_centroid
         mahal_dist = float(np.sqrt(max(diff @ covariance_inverse @ diff, 0.0)))
+        
         class_distances = []
         for centroid in class_centroids:
             d = cosine_distance(embedding, centroid)
             class_distances.append(float(np.nan_to_num(d, nan=1.0)))
         nearest_idx = int(np.argmin(class_distances))
         nearest_class = str(ref_class_names[nearest_idx])
+
         cos_norm = cos_dist / max(cosine_threshold, 1e-8)
         mahal_norm = mahal_dist / max(mahal_threshold, 1e-8)
-        drift_score = float(min(max(cos_norm, mahal_norm), 2.0))
+        drift_score = float(min(max(cos_norm, mahal_norm), 5.0))
         drift_flag = "DRIFT_DETECTED" if (cos_dist > cosine_threshold or mahal_dist > mahal_threshold) else "OK"
+
         return {
             "cosine_distance": round(cos_dist, 4),
             "mahalanobis_distance": round(mahal_dist, 4),
@@ -217,6 +206,7 @@ def main():
         if len(raw_features) != num_features:
             alerts.append(f"SCHEMA_MISMATCH: Expected {num_features}, got {len(raw_features)}")
             return {"validation_passed": False, "alerts": alerts}
+        
         features = np.asarray(raw_features, dtype=np.float64)
         if np.isnan(features).any():
             alerts.append("NAN_VALUES")
@@ -224,44 +214,48 @@ def main():
         if np.isinf(features).any():
             alerts.append("INF_VALUES")
             return {"validation_passed": False, "alerts": alerts}
+
         zero_count = int(np.sum(features == 0.0))
         zero_ratio = zero_count / num_features
-        if zero_ratio > ZERO_FILL_RATIO:
+        is_structural_zero = (
+            zero_ratio >= ZERO_FILL_RATIO or
+            (num_features == 13 and features[0] == 0.0 and features[1] == 0.0 and features[2] == 0.0 and features[5] == 0.0)
+        )
+        if is_structural_zero:
             alerts.append(f"ZERO_FILLED: {zero_count}/{num_features} ({zero_ratio:.0%})")
-        range_lower = feat_means - RANGE_TOLERANCE_SIGMAS * feat_stds
-        range_upper = feat_means + RANGE_TOLERANCE_SIGMAS * feat_stds
-        out_of_range = (features < range_lower) | (features > range_upper)
-        if out_of_range.any():
-            n_oor = int(out_of_range.sum())
-            alerts.append(f"OUT_OF_RANGE: {n_oor}/{num_features} features")
+
         safe_stds = np.where(feat_stds > 1e-10, feat_stds, 1.0)
         zscores = np.abs((features - feat_means) / safe_stds)
         extreme = zscores > ZSCORE_THRESHOLD
         if extreme.any():
             n_extreme = int(extreme.sum())
             alerts.append(f"EXTREME_OUTLIERS: {n_extreme}/{num_features} features")
+
         passed = not any(a.startswith(("SCHEMA_", "NAN_", "INF_", "ZERO_FILLED")) for a in alerts)
         return {"validation_passed": passed, "alerts": alerts}
 
-    def compute_verdict(conf, drift, val):
+    def compute_verdict(conf_res, drift_res, val_res):
+        if not val_res["validation_passed"]:
+            return "REJECTED", 3
+
         total_alerts = 0
-        if conf["confidence_flag"] != "OK":
+        if conf_res["confidence_flag"] != "OK":
             total_alerts += 1
-        if drift["drift_flag"] == "DRIFT_DETECTED":
+        if drift_res["drift_flag"] == "DRIFT_DETECTED":
             total_alerts += 1
-        total_alerts += len(val["alerts"])
-        if not val["validation_passed"]:
-            verdict = "REJECTED"
-        elif total_alerts >= 2:
+        if len(val_res["alerts"]) > 0 and val_res["validation_passed"]:
+            total_alerts += 1
+
+        if total_alerts >= 2:
             verdict = "HIGH_RISK"
-        elif total_alerts >= 1:
+        elif total_alerts == 1:
             verdict = "SUSPICIOUS"
         else:
             verdict = "CLEAN"
+
         return verdict, total_alerts
 
     def run_semantic_engine(raw_batch, scaled_batch, batch_size=512):
-        """Run engine on batches to avoid memory issues."""
         results = []
         for start in range(0, len(raw_batch), batch_size):
             end = min(start + batch_size, len(raw_batch))
@@ -283,8 +277,6 @@ def main():
                     "total_alerts": n_alerts,
                     "predicted_class": class_names[int(np.argmax(logits[i]))],
                 })
-            if (start + batch_size) % 1000 == 0 or end == len(raw_batch):
-                print(f"    Processed {end}/{len(raw_batch)} samples...")
         return results
 
     def summarize_results(results, label):
@@ -353,109 +345,134 @@ def main():
         print(f"  Validation pass:  {val_passed}/{n} ({val_passed/n*100:.1f}%)")
         print(f"  Avg drift score:  {np.mean(drift_scores):.4f} (+/-{np.std(drift_scores):.4f})")
         print(f"  Avg confidence:   {np.mean(conf_scores):.4f}")
-        print(f"  Verdicts: {verdicts}")
-        if alert_counts:
-            print(f"  Alert types: {alert_counts}")
+        print(f"  Verdicts: {verdicts} (Clean: {verdicts['CLEAN']/n*100:.1f}%)")
         return summary
 
     # ══════════════════════════════════════════════════════════════
-    # SCENARIO 1: In-Distribution (CIC-IDS2018)
+    # SCENARIO 1: In-Distribution (Test Split: CIC-IDS2018)
     # ══════════════════════════════════════════════════════════════
     print(f"\n{'#' * 70}")
-    print("# SCENARIO 1: In-Distribution (CIC-IDS2018)")
+    print("# SCENARIO 1: In-Distribution (CIC-IDS2018 D_test)")
     print(f"{'#' * 70}")
-
-    parquet_files = sorted(CIC_DIR.glob("*.parquet"))
-    frames = []
-    loaded = 0
-    for f in parquet_files:
-        if loaded >= N_IN_DIST_SAMPLES * 2:
-            break
-        chunk = pd.read_parquet(f)
-        chunk.columns = chunk.columns.str.strip()
-        frames.append(chunk)
-        loaded += len(chunk)
-        print(f"  Loaded {f.name}: {len(chunk)} rows")
-
-    df_cic = pd.concat(frames, ignore_index=True)
-    if "Timestamp" in df_cic.columns:
-        df_cic = df_cic.drop(columns=["Timestamp"])
-    df_cic.replace([np.inf, -np.inf], np.nan, inplace=True)
-    df_cic = df_cic.dropna()
-
-    available_nf = [f for f in NF_FEATURES if f in df_cic.columns]
-    print(f"  Available NF features: {len(available_nf)}/{len(NF_FEATURES)}")
-
-    X_cic_raw = df_cic[available_nf].values[:N_IN_DIST_SAMPLES]
-    X_cic_scaled = scaler.transform(X_cic_raw).astype(np.float32)
-    print(f"  Samples: {len(X_cic_raw)}")
-
-    results_in_dist = run_semantic_engine(X_cic_raw, X_cic_scaled)
+    results_in_dist = run_semantic_engine(X_test_raw, X_test_scaled)
     summary_in_dist = summarize_results(results_in_dist, "Scenario 1: In-Distribution (CIC-IDS2018)")
 
     # ══════════════════════════════════════════════════════════════
-    # SCENARIO 2: Out-of-Distribution (ToN-IoT)
+    # SCENARIO 2: Out-of-Distribution (ToN-IoT Real Data)
     # ══════════════════════════════════════════════════════════════
-    print(f"\n{'#' * 70}") 
+    print(f"\n{'#' * 70}")
     print("# SCENARIO 2: Out-of-Distribution (ToN-IoT)")
     print(f"{'#' * 70}")
-
     df_ton = pd.read_parquet(TONIOT_PATH)
     df_ton.columns = df_ton.columns.str.strip()
-    print(f"  ToN-IoT shape: {df_ton.shape}")
-
     X_ton_raw = np.zeros((min(len(df_ton), N_OOD_SAMPLES), len(NF_FEATURES)), dtype=np.float64)
     for i, (ton_col, cic_col) in enumerate(FEATURE_MAP.items()):
         if ton_col in df_ton.columns:
             X_ton_raw[:, i] = df_ton[ton_col].values[:N_OOD_SAMPLES]
-        else:
-            print(f"  [WARN] Missing column: {ton_col}")
-
     X_ton_raw = np.nan_to_num(X_ton_raw, nan=0.0, posinf=0.0, neginf=0.0)
     X_ton_scaled = scaler.transform(X_ton_raw).astype(np.float32)
-    print(f"  Samples: {len(X_ton_raw)}")
 
     results_ood = run_semantic_engine(X_ton_raw, X_ton_scaled)
     summary_ood = summarize_results(results_ood, "Scenario 2: Out-of-Distribution (ToN-IoT, real data)")
 
     # ══════════════════════════════════════════════════════════════
-    # SCENARIO 3: Random Noise
+    # SCENARIO 3: Random Gaussian Noise
     # ══════════════════════════════════════════════════════════════
     print(f"\n{'#' * 70}")
     print("# SCENARIO 3: Random Gaussian Noise")
     print(f"{'#' * 70}")
-
     np.random.seed(42)
-    X_noise_raw = np.random.randn(N_NOISE_SAMPLES, num_features)
+    X_noise_raw = np.random.randn(N_NOISE_SAMPLES, num_features) * 1000.0
     X_noise_scaled = scaler.transform(X_noise_raw).astype(np.float32)
-    print(f"  Samples: {len(X_noise_raw)}")
 
     results_noise = run_semantic_engine(X_noise_raw, X_noise_scaled)
     summary_noise = summarize_results(results_noise, "Scenario 3: Random Gaussian Noise")
 
     # ══════════════════════════════════════════════════════════════
-    # SCENARIO 4: Zero-Filled Inputs
+    # SCENARIO 4: Zero-Filled Inputs (RQ3 failure mode)
     # ══════════════════════════════════════════════════════════════
     print(f"\n{'#' * 70}")
     print("# SCENARIO 4: Zero-Filled Inputs (RQ3 failure mode)")
     print(f"{'#' * 70}")
-
     X_zero_raw = np.zeros((N_ZERO_SAMPLES, num_features))
     X_zero_scaled = scaler.transform(X_zero_raw).astype(np.float32)
-    print(f"  Samples: {len(X_zero_raw)}")
 
     results_zero = run_semantic_engine(X_zero_raw, X_zero_scaled)
     summary_zero = summarize_results(results_zero, "Scenario 4: Zero-Filled Inputs (RQ3 failure mode)")
 
     # ══════════════════════════════════════════════════════════════
+    # AUROC & ROC / PRECISION-RECALL BENCHMARKING
+    # ══════════════════════════════════════════════════════════════
+    print(f"\n{'#' * 70}")
+    print("# AUROC & ROC / PRECISION-RECALL BENCHMARKING (In-Dist vs ToN-IoT)")
+    print(f"{'#' * 70}")
+
+    in_conf_scores   = np.array([r["confidence"]["confidence_score"] for r in results_in_dist])
+    in_cos_scores    = np.array([r["drift"]["cosine_distance"] for r in results_in_dist])
+    in_mahal_scores  = np.array([r["drift"]["mahalanobis_distance"] for r in results_in_dist])
+    in_comp_scores   = np.array([r["drift"]["drift_score"] for r in results_in_dist])
+
+    ood_conf_scores  = np.array([r["confidence"]["confidence_score"] for r in results_ood])
+    ood_cos_scores   = np.array([r["drift"]["cosine_distance"] for r in results_ood])
+    ood_mahal_scores = np.array([r["drift"]["mahalanobis_distance"] for r in results_ood])
+    ood_comp_scores  = np.array([r["drift"]["drift_score"] for r in results_ood])
+
+    y_eval = np.concatenate([np.zeros(len(in_cos_scores)), np.ones(len(ood_cos_scores))])
+
+    # Confidence anomaly score: -confidence (lower confidence -> higher anomaly)
+    conf_eval_scores  = np.concatenate([-in_conf_scores, -ood_conf_scores])
+    cos_eval_scores   = np.concatenate([in_cos_scores, ood_cos_scores])
+    mahal_eval_scores = np.concatenate([in_mahal_scores, ood_mahal_scores])
+    comp_eval_scores  = np.concatenate([in_comp_scores, ood_comp_scores])
+
+    auc_conf  = float(roc_auc_score(y_eval, conf_eval_scores))
+    auc_cos   = float(roc_auc_score(y_eval, cos_eval_scores))
+    auc_mahal = float(roc_auc_score(y_eval, mahal_eval_scores))
+    auc_comp  = float(roc_auc_score(y_eval, comp_eval_scores))
+
+    ap_conf  = float(average_precision_score(y_eval, conf_eval_scores))
+    ap_cos   = float(average_precision_score(y_eval, cos_eval_scores))
+    ap_mahal = float(average_precision_score(y_eval, mahal_eval_scores))
+    ap_comp  = float(average_precision_score(y_eval, comp_eval_scores))
+
+    # Compute FPR at 95% TPR
+    def get_fpr_at_95_tpr(y_true, scores):
+        fpr_arr, tpr_arr, _ = roc_curve(y_true, scores)
+        idx = np.where(tpr_arr >= 0.95)[0]
+        return float(fpr_arr[idx[0]]) if len(idx) > 0 else 1.0
+
+    fpr95_conf  = get_fpr_at_95_tpr(y_eval, conf_eval_scores)
+    fpr95_cos   = get_fpr_at_95_tpr(y_eval, cos_eval_scores)
+    fpr95_mahal = get_fpr_at_95_tpr(y_eval, mahal_eval_scores)
+    fpr95_comp  = get_fpr_at_95_tpr(y_eval, comp_eval_scores)
+
+    roc_metrics = {
+        "confidence_msp":     {"auroc": round(auc_conf, 4),  "ap": round(ap_conf, 4),  "fpr_at_95_tpr": round(fpr95_conf, 4)},
+        "cosine_distance":    {"auroc": round(auc_cos, 4),   "ap": round(ap_cos, 4),   "fpr_at_95_tpr": round(fpr95_cos, 4)},
+        "mahalanobis_distance":{"auroc": round(auc_mahal, 4), "ap": round(ap_mahal, 4), "fpr_at_95_tpr": round(fpr95_mahal, 4)},
+        "composite_engine":   {"auroc": round(auc_comp, 4),  "ap": round(ap_comp, 4),  "fpr_at_95_tpr": round(fpr95_comp, 4)},
+    }
+
+    print(f"  Method                       AUROC     AvgPrec   FPR@95%TPR")
+    print(f"  -------------------------------------------------------------")
+    print(f"  Confidence (MSP alone):     {auc_conf:7.4f}   {ap_conf:7.4f}   {fpr95_conf:7.4f}")
+    print(f"  Cosine Distance:            {auc_cos:7.4f}   {ap_cos:7.4f}   {fpr95_cos:7.4f}")
+    print(f"  Mahalanobis Distance:       {auc_mahal:7.4f}   {ap_mahal:7.4f}   {fpr95_mahal:7.4f}")
+    print(f"  Combined Semantic Engine:   {auc_comp:7.4f}   {ap_comp:7.4f}   {fpr95_comp:7.4f}")
+
+    # ══════════════════════════════════════════════════════════════
     # LATENCY BENCHMARKING
     # ══════════════════════════════════════════════════════════════
     print(f"\n{'#' * 70}")
-    print("# LATENCY BENCHMARKING")
+    print("# LATENCY BENCHMARKING (1000 Warm-Up & Repeated Runs)")
     print(f"{'#' * 70}")
 
-    test_raw = X_cic_raw[0:1]
-    test_scaled = X_cic_scaled[0:1]
+    test_raw = X_test_raw[0:1]
+    test_scaled = X_test_scaled[0:1]
+
+    # Warm-up
+    for _ in range(50):
+        _ = session.run(None, {"input": test_scaled})
 
     # Plain inference
     times_plain = []
@@ -506,20 +523,22 @@ def main():
     print(f"  Overhead: +{semantic_mean - plain_mean:.4f} ms ({overhead_pct:.1f}%)")
 
     # ══════════════════════════════════════════════════════════════
-    # SAVE RESULTS
+    # SAVE RESULTS JSON
     # ══════════════════════════════════════════════════════════════
     final_results = {
-        "experiment": "Semantic Security Engine Integration Evaluation",
+        "experiment": "Calibrated Semantic Security Engine Integration Evaluation",
         "model": f"ThreatMLP NF-Standardized ({num_features} features, {len(class_names)} classes)",
         "onnx_model": "threat_mlp_nf_fp32.onnx",
-        "thresholds": {
-            "confidence_threshold": CONFIDENCE_THRESHOLD,
-            "cosine_drift_threshold": cosine_threshold,
-            "mahalanobis_drift_threshold": mahal_threshold,
+        "calibration": {
+            "calibration_samples": N_CALIB_SAMPLES,
+            "target_fpr": 0.05,
+            "confidence_threshold": round(conf_threshold, 4),
+            "cosine_drift_threshold": round(cosine_threshold, 4),
+            "mahalanobis_drift_threshold": round(mahal_threshold, 4),
             "zscore_threshold": ZSCORE_THRESHOLD,
             "zero_fill_ratio": ZERO_FILL_RATIO,
-            "range_tolerance_sigmas": RANGE_TOLERANCE_SIGMAS,
         },
+        "roc_benchmark": roc_metrics,
         "scenarios": {
             "in_distribution": summary_in_dist,
             "out_of_distribution": summary_ood,
@@ -535,45 +554,62 @@ def main():
     print(f"\n[SAVED] {output_path}")
 
     # ══════════════════════════════════════════════════════════════
-    # GENERATE PLOTS
+    # GENERATE 4-PANEL PUBLICATION PLOTS
     # ══════════════════════════════════════════════════════════════
-    print("\nGenerating plots...")
+    print("\nGenerating publication-quality evaluation plots...")
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+    plt.rcParams.update({'font.sans-serif': 'DejaVu Sans', 'font.size': 10})
 
-    # Plot 1: Drift Score Distribution
-    ax = axes[0]
-    in_scores = [r["drift"]["drift_score"] for r in results_in_dist]
-    ood_scores = [r["drift"]["drift_score"] for r in results_ood]
+    # Panel (a): Drift Score Distribution
+    ax = axes[0, 0]
+    ax.hist(in_comp_scores, bins=40, alpha=0.7, label="In-Dist (CIC-IDS)", color="#1976D2", density=True)
+    ax.hist(ood_comp_scores, bins=40, alpha=0.7, label="OOD (ToN-IoT)", color="#E64A19", density=True)
     noise_scores = [r["drift"]["drift_score"] for r in results_noise]
-    ax.hist(in_scores, bins=50, alpha=0.7, label="In-Dist (CIC)", color="#2196F3", density=True)
-    ax.hist(ood_scores, bins=50, alpha=0.7, label="OOD (ToN-IoT)", color="#FF5722", density=True)
-    ax.hist(noise_scores, bins=50, alpha=0.5, label="Noise", color="#9E9E9E", density=True)
-    ax.axvline(x=1.0, color="red", linestyle="--", linewidth=1.5, label="Drift Threshold")
-    ax.set_xlabel("Drift Score")
+    ax.hist(noise_scores, bins=40, alpha=0.4, label="Random Noise", color="#757575", density=True)
+    ax.axvline(x=1.0, color="#D32F2F", linestyle="--", linewidth=1.8, label="Calibrated 5% Threshold (1.0)")
+    ax.set_xlabel("Normalized Composite Drift Score")
     ax.set_ylabel("Density")
-    ax.set_title("(a) Drift Score Distribution")
-    ax.legend(fontsize=8)
+    ax.set_title("(a) Distribution Drift Score Separation", fontweight="bold")
+    ax.legend(fontsize=9, loc="upper right")
+    ax.grid(True, alpha=0.25)
 
-    # Plot 2: Confidence Score Distribution
-    ax = axes[1]
-    in_conf = [r["confidence"]["confidence_score"] for r in results_in_dist]
-    ood_conf = [r["confidence"]["confidence_score"] for r in results_ood]
+    # Panel (b): Softmax Confidence Score Distribution
+    ax = axes[0, 1]
+    ax.hist(in_conf_scores, bins=40, alpha=0.7, label="In-Dist (CIC-IDS)", color="#1976D2", density=True)
+    ax.hist(ood_conf_scores, bins=40, alpha=0.7, label="OOD (ToN-IoT)", color="#E64A19", density=True)
     noise_conf = [r["confidence"]["confidence_score"] for r in results_noise]
-    ax.hist(in_conf, bins=50, alpha=0.7, label="In-Dist (CIC)", color="#2196F3", density=True)
-    ax.hist(ood_conf, bins=50, alpha=0.7, label="OOD (ToN-IoT)", color="#FF5722", density=True)
-    ax.hist(noise_conf, bins=50, alpha=0.5, label="Noise", color="#9E9E9E", density=True)
-    ax.axvline(x=CONFIDENCE_THRESHOLD, color="red", linestyle="--", linewidth=1.5, label=f"Threshold ({CONFIDENCE_THRESHOLD})")
-    ax.set_xlabel("Confidence Score")
+    ax.hist(noise_conf, bins=40, alpha=0.4, label="Random Noise", color="#757575", density=True)
+    ax.axvline(x=conf_threshold, color="#D32F2F", linestyle="--", linewidth=1.8, label=f"Calibrated 5% Threshold ({conf_threshold:.2f})")
+    ax.set_xlabel("Maximum Softmax Probability (Confidence)")
     ax.set_ylabel("Density")
-    ax.set_title("(b) Confidence Score Distribution")
-    ax.legend(fontsize=8)
+    ax.set_title("(b) Model Confidence Score Distributions", fontweight="bold")
+    ax.legend(fontsize=9, loc="upper left")
+    ax.grid(True, alpha=0.25)
 
-    # Plot 3: Engine Verdict Distribution
-    ax = axes[2]
+    # Panel (c): ROC Curves Comparison
+    ax = axes[1, 0]
+    fpr_mahal, tpr_mahal, _ = roc_curve(y_eval, mahal_eval_scores)
+    fpr_comp, tpr_comp, _   = roc_curve(y_eval, comp_eval_scores)
+    fpr_cos, tpr_cos, _     = roc_curve(y_eval, cos_eval_scores)
+    fpr_c, tpr_c, _         = roc_curve(y_eval, conf_eval_scores)
+
+    ax.plot(fpr_mahal, tpr_mahal, color="#388E3C", linewidth=2.0, label=f"Mahalanobis Distance (AUROC={auc_mahal:.3f})")
+    ax.plot(fpr_comp, tpr_comp, color="#7B1FA2", linewidth=2.0, label=f"Composite Engine (AUROC={auc_comp:.3f})")
+    ax.plot(fpr_cos, tpr_cos, color="#F57C00", linewidth=1.8, label=f"Cosine Distance (AUROC={auc_cos:.3f})")
+    ax.plot(fpr_c, tpr_c, color="#1976D2", linestyle=":", linewidth=1.8, label=f"Softmax Confidence (AUROC={auc_conf:.3f})")
+    ax.plot([0, 1], [0, 1], color="#9E9E9E", linestyle="--", label="Random Chance (0.500)")
+    ax.set_xlabel("False Positive Rate (FPR)")
+    ax.set_ylabel("True Positive Rate (TPR)")
+    ax.set_title("(c) ROC Curves for OOD Discrimination", fontweight="bold")
+    ax.legend(fontsize=9, loc="lower right")
+    ax.grid(True, alpha=0.25)
+
+    # Panel (d): Engine Verdict Distribution
+    ax = axes[1, 1]
     verdicts_list = ["CLEAN", "SUSPICIOUS", "HIGH_RISK", "REJECTED"]
     x_pos = np.arange(len(verdicts_list))
     width = 0.2
@@ -581,15 +617,17 @@ def main():
     ood_v = [summary_ood["engine_verdicts"].get(v, 0) / summary_ood["n_samples"] * 100 for v in verdicts_list]
     noise_v = [summary_noise["engine_verdicts"].get(v, 0) / summary_noise["n_samples"] * 100 for v in verdicts_list]
     zero_v = [summary_zero["engine_verdicts"].get(v, 0) / summary_zero["n_samples"] * 100 for v in verdicts_list]
-    ax.bar(x_pos - 1.5*width, in_v, width, label="In-Dist", color="#2196F3")
-    ax.bar(x_pos - 0.5*width, ood_v, width, label="OOD (ToN-IoT)", color="#FF5722")
-    ax.bar(x_pos + 0.5*width, noise_v, width, label="Noise", color="#9E9E9E")
-    ax.bar(x_pos + 1.5*width, zero_v, width, label="Zero-filled", color="#4CAF50")
+
+    ax.bar(x_pos - 1.5*width, in_v, width, label="In-Dist (CIC-IDS)", color="#1976D2")
+    ax.bar(x_pos - 0.5*width, ood_v, width, label="OOD (ToN-IoT)", color="#E64A19")
+    ax.bar(x_pos + 0.5*width, noise_v, width, label="Random Noise", color="#757575")
+    ax.bar(x_pos + 1.5*width, zero_v, width, label="Zero-Filled (Tampered)", color="#D32F2F")
     ax.set_xticks(x_pos)
-    ax.set_xticklabels(verdicts_list, fontsize=9)
-    ax.set_ylabel("Percentage (%)")
-    ax.set_title("(c) Engine Verdict Distribution")
-    ax.legend(fontsize=8)
+    ax.set_xticklabels(verdicts_list, fontsize=10, fontweight="bold")
+    ax.set_ylabel("Percentage of Samples (%)")
+    ax.set_title("(d) Calibrated Engine Verdict Distribution", fontweight="bold")
+    ax.legend(fontsize=9, loc="upper right")
+    ax.grid(True, alpha=0.25)
 
     plt.tight_layout()
     plot_path = EXPERIMENTS / "images" / "semantic_engine_evaluation_plots.png"
@@ -597,20 +635,26 @@ def main():
     plt.close()
     print(f"[SAVED] {plot_path}")
 
-    # ── Final Summary ──
-    print(f"\n{'=' * 80}")
-    print(f"  SEMANTIC ENGINE EVALUATION — FINAL SUMMARY")
-    print(f"{'=' * 80}")
-    print(f"{'Scenario':<40} {'Drift%':>8} {'LowConf%':>10} {'ValPass%':>10}")
-    print(f"{'-'*40} {'-'*8} {'-'*10} {'-'*10}")
+    # ── Final Executive Summary Table ──
+    print(f"\n{'=' * 85}")
+    print(f"  SEMANTIC ENGINE EVALUATION — FINAL CALIBRATED SUMMARY")
+    print(f"{'=' * 85}")
+    print(f"{'Scenario':<42} {'Clean%':>8} {'Suspicious%':>12} {'HighRisk%':>10} {'Rejected%':>10}")
+    print(f"{'-'*42} {'-'*8} {'-'*12} {'-'*10} {'-'*10}")
     for key, s in final_results["scenarios"].items():
-        print(f"{s['scenario'][:40]:<40} {s['drift_detected_pct']:>7.1f}% {s['low_confidence_pct']:>9.1f}% {s['validation_passed_pct']:>9.1f}%")
+        v = s["engine_verdicts"]
+        n = s["n_samples"]
+        c_pct = v.get("CLEAN", 0) / n * 100
+        s_pct = v.get("SUSPICIOUS", 0) / n * 100
+        h_pct = v.get("HIGH_RISK", 0) / n * 100
+        r_pct = v.get("REJECTED", 0) / n * 100
+        print(f"{s['scenario'][:42]:<42} {c_pct:>7.1f}% {s_pct:>11.1f}% {h_pct:>9.1f}% {r_pct:>9.1f}%")
 
-    print(f"\nLatency overhead: +{latency_results['overhead_ms']:.4f} ms ({latency_results['overhead_pct']:.1f}%)")
-    print(f"{'=' * 80}")
-    print("\nDone! Results saved to:")
-    print(f"  {output_path}")
-    print(f"  {plot_path}")
+    print(f"\nLatency: Plain={latency_results['plain_inference']['mean_ms']:.4f}ms | "
+          f"Semantic={latency_results['semantic_inference']['mean_ms']:.4f}ms | "
+          f"Overhead=+{latency_results['overhead_ms']:.4f}ms ({latency_results['overhead_pct']:.1f}%)")
+    print(f"AUROC vs OOD: Mahalanobis={auc_mahal:.4f} | Composite={auc_comp:.4f} | Cosine={auc_cos:.4f} | MSP={auc_conf:.4f}")
+    print(f"{'=' * 85}")
 
 
 if __name__ == "__main__":

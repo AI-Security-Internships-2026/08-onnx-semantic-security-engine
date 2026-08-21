@@ -1,0 +1,253 @@
+networks:
+  sec-engine-net:
+    driver: bridge
+
+services:
+  # ============================================================================
+  # 1. Central ONNX Semantic Security Engine
+  # ============================================================================
+  security-engine:
+    container_name: security-engine
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.engine
+    ports:
+      - "8000:8000"
+    environment:
+      - USE_NF=true
+      - USE_QUANTIZED=false
+      - PYTHONUNBUFFERED=1
+    networks:
+      - sec-engine-net
+    restart: unless-stopped
+
+  # ============================================================================
+  # 2. 10 Benign / Normal Nodes (In-Distribution Traffic)
+  # ============================================================================
+  benign-01:
+    container_name: benign-01
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.client
+    environment:
+      - NODE_ID=benign-01
+      - NODE_TYPE=benign
+      - ENGINE_URL=http://security-engine:8000/predict/secure
+      - INTERVAL_SEC=1.2
+    depends_on:
+      - security-engine
+    networks:
+      - sec-engine-net
+
+  benign-02:
+    container_name: benign-02
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.client
+    environment:
+      - NODE_ID=benign-02
+      - NODE_TYPE=benign
+      - ENGINE_URL=http://security-engine:8000/predict/secure
+      - INTERVAL_SEC=1.4
+    depends_on:
+      - security-engine
+    networks:
+      - sec-engine-net
+
+  benign-03:
+    container_name: benign-03
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.client
+    environment:
+      - NODE_ID=benign-03
+      - NODE_TYPE=benign
+      - ENGINE_URL=http://security-engine:8000/predict/secure
+      - INTERVAL_SEC=1.0
+    depends_on:
+      - security-engine
+    networks:
+      - sec-engine-net
+
+  benign-04:
+    container_name: benign-04
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.client
+    environment:
+      - NODE_ID=benign-04
+      - NODE_TYPE=benign
+      - ENGINE_URL=http://security-engine:8000/predict/secure
+      - INTERVAL_SEC=1.5
+    depends_on:
+      - security-engine
+    networks:
+      - sec-engine-net
+
+  benign-05:
+    container_name: benign-05
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.client
+    environment:
+      - NODE_ID=benign-05
+      - NODE_TYPE=benign
+      - ENGINE_URL=http://security-engine:8000/predict/secure
+      - INTERVAL_SEC=1.1
+    depends_on:
+      - security-engine
+    networks:
+      - sec-engine-net
+
+  benign-06:
+    container_name: benign-06
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.client
+    environment:
+      - NODE_ID=benign-06
+      - NODE_TYPE=benign
+      - ENGINE_URL=http://security-engine:8000/predict/secure
+      - INTERVAL_SEC=1.3
+    depends_on:
+      - security-engine
+    networks:
+      - sec-engine-net
+
+  benign-07:
+    container_name: benign-07
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.client
+    environment:
+      - NODE_ID=benign-07
+      - NODE_TYPE=benign
+      - ENGINE_URL=http://security-engine:8000/predict/secure
+      - INTERVAL_SEC=1.6
+    depends_on:
+      - security-engine
+    networks:
+      - sec-engine-net
+
+  benign-08:
+    container_name: benign-08
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.client
+    environment:
+      - NODE_ID=benign-08
+      - NODE_TYPE=benign
+      - ENGINE_URL=http://security-engine:8000/predict/secure
+      - INTERVAL_SEC=1.2
+    depends_on:
+      - security-engine
+    networks:
+      - sec-engine-net
+
+  benign-09:
+    container_name: benign-09
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.client
+    environment:
+      - NODE_ID=benign-09
+      - NODE_TYPE=benign
+      - ENGINE_URL=http://security-engine:8000/predict/secure
+      - INTERVAL_SEC=1.4
+    depends_on:
+      - security-engine
+    networks:
+      - sec-engine-net
+
+  benign-10:
+    container_name: benign-10
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.client
+    environment:
+      - NODE_ID=benign-10
+      - NODE_TYPE=benign
+      - ENGINE_URL=http://security-engine:8000/predict/secure
+      - INTERVAL_SEC=1.0
+    depends_on:
+      - security-engine
+    networks:
+      - sec-engine-net
+
+  # ============================================================================
+  # 3. 5 Attacker / Threat Nodes
+  # ============================================================================
+  attacker-01-ddos:
+    container_name: attacker-01-ddos
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.client
+    environment:
+      - NODE_ID=attacker-01-ddos
+      - NODE_TYPE=ddos
+      - ENGINE_URL=http://security-engine:8000/predict/secure
+      - INTERVAL_SEC=0.6
+    depends_on:
+      - security-engine
+    networks:
+      - sec-engine-net
+
+  attacker-02-bruteforce:
+    container_name: attacker-02-bruteforce
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.client
+    environment:
+      - NODE_ID=attacker-02-bruteforce
+      - NODE_TYPE=bruteforce
+      - ENGINE_URL=http://security-engine:8000/predict/secure
+      - INTERVAL_SEC=1.0
+    depends_on:
+      - security-engine
+    networks:
+      - sec-engine-net
+
+  attacker-03-toniot:
+    container_name: attacker-03-toniot
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.client
+    environment:
+      - NODE_ID=attacker-03-toniot
+      - NODE_TYPE=ood_toniot
+      - ENGINE_URL=http://security-engine:8000/predict/secure
+      - INTERVAL_SEC=1.2
+    depends_on:
+      - security-engine
+    networks:
+      - sec-engine-net
+
+  attacker-04-noise:
+    container_name: attacker-04-noise
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.client
+    environment:
+      - NODE_ID=attacker-04-noise
+      - NODE_TYPE=noise
+      - ENGINE_URL=http://security-engine:8000/predict/secure
+      - INTERVAL_SEC=1.0
+    depends_on:
+      - security-engine
+    networks:
+      - sec-engine-net
+
+  attacker-05-zero-fault:
+    container_name: attacker-05-zero-fault
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.client
+    environment:
+      - NODE_ID=attacker-05-zero-fault
+      - NODE_TYPE=zero_filled
+      - ENGINE_URL=http://security-engine:8000/predict/secure
+      - INTERVAL_SEC=1.5
+    depends_on:
+      - security-engine
+    networks:
+      - sec-engine-net

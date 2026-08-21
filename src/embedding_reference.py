@@ -41,7 +41,7 @@ from scipy.spatial.distance import cosine
 parser = argparse.ArgumentParser(description="Generate reference embeddings and training stats")
 parser.add_argument(
     "--nf", action="store_true",
-    help="Use NF-standardized model (12 features)"
+    help="Use NF-standardized model (13 features)"
 )
 parser.add_argument(
     "--num-samples", type=int, default=100000,
@@ -54,9 +54,9 @@ BASE_DIR = Path(__file__).parent.parent
 EXPERIMENTS = BASE_DIR / "experiments"
 
 suffix = "_nf" if args.nf else ""
-model_label = "NF-Standardized (12 features)" if args.nf else "Baseline (76 features)"
+model_label = "NF-Standardized (13 features)" if args.nf else "Baseline (76 features)"
 
-# ── NF Feature Names (corrected 12-feature list) ──
+# ── NF Feature Names (corrected 13-feature list) ──
 # Must match the retrained model's feature order exactly.
 # See evaluate_semantic_engine.py FEATURE_MAP for the authoritative mapping.
 NF_FEATURE_NAMES = [
@@ -67,12 +67,12 @@ NF_FEATURE_NAMES = [
     "Bwd Packets Length Total",
     "Packet Length Max",
     "Packet Length Min",
+    "Protocol",
     "Fwd Packet Length Max",
     "Fwd Packet Length Min",
     "Flow Bytes/s",
     "Init Fwd Win Bytes",
     "Init Bwd Win Bytes",
-    "Protocol",
 ]
 
 print(f"Reference Embedding Generator — {model_label}")

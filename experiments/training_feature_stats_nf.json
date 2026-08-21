@@ -1,5 +1,5 @@
 {
-  "model_variant": "NF-Standardized (12 features)",
+  "model_variant": "NF-Standardized (13 features)",
   "num_features": 13,
   "features": [
     {
@@ -60,7 +60,7 @@
     },
     {
       "index": 7,
-      "name": "Fwd Packet Length Max",
+      "name": "Protocol",
       "mean": 7.052988,
       "std": 3.315022,
       "min_approx": -6.207101,
@@ -68,7 +68,7 @@
     },
     {
       "index": 8,
-      "name": "Fwd Packet Length Min",
+      "name": "Fwd Packet Length Max",
       "mean": 243.332649,
       "std": 280.204588,
       "min_approx": -877.485702,
@@ -76,7 +76,7 @@
     },
     {
       "index": 9,
-      "name": "Flow Bytes/s",
+      "name": "Fwd Packet Length Min",
       "mean": 4.970082,
       "std": 25.65311,
       "min_approx": -97.642357,
@@ -84,7 +84,7 @@
     },
     {
       "index": 10,
-      "name": "Init Fwd Win Bytes",
+      "name": "Flow Bytes/s",
       "mean": 61379.995363,
       "std": 1096384.426727,
       "min_approx": -4324157.711546,
@@ -92,7 +92,7 @@
     },
     {
       "index": 11,
-      "name": "Init Bwd Win Bytes",
+      "name": "Init Fwd Win Bytes",
       "mean": 17454.834655,
       "std": 21579.937461,
       "min_approx": -68864.915189,
@@ -100,7 +100,7 @@
     },
     {
       "index": 12,
-      "name": "Protocol",
+      "name": "Init Bwd Win Bytes",
       "mean": 3386.225723,
       "std": 13315.620305,
       "min_approx": -49876.255497,

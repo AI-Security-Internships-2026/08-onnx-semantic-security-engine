@@ -1,11 +1,11 @@
 """
-Train ThreatMLP classifier — Supports both Baseline (76-feature) and NF-Standardized (21-feature) modes.
+Train ThreatMLP classifier — Supports both Baseline (76-feature) and NF-Standardized (13-feature) modes.
 
 Usage:
     # Train baseline model (all CIC features)
     python src/train_classifier.py
 
-    # Train NF-standardized model (21 NetFlow-compatible features only)
+    # Train NF-standardized model (13 NetFlow-compatible features only)
     python src/train_classifier.py --nf
 """
 
@@ -29,7 +29,7 @@ from model import ThreatMLP
 parser = argparse.ArgumentParser(description="Train ThreatMLP threat classifier")
 parser.add_argument(
     "--nf", action="store_true",
-    help="Train using only the 21 NF-standardized features (NetFlow-compatible)"
+    help="Train using only the 13 NF-standardized features (NetFlow-compatible)"
 )
 parser.add_argument(
     "--epochs", type=int, default=30,
@@ -49,18 +49,18 @@ NF_FEATURES = [
     "Total Backward Packets",
     "Fwd Packets Length Total",    # maps to IN_BYTES
     "Bwd Packets Length Total",    # maps to OUT_BYTES
-    "Fwd Packet Length Max",       # maps to MAX_IP_PKT_LEN
-    "Fwd Packet Length Min",       # maps to MIN_IP_PKT_LEN
     "Packet Length Max",           # maps to LONGEST_FLOW_PKT
     "Packet Length Min",           # maps to SHORTEST_FLOW_PKT
+    "Protocol",                    # maps to PROTOCOL
+    "Fwd Packet Length Max",       # maps to MAX_IP_PKT_LEN
+    "Fwd Packet Length Min",       # maps to MIN_IP_PKT_LEN
     "Flow Bytes/s",                # maps to SRC_TO_DST_SECOND_BYTES
     "Init Fwd Win Bytes",          # maps to TCP_WIN_MAX_IN
     "Init Bwd Win Bytes",          # maps to TCP_WIN_MAX_OUT
-    "Protocol",                    # maps to PROTOCOL
 ]
 
 # ── Configuration ──
-mode_label = "NF-Standardized (21 features)" if args.nf else "Baseline (all features)"
+mode_label = "NF-Standardized (13 features)" if args.nf else "Baseline (all features)"
 print(f"Training mode: {mode_label}")
 print(f"Epochs: {args.epochs}, Batch size: {args.batch_size}")
 

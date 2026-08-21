@@ -1,0 +1,19 @@
+# ==============================================================================
+# Dockerfile.client: Benign & Attacker Traffic Generator Node
+# ==============================================================================
+FROM python:3.11-slim
+
+WORKDIR /app
+
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Install lightweight dependencies for traffic streaming
+RUN pip install --no-cache-dir requests numpy
+
+# Copy traffic generator script and optional sample pool
+COPY docker/traffic_generator.py /app/traffic_generator.py
+COPY docker/benign_samples.json* /app/
+
+# Entrypoint runs the traffic generator driven by container environment variables
+CMD ["python", "/app/traffic_generator.py"]

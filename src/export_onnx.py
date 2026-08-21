@@ -1,5 +1,5 @@
 """
-ONNX Export Pipeline — Supports both Baseline (76-feature) and NF-Standardized (21-feature) models.
+ONNX Export Pipeline — Supports both Baseline (76-feature) and NF-Standardized (13-feature) models.
 
 Can export with optional intermediate embedding output (fc3 layer, 64-dim) for
 drift detection in the semantic security engine.
@@ -33,7 +33,7 @@ from model import ThreatMLP, ThreatMLPWithEmbedding
 parser = argparse.ArgumentParser(description="Export PyTorch ThreatMLP to ONNX format")
 parser.add_argument(
     "--nf", action="store_true",
-    help="Export the NF-standardized model (21 features) instead of baseline (76 features)"
+    help="Export the NF-standardized model (13 features) instead of baseline (76 features)"
 )
 parser.add_argument(
     "--with-embeddings", action="store_true", default=True,
@@ -56,7 +56,7 @@ EXPERIMENTS = BASE_DIR / "experiments"
 if args.nf:
     model_file = "threat_mlp_nf.pth"
     onnx_file = "threat_mlp_nf_fp32.onnx"
-    model_label = "NF-Standardized (21 features)"
+    model_label = "NF-Standardized (13 features)"
 else:
     model_file = "threat_mlp.pth"
     onnx_file = "threat_mlp_fp32.onnx"
