@@ -5,74 +5,74 @@
   "calibration": {
     "calibration_samples": 10000,
     "target_fpr": 0.05,
-    "confidence_threshold": 0.5088,
-    "cosine_drift_threshold": 0.6811,
-    "mahalanobis_drift_threshold": 30.356,
+    "confidence_threshold": 0.4743,
+    "cosine_drift_threshold": 0.6269,
+    "mahalanobis_drift_threshold": 578.7668,
     "zscore_threshold": 15.0,
     "zero_fill_ratio": 0.8
   },
   "roc_benchmark": {
     "confidence_msp": {
-      "auroc": 0.3881,
-      "ap": 0.5769,
-      "fpr_at_95_tpr": 0.7749
+      "auroc": 0.8446,
+      "ap": 0.8967,
+      "fpr_at_95_tpr": 0.6414
     },
     "cosine_distance": {
-      "auroc": 0.6483,
-      "ap": 0.7293,
-      "fpr_at_95_tpr": 0.965
+      "auroc": 0.7833,
+      "ap": 0.8468,
+      "fpr_at_95_tpr": 0.7861
     },
     "mahalanobis_distance": {
-      "auroc": 0.9806,
-      "ap": 0.9808,
-      "fpr_at_95_tpr": 0.1451
+      "auroc": 0.1401,
+      "ap": 0.4478,
+      "fpr_at_95_tpr": 0.95
     },
     "composite_engine": {
-      "auroc": 0.9462,
-      "ap": 0.9598,
-      "fpr_at_95_tpr": 0.3554
+      "auroc": 0.7251,
+      "ap": 0.8033,
+      "fpr_at_95_tpr": 0.9374
     }
   },
   "scenarios": {
     "in_distribution": {
       "scenario": "Scenario 1: In-Distribution (CIC-IDS2018)",
       "n_samples": 10000,
-      "drift_detected_count": 941,
-      "drift_detected_pct": 9.41,
-      "low_confidence_count": 315,
-      "low_confidence_pct": 3.15,
+      "drift_detected_count": 700,
+      "drift_detected_pct": 7.0,
+      "low_confidence_count": 120,
+      "low_confidence_pct": 1.2,
       "validation_passed_count": 10000,
       "validation_passed_pct": 100.0,
       "drift_score_stats": {
-        "mean": 0.8412,
-        "std": 0.2636,
-        "min": 0.2093,
+        "mean": 0.9376,
+        "std": 0.191,
+        "min": 0.5916,
         "max": 5.0,
-        "median": 0.7949,
-        "p95": 1.0247
+        "median": 0.9724,
+        "p95": 1.0668
       },
       "cosine_distance_stats": {
-        "mean": 0.5372,
-        "std": 0.1027,
-        "median": 0.5389,
-        "p95": 0.682
+        "mean": 0.5601,
+        "std": 0.0759,
+        "median": 0.6041,
+        "p95": 0.6222
       },
       "mahalanobis_distance_stats": {
-        "mean": 14.3663,
-        "std": 16.9533,
-        "median": 11.3759,
-        "p95": 29.3196
+        "mean": 365.3975,
+        "std": 202.2151,
+        "median": 326.1285,
+        "p95": 544.0644
       },
       "confidence_stats": {
-        "mean": 0.6035,
-        "std": 0.0886,
-        "min": 0.3299,
-        "median": 0.568
+        "mean": 0.5914,
+        "std": 0.109,
+        "min": 0.3172,
+        "median": 0.5415
       },
       "engine_verdicts": {
-        "CLEAN": 8842,
-        "SUSPICIOUS": 1044,
-        "HIGH_RISK": 114,
+        "CLEAN": 9228,
+        "SUSPICIOUS": 709,
+        "HIGH_RISK": 63,
         "REJECTED": 0
       },
       "validation_alert_types": {
@@ -82,42 +82,42 @@
     "out_of_distribution": {
       "scenario": "Scenario 2: Out-of-Distribution (ToN-IoT, real data)",
       "n_samples": 10000,
-      "drift_detected_count": 7787,
-      "drift_detected_pct": 77.87,
-      "low_confidence_count": 229,
-      "low_confidence_pct": 2.29,
+      "drift_detected_count": 7415,
+      "drift_detected_pct": 74.15,
+      "low_confidence_count": 7588,
+      "low_confidence_pct": 75.88,
       "validation_passed_count": 10000,
       "validation_passed_pct": 100.0,
       "drift_score_stats": {
-        "mean": 3.9598,
-        "std": 1.7408,
-        "min": 0.7552,
+        "mean": 0.9566,
+        "std": 0.1588,
+        "min": 0.6746,
         "max": 5.0,
-        "median": 5.0,
-        "p95": 5.0
+        "median": 1.0086,
+        "p95": 1.0086
       },
       "cosine_distance_stats": {
-        "mean": 0.5487,
-        "std": 0.1381,
-        "median": 0.6207,
-        "p95": 0.6207
+        "mean": 0.5969,
+        "std": 0.0662,
+        "median": 0.6324,
+        "p95": 0.6324
       },
       "mahalanobis_distance_stats": {
-        "mean": 120934237005868.0,
-        "std": 1.209273875028164e+16,
-        "median": 160.7322,
-        "p95": 160.7322
+        "mean": 519177607346077.4,
+        "std": 5.191482020377419e+16,
+        "median": 248.9381,
+        "p95": 387.0709
       },
       "confidence_stats": {
-        "mean": 0.6337,
-        "std": 0.0755,
-        "min": 0.2894,
-        "median": 0.6751
+        "mean": 0.4493,
+        "std": 0.0899,
+        "min": 0.2734,
+        "median": 0.4044
       },
       "engine_verdicts": {
-        "CLEAN": 2211,
-        "SUSPICIOUS": 7550,
-        "HIGH_RISK": 239,
+        "CLEAN": 2275,
+        "SUSPICIOUS": 435,
+        "HIGH_RISK": 7290,
         "REJECTED": 0
       },
       "validation_alert_types": {
@@ -127,42 +127,42 @@
     "random_noise": {
       "scenario": "Scenario 3: Random Gaussian Noise",
       "n_samples": 1000,
-      "drift_detected_count": 1000,
-      "drift_detected_pct": 100.0,
-      "low_confidence_count": 7,
-      "low_confidence_pct": 0.7,
+      "drift_detected_count": 999,
+      "drift_detected_pct": 99.9,
+      "low_confidence_count": 2,
+      "low_confidence_pct": 0.2,
       "validation_passed_count": 1000,
       "validation_passed_pct": 100.0,
       "drift_score_stats": {
-        "mean": 4.9985,
-        "std": 0.0464,
-        "min": 3.5333,
+        "mean": 4.9214,
+        "std": 0.4093,
+        "min": 0.9799,
         "max": 5.0,
         "median": 5.0,
         "p95": 5.0
       },
       "cosine_distance_stats": {
-        "mean": 0.4675,
-        "std": 0.187,
-        "median": 0.4863,
-        "p95": 0.8081
+        "mean": 0.6606,
+        "std": 0.0988,
+        "median": 0.6675,
+        "p95": 0.8117
       },
       "mahalanobis_distance_stats": {
-        "mean": 8880.6824,
-        "std": 8705.0975,
-        "median": 5418.3391,
-        "p95": 27019.877
+        "mean": 23317.9311,
+        "std": 22873.8277,
+        "median": 14638.9001,
+        "p95": 70722.8109
       },
       "confidence_stats": {
-        "mean": 0.9542,
-        "std": 0.1085,
-        "min": 0.3684,
+        "mean": 0.9533,
+        "std": 0.1087,
+        "min": 0.4156,
         "median": 1.0
       },
       "engine_verdicts": {
         "CLEAN": 0,
-        "SUSPICIOUS": 2,
-        "HIGH_RISK": 998,
+        "SUSPICIOUS": 3,
+        "HIGH_RISK": 997,
         "REJECTED": 0
       },
       "validation_alert_types": {
@@ -174,35 +174,35 @@
       "n_samples": 500,
       "drift_detected_count": 0,
       "drift_detected_pct": 0.0,
-      "low_confidence_count": 500,
-      "low_confidence_pct": 100.0,
+      "low_confidence_count": 0,
+      "low_confidence_pct": 0.0,
       "validation_passed_count": 0,
       "validation_passed_pct": 0.0,
       "drift_score_stats": {
-        "mean": 0.7613,
+        "mean": 0.7403,
         "std": 0.0,
-        "min": 0.7613,
-        "max": 0.7613,
-        "median": 0.7613,
-        "p95": 0.7613
+        "min": 0.7403,
+        "max": 0.7403,
+        "median": 0.7403,
+        "p95": 0.7403
       },
       "cosine_distance_stats": {
-        "mean": 0.2014,
+        "mean": 0.4641,
         "std": 0.0,
-        "median": 0.2014,
-        "p95": 0.2014
+        "median": 0.4641,
+        "p95": 0.4641
       },
       "mahalanobis_distance_stats": {
-        "mean": 23.1111,
+        "mean": 136.7774,
         "std": 0.0,
-        "median": 23.1111,
-        "p95": 23.1111
+        "median": 136.7774,
+        "p95": 136.7774
       },
       "confidence_stats": {
-        "mean": 0.4616,
+        "mean": 0.5044,
         "std": 0.0,
-        "min": 0.4616,
-        "median": 0.4616
+        "min": 0.5044,
+        "median": 0.5044
       },
       "engine_verdicts": {
         "CLEAN": 0,
@@ -218,16 +218,16 @@
   "latency": {
     "iterations": 1000,
     "plain_inference": {
-      "mean_ms": 0.0824,
-      "median_ms": 0.0811,
-      "p95_ms": 0.0914
+      "mean_ms": 0.0799,
+      "median_ms": 0.0774,
+      "p95_ms": 0.0909
     },
     "semantic_inference": {
-      "mean_ms": 0.7588,
-      "median_ms": 0.7544,
-      "p95_ms": 0.7903
+      "mean_ms": 0.7593,
+      "median_ms": 0.7455,
+      "p95_ms": 0.8372
     },
-    "overhead_pct": 821.02,
-    "overhead_ms": 0.6764
+    "overhead_pct": 850.71,
+    "overhead_ms": 0.6794
   }
 }

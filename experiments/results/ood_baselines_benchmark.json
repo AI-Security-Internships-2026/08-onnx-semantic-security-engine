@@ -5,37 +5,37 @@
   "evaluation_samples": 10000,
   "detectors_benchmark": {
     "MSP (Confidence Alone)": {
-      "calibrated_threshold": 0.4838,
-      "in_dist_fpr": 0.0551,
-      "ood_toniot_auroc": 0.4042,
-      "ood_toniot_avg_precision": 0.5863,
-      "ood_toniot_fpr95": 0.7657,
-      "ood_toniot_detect_rate": 0.023,
-      "noise_auroc": 0.0326,
-      "noise_detect_rate": 0.008,
-      "zero_fill_auroc": 0.9959,
-      "zero_fill_detect_rate": 1.0,
+      "calibrated_threshold": 0.4999,
+      "in_dist_fpr": 0.0333,
+      "ood_toniot_auroc": 0.8503,
+      "ood_toniot_avg_precision": 0.9011,
+      "ood_toniot_fpr95": 0.6273,
+      "ood_toniot_detect_rate": 0.7592,
+      "noise_auroc": 0.0312,
+      "noise_detect_rate": 0.002,
+      "zero_fill_auroc": 0.9169,
+      "zero_fill_detect_rate": 0.0,
       "latency": {
-        "mean_ms": 0.091,
-        "median_ms": 0.0879,
-        "p95_ms": 0.1117
+        "mean_ms": 0.0894,
+        "median_ms": 0.0876,
+        "p95_ms": 0.0985
       }
     },
     "Mahalanobis Distance Alone": {
-      "calibrated_threshold": 26.0522,
-      "in_dist_fpr": 0.0375,
-      "ood_toniot_auroc": 0.9803,
-      "ood_toniot_avg_precision": 0.9811,
-      "ood_toniot_fpr95": 0.1201,
-      "ood_toniot_detect_rate": 0.7784,
-      "noise_auroc": 1.0,
-      "noise_detect_rate": 1.0,
-      "zero_fill_auroc": 0.9168,
+      "calibrated_threshold": 544.0644,
+      "in_dist_fpr": 0.0273,
+      "ood_toniot_auroc": 0.1294,
+      "ood_toniot_avg_precision": 0.4448,
+      "ood_toniot_fpr95": 0.9572,
+      "ood_toniot_detect_rate": 0.0034,
+      "noise_auroc": 0.9996,
+      "noise_detect_rate": 0.999,
+      "zero_fill_auroc": 0.0327,
       "zero_fill_detect_rate": 0.0,
       "latency": {
-        "mean_ms": 0.0803,
-        "median_ms": 0.0787,
-        "p95_ms": 0.0948
+        "mean_ms": 0.0796,
+        "median_ms": 0.0784,
+        "p95_ms": 0.0854
       }
     },
     "Isolation Forest": {
@@ -50,9 +50,9 @@
       "zero_fill_auroc": 0.7082,
       "zero_fill_detect_rate": 0.0,
       "latency": {
-        "mean_ms": 12.2485,
-        "median_ms": 11.9835,
-        "p95_ms": 13.4563
+        "mean_ms": 11.9071,
+        "median_ms": 11.6795,
+        "p95_ms": 13.1527
       }
     },
     "One-Class SVM": {
@@ -67,26 +67,26 @@
       "zero_fill_auroc": 0.9583,
       "zero_fill_detect_rate": 1.0,
       "latency": {
-        "mean_ms": 0.3547,
-        "median_ms": 0.3406,
-        "p95_ms": 0.4078
+        "mean_ms": 0.2672,
+        "median_ms": 0.2611,
+        "p95_ms": 0.2833
       }
     },
     "Semantic Engine (Combined)": {
-      "calibrated_threshold": 1.0273,
-      "in_dist_fpr": 0.0369,
-      "ood_toniot_auroc": 0.9272,
-      "ood_toniot_avg_precision": 0.9452,
-      "ood_toniot_fpr95": 0.4,
-      "ood_toniot_detect_rate": 0.7758,
-      "noise_auroc": 1.0,
-      "noise_detect_rate": 1.0,
-      "zero_fill_auroc": 1.0,
+      "calibrated_threshold": 1.0668,
+      "in_dist_fpr": 0.0397,
+      "ood_toniot_auroc": 0.739,
+      "ood_toniot_avg_precision": 0.821,
+      "ood_toniot_fpr95": 0.9402,
+      "ood_toniot_detect_rate": 0.0128,
+      "noise_auroc": 0.9994,
+      "noise_detect_rate": 0.998,
+      "zero_fill_auroc": 0.9999,
       "zero_fill_detect_rate": 1.0,
       "latency": {
-        "mean_ms": 0.2041,
-        "median_ms": 0.1945,
-        "p95_ms": 0.2614
+        "mean_ms": 0.1889,
+        "median_ms": 0.1863,
+        "p95_ms": 0.2
       }
     }
   },

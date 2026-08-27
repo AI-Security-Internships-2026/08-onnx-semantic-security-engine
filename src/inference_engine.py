@@ -83,8 +83,18 @@ class SecurePredictResponse(BaseModel):
     latency_ms: float
 
 
-# ── Confidence threshold for anomaly flagging (calibrated on clean validation data) ──
-CONFIDENCE_THRESHOLD = 0.50
+# ── Confidence threshold — loaded from calibration config if available ──
+_calib_path = EXPERIMENTS / "calibration_config.json"
+if _calib_path.exists():
+    try:
+        import json as _json
+        with open(_calib_path) as _f:
+            _calib = _json.load(_f)
+        CONFIDENCE_THRESHOLD = float(_calib.get("confidence_threshold", 0.50))
+    except Exception:
+        CONFIDENCE_THRESHOLD = 0.50
+else:
+    CONFIDENCE_THRESHOLD = 0.50
 
 
 # ── Engine Class ──

@@ -41,6 +41,7 @@ VARIANTS = {
     "FP32": EXPERIMENTS / "threat_mlp_nf_fp32.onnx",
     "FP16": EXPERIMENTS / "threat_mlp_nf_fp16.onnx",
     "INT8": EXPERIMENTS / "threat_mlp_nf_int8.onnx",
+    "INT4": EXPERIMENTS / "threat_mlp_nf_int4.onnx",
 }
 
 def get_model_size_mb(path: Path) -> float:
@@ -171,9 +172,9 @@ def generate_plots(results: dict):
     variants = list(results.keys())
     
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-    fig.suptitle("ONNX Quantization Benchmark: FP32 vs FP16 vs INT8", fontsize=14, fontweight='bold')
+    fig.suptitle("ONNX Quantization Benchmark: FP32 vs FP16 vs INT8 vs INT4", fontsize=14, fontweight='bold')
     
-    colors = {'FP32': '#2196F3', 'FP16': '#4CAF50', 'INT8': '#FF9800'}
+    colors = {'FP32': '#2196F3', 'FP16': '#4CAF50', 'INT8': '#FF9800', 'INT4': '#E91E63'}
     
     # ── Panel 1: Model Size ──
     ax = axes[0, 0]

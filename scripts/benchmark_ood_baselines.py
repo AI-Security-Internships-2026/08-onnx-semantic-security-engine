@@ -201,6 +201,21 @@ def main():
         # decision_function returns signed distance (negative = outside boundary)
         return -oc_svm.decision_function(scaled_batch)
 
+    # Load calibrated thresholds from config file if available
+    calib_config_path = EXPERIMENTS / "calibration_config.json"
+    if calib_config_path.exists():
+        try:
+            with open(calib_config_path) as f:
+                calib_cfg = json.load(f)
+            cal_cos_thresh = float(calib_cfg.get("cosine_drift_threshold", 0.6811))
+            cal_mahal_thresh = float(calib_cfg.get("mahalanobis_drift_threshold", 30.356))
+        except Exception:
+            cal_cos_thresh = 0.6811
+            cal_mahal_thresh = 30.356
+    else:
+        cal_cos_thresh = 0.6811
+        cal_mahal_thresh = 30.356
+
     def score_semantic_engine(raw_batch, scaled_batch):
         """Full composite semantic engine anomaly score."""
         out = session.run(None, {"input": scaled_batch})
@@ -212,9 +227,9 @@ def main():
         diffs = embs - global_centroid
         mahal_dists = np.sqrt(np.maximum(np.sum(diffs @ covariance_inverse * diffs, axis=1), 0.0))
         
-        # Normalized drift score
-        cos_norm = cos_dists / 0.6132
-        mahal_norm = mahal_dists / 27.1034
+        # Normalized drift score using calibrated thresholds
+        cos_norm = cos_dists / cal_cos_thresh
+        mahal_norm = mahal_dists / cal_mahal_thresh
         drift_scores = np.maximum(cos_norm, mahal_norm)
         
         # Zero-fill / outlier penalty

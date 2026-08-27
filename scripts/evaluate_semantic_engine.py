@@ -14,6 +14,7 @@ Usage:
 import json
 import time
 import sys
+import datetime
 import numpy as np
 import pandas as pd
 import joblib
@@ -169,6 +170,22 @@ def main():
     # Configurable validator thresholds
     ZSCORE_THRESHOLD = 15.0
     ZERO_FILL_RATIO = 0.80
+
+    # Write calibration config for deployment
+    calibration_config = {
+        "last_calibrated": datetime.datetime.now().isoformat(),
+        "calibration_samples": N_CALIB_SAMPLES,
+        "target_fpr": 0.05,
+        "cosine_drift_threshold": cosine_threshold,
+        "mahalanobis_drift_threshold": mahal_threshold,
+        "confidence_threshold": conf_threshold,
+        "zscore_threshold": ZSCORE_THRESHOLD,
+        "zero_fill_ratio": ZERO_FILL_RATIO,
+    }
+    config_path = EXPERIMENTS / "calibration_config.json"
+    with open(config_path, "w") as f:
+        json.dump(calibration_config, f, indent=2)
+    print(f"  [SAVED] Calibration config -> {config_path}")
 
     # ── Analyzer Functions ──
     def analyze_confidence(softmax_probs):

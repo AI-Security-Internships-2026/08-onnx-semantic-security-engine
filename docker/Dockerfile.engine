@@ -25,9 +25,19 @@ RUN pip install --no-cache-dir \
     joblib \
     scikit-learn
 
-# Copy source code and pre-trained model artifacts
+# Copy source code
 COPY src/ /app/src/
-COPY experiments/ /app/experiments/
+
+# Copy only required model artifacts (not raw datasets or .pth training checkpoints)
+COPY experiments/threat_mlp_nf_fp32.onnx /app/experiments/
+COPY experiments/threat_mlp_nf_fp32.onnx.data /app/experiments/
+COPY experiments/threat_mlp_nf_fp16.onnx /app/experiments/
+COPY experiments/threat_mlp_nf_int8.onnx /app/experiments/
+COPY experiments/standard_scaler_nf.joblib /app/experiments/
+COPY experiments/label_encoder_nf.joblib /app/experiments/
+COPY experiments/reference_embeddings_nf.npz /app/experiments/
+COPY experiments/training_feature_stats_nf.json /app/experiments/
+COPY experiments/calibration_config.json /app/experiments/
 
 # Expose API port
 EXPOSE 8000

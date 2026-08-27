@@ -46,14 +46,14 @@ def tmp_reference_dir(tmp_path):
     num_classes = 3
     class_names = ["Benign", "DoS", "BruteForce"]
 
-    # Global centroid: all zeros (center of distribution)
-    global_centroid = np.zeros(emb_dim)
+    # Global centroid: non-zero center of distribution
+    global_centroid = np.ones(emb_dim) * 0.1
 
-    # Per-class centroids: slightly offset from origin
-    class_centroids = np.zeros((num_classes, emb_dim))
-    class_centroids[0, 0] = 1.0   # Benign offset on dim 0
-    class_centroids[1, 1] = 1.0   # DoS offset on dim 1
-    class_centroids[2, 2] = 1.0   # BruteForce offset on dim 2
+    # Per-class centroids: slightly offset from global centroid
+    class_centroids = np.ones((num_classes, emb_dim)) * 0.1
+    class_centroids[0, 0] += 0.5   # Benign offset on dim 0
+    class_centroids[1, 1] += 0.5   # DoS offset on dim 1
+    class_centroids[2, 2] += 0.5   # BruteForce offset on dim 2
 
     # Identity covariance (no correlations)
     covariance = np.eye(emb_dim) * 1.0
@@ -96,6 +96,23 @@ def drift_detector(tmp_reference_dir):
 def input_validator(tmp_reference_dir):
     """InputValidator loaded from temporary feature stats."""
     return InputValidator(stats_path=tmp_reference_dir / "training_feature_stats_test.json")
+
+
+@pytest.fixture
+def mock_engine(tmp_reference_dir, monkeypatch):
+    """Create engine with test reference data."""
+    import semantic_analyzer
+    monkeypatch.setattr(semantic_analyzer, "EXPERIMENTS", tmp_reference_dir)
+
+    # Rename test files to match expected naming convention
+    (tmp_reference_dir / "reference_embeddings_test.npz").rename(
+        tmp_reference_dir / "reference_embeddings_nf.npz"
+    )
+    (tmp_reference_dir / "training_feature_stats_test.json").rename(
+        tmp_reference_dir / "training_feature_stats_nf.json"
+    )
+
+    return SemanticSecurityEngine(use_nf=True)
 
 
 # ═══════════════════════════════════════════════
@@ -167,8 +184,8 @@ class TestDriftDetector:
 
     def test_in_distribution_no_drift(self, drift_detector):
         """Embedding near the global centroid should not trigger drift."""
-        # Small perturbation from centroid (which is all zeros)
-        embedding = np.random.randn(64) * 0.1
+        # Small perturbation from centroid (which is all 0.1)
+        embedding = np.ones(64) * 0.1 + np.random.randn(64) * 0.001
         result = drift_detector.analyze(embedding)
 
         assert result.drift_flag == "OK"
@@ -186,16 +203,16 @@ class TestDriftDetector:
     def test_nearest_class_identification(self, drift_detector):
         """Should identify the nearest reference class correctly."""
         # Embedding close to class 0 (Benign) centroid, which has offset on dim 0
-        embedding = np.zeros(64)
-        embedding[0] = 0.9  # close to Benign centroid
+        embedding = np.ones(64) * 0.1
+        embedding[0] += 0.5  # close to Benign centroid
         result = drift_detector.analyze(embedding)
 
         assert result.nearest_reference_class == "Benign"
 
     def test_nearest_class_dos(self, drift_detector):
         """Should identify DoS when embedding is near DoS centroid."""
-        embedding = np.zeros(64)
-        embedding[1] = 0.9  # close to DoS centroid (offset on dim 1)
+        embedding = np.ones(64) * 0.1
+        embedding[1] += 0.5  # close to DoS centroid (offset on dim 1)
         result = drift_detector.analyze(embedding)
 
         assert result.nearest_reference_class == "DoS"
@@ -303,27 +320,11 @@ class TestInputValidator:
 
 class TestSemanticSecurityEngine:
 
-    @pytest.fixture
-    def mock_engine(self, tmp_reference_dir, monkeypatch):
-        """Create engine with test reference data."""
-        import semantic_analyzer
-        monkeypatch.setattr(semantic_analyzer, "EXPERIMENTS", tmp_reference_dir)
-
-        # Rename test files to match expected naming convention
-        (tmp_reference_dir / "reference_embeddings_test.npz").rename(
-            tmp_reference_dir / "reference_embeddings_nf.npz"
-        )
-        (tmp_reference_dir / "training_feature_stats_test.json").rename(
-            tmp_reference_dir / "training_feature_stats_nf.json"
-        )
-
-        return SemanticSecurityEngine(use_nf=True)
-
     def test_clean_verdict(self, mock_engine):
         """All OK inputs should produce CLEAN verdict."""
         raw_features = np.array([100.0, 100.0, 100.0, 100.0, 100.0])
         softmax_probs = np.array([0.05, 0.90, 0.05])  # high confidence
-        embedding = np.zeros(64) + 0.01  # near centroid
+        embedding = np.ones(64) * 0.1  # at centroid
 
         result = mock_engine.analyze(raw_features, softmax_probs, embedding)
 
@@ -334,7 +335,7 @@ class TestSemanticSecurityEngine:
         """Low confidence should produce SUSPICIOUS verdict."""
         raw_features = np.array([100.0, 100.0, 100.0, 100.0, 100.0])
         softmax_probs = np.array([0.35, 0.35, 0.30])  # low confidence
-        embedding = np.zeros(64) + 0.01
+        embedding = np.ones(64) * 0.1
 
         result = mock_engine.analyze(raw_features, softmax_probs, embedding)
 
@@ -388,3 +389,96 @@ class TestSemanticSecurityEngine:
 
         assert result.drift_flag == "UNAVAILABLE"
         assert isinstance(result, SemanticResult)
+
+
+# ═══════════════════════════════════════════════
+# Edge Case & Boundary Regression Tests (Phase 4)
+# ═══════════════════════════════════════════════
+
+class TestInputValidatorEdgeCases:
+
+    def test_structural_zero_pattern_13_features(self, tmp_reference_dir):
+        """Structural zero pattern (flow_dur=0, fwd_pkts=0, bwd_pkts=0, pkt_max=0)
+        should trigger ZERO_FILLED even if total zero ratio < 80%."""
+        stats_13 = {
+            "model_variant": "Test (13 features)",
+            "num_features": 13,
+            "features": [
+                {"index": i, "name": f"feature_{i}", "mean": 100.0, "std": 10.0,
+                 "min_approx": 0.0, "max_approx": 200.0}
+                for i in range(13)
+            ],
+        }
+        with open(tmp_reference_dir / "training_feature_stats_13.json", "w") as f:
+            json.dump(stats_13, f)
+        validator = InputValidator(stats_path=tmp_reference_dir / "training_feature_stats_13.json")
+        # Only 4/13 zeros (31%) but hits structural pattern
+        features = np.array([0.0, 0.0, 0.0, 100.0, 100.0, 0.0, 50.0,
+                             6.0, 100.0, 50.0, 500.0, 1000.0, 1000.0])
+        result = validator.analyze(features)
+        assert not result.validation_passed
+        assert any("ZERO_FILLED" in a for a in result.alerts)
+
+    def test_legitimate_unidirectional_flow_passes(self, tmp_reference_dir):
+        """A valid UDP/DNS unidirectional flow (some natural zeros) should NOT
+        be rejected — verifies the 80% threshold prevents false alarms."""
+        stats_13 = {
+            "model_variant": "Test (13 features)",
+            "num_features": 13,
+            "features": [
+                {"index": i, "name": f"feature_{i}", "mean": 100.0, "std": 50.0,
+                 "min_approx": 0.0, "max_approx": 500.0}
+                for i in range(13)
+            ],
+        }
+        with open(tmp_reference_dir / "training_feature_stats_udp.json", "w") as f:
+            json.dump(stats_13, f)
+        validator = InputValidator(stats_path=tmp_reference_dir / "training_feature_stats_udp.json")
+        # UDP DNS: fwd_dur=50, fwd_pkts=1, bwd_pkts=0, fwd_bytes=64, bwd_bytes=0,
+        # pkt_max=64, pkt_min=64, protocol=17, fwd_max=64, fwd_min=64,
+        # bytes/s=1280, fwd_win=0, bwd_win=0
+        # 4/13 zeros (31%) — natural, not tampering
+        features = np.array([50.0, 1.0, 0.0, 64.0, 0.0, 64.0, 64.0,
+                             17.0, 64.0, 64.0, 1280.0, 0.0, 0.0])
+        result = validator.analyze(features)
+        assert result.validation_passed  # Should pass — this is legitimate traffic
+
+
+class TestDriftDetectorEdgeCases:
+
+    def test_nan_embedding_not_scored_as_in_distribution(self, drift_detector):
+        """NaN embedding should not silently score as in-distribution.
+        NaN cosine distance is treated as maximum drift (1.0)."""
+        embedding = np.full(64, np.nan)
+        result = drift_detector.analyze(embedding)
+        assert result.cosine_distance == 1.0
+        assert result.drift_flag == "DRIFT_DETECTED"
+
+
+class TestVerdictBoundaries:
+
+    def test_exactly_two_alerts_gives_high_risk(self, mock_engine):
+        """Exactly 2 independent alerts → HIGH_RISK (not SUSPICIOUS)."""
+        raw = np.array([100.0, 100.0, 100.0, 100.0, 100.0])
+        probs = np.array([0.35, 0.35, 0.30])  # LOW_CONFIDENCE (alert 1)
+        emb = np.ones(64) * 100.0              # DRIFT_DETECTED (alert 2)
+        result = mock_engine.analyze(raw, probs, emb)
+        assert result.total_alerts == 2
+        assert result.engine_verdict == "HIGH_RISK"
+
+    def test_exactly_one_alert_gives_suspicious(self, mock_engine):
+        """Exactly 1 alert → SUSPICIOUS (not CLEAN or HIGH_RISK)."""
+        raw = np.array([100.0, 100.0, 100.0, 100.0, 100.0])
+        probs = np.array([0.35, 0.35, 0.30])  # LOW_CONFIDENCE (only alert)
+        emb = np.ones(64) * 0.1                # No drift
+        result = mock_engine.analyze(raw, probs, emb)
+        assert result.total_alerts == 1
+        assert result.engine_verdict == "SUSPICIOUS"
+
+    def test_validation_failure_always_rejected(self, mock_engine):
+        """Validation failure overrides alert count → always REJECTED."""
+        raw = np.array([np.nan, 100.0, 100.0, 100.0, 100.0])
+        probs = np.array([0.95, 0.03, 0.02])  # High confidence (doesn't matter)
+        emb = np.ones(64) * 0.1                # No drift (doesn't matter)
+        result = mock_engine.analyze(raw, probs, emb)
+        assert result.engine_verdict == "REJECTED"

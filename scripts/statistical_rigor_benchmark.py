@@ -147,8 +147,11 @@ def main():
 
         # 1. Sample Calibration and Test splits from CIC-IDS2018
         df_cic_sampled = df_cic_all.sample(n=N_SAMPLES_PER_SCENARIO * 2, random_state=seed)
-        X_calib_raw = df_cic_sampled[NF_FEATURES].values[:N_SAMPLES_PER_SCENARIO]
-        X_test_raw  = df_cic_sampled[NF_FEATURES].values[N_SAMPLES_PER_SCENARIO:]
+        available_nf = [f for f in NF_FEATURES if f in df_cic_sampled.columns]
+        if len(available_nf) < len(NF_FEATURES):
+            print(f"  [WARN] Missing {len(NF_FEATURES) - len(available_nf)} NF features in CIC data")
+        X_calib_raw = df_cic_sampled[available_nf].values[:N_SAMPLES_PER_SCENARIO]
+        X_test_raw  = df_cic_sampled[available_nf].values[N_SAMPLES_PER_SCENARIO:]
 
         X_calib_scaled = scaler.transform(X_calib_raw).astype(np.float32)
         X_test_scaled  = scaler.transform(X_test_raw).astype(np.float32)
@@ -241,7 +244,13 @@ def main():
 
         # 8. Cross-dataset Binary F1
         ton_preds_binary = (np.argmax(ton_logits, axis=1) != benign_idx).astype(int)
-        ton_true_binary = (df_ton_sampled["Label"].values == 1).astype(int)
+        # ToN-IoT ground truth: handle Attack string column or Label (int/str)
+        if "Attack" in df_ton_sampled.columns:
+            ton_true_binary = (df_ton_sampled["Attack"].astype(str).str.lower() != "benign").astype(int)
+        elif df_ton_sampled["Label"].dtype.kind in "biu":
+            ton_true_binary = (df_ton_sampled["Label"].values != 0).astype(int)
+        else:
+            ton_true_binary = (df_ton_sampled["Label"].astype(str).str.lower() != "benign").astype(int)
         bin_f1 = float(f1_score(ton_true_binary, ton_preds_binary))
 
         run_data = {
@@ -316,8 +325,16 @@ def main():
             run_plain.append((t1 - t0) * 1000)
 
             t0 = time.perf_counter()
-            _ = validate_input(single_raw[0])
-            _ = session.run(None, {"input": single_scaled})
+            val_ok, val_alerts = validate_input(single_raw[0])
+            outs = session.run(None, {"input": single_scaled})
+            probs = softmax(outs[0][0])
+            emb = outs[1][0]
+            # Confidence check
+            _ = float(np.max(probs))
+            # Drift analysis (cosine + Mahalanobis)
+            cos_d = float(np.nan_to_num(cosine_distance(emb, global_centroid), nan=0.0))
+            diff_vec = emb - global_centroid
+            mahal_d = float(np.sqrt(max(diff_vec @ covariance_inverse @ diff_vec, 0.0)))
             t1 = time.perf_counter()
             run_sem.append((t1 - t0) * 1000)
 

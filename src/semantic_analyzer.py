@@ -153,9 +153,23 @@ class DriftDetector:
         self.class_centroids = data["class_centroids"]
         self.covariance_inverse = data["covariance_inverse"]
         
-        # Calibrated 95th-percentile thresholds on clean validation split
-        default_cos = 0.6132 if "_nf" in suffix else float(data["cosine_threshold"])
-        default_mahal = 27.1034 if "_nf" in suffix else float(data["mahal_threshold"])
+        # Load calibrated thresholds from config file (written by evaluate_semantic_engine.py)
+        calib_config_path = EXPERIMENTS / "calibration_config.json"
+        if calib_config_path.exists() and "_nf" in suffix:
+            try:
+                with open(calib_config_path) as f:
+                    calib = json.load(f)
+                default_cos = float(calib.get("cosine_drift_threshold", data["cosine_threshold"]))
+                default_mahal = float(calib.get("mahalanobis_drift_threshold", data["mahal_threshold"]))
+                print(f"  Loaded calibrated thresholds from {calib_config_path.name} "
+                      f"(calibrated: {calib.get('last_calibrated', 'unknown')})")
+            except Exception as e:
+                print(f"  [WARN] Failed reading calibration_config.json ({e}), using npz defaults")
+                default_cos = float(data["cosine_threshold"])
+                default_mahal = float(data["mahal_threshold"])
+        else:
+            default_cos = float(data["cosine_threshold"])
+            default_mahal = float(data["mahal_threshold"])
         
         self.cosine_threshold = cosine_threshold if cosine_threshold is not None else default_cos
         self.mahal_threshold = mahal_threshold if mahal_threshold is not None else default_mahal
@@ -175,9 +189,12 @@ class DriftDetector:
             DriftResult with distances, score, flag, and nearest class.
         """
         # Cosine distance to global centroid
-        # scipy cosine returns NaN if either vector is all zeros; fall back to 0.0
+        # NaN cosine means zero-norm vector or corrupted embedding -> treat as maximum drift
         cos_dist = cosine_distance(embedding, self.global_centroid)
-        cos_dist = float(np.nan_to_num(cos_dist, nan=0.0))
+        if np.isnan(cos_dist):
+            cos_dist = 1.0  # Maximum cosine distance
+        else:
+            cos_dist = float(cos_dist)
 
         # Mahalanobis distance to global centroid
         diff = embedding - self.global_centroid
@@ -187,7 +204,7 @@ class DriftDetector:
         class_distances = []
         for centroid in self.class_centroids:
             d = cosine_distance(embedding, centroid)
-            class_distances.append(float(np.nan_to_num(d, nan=1.0)))
+            class_distances.append(1.0 if np.isnan(d) else float(d))
         nearest_idx = int(np.argmin(class_distances))
         nearest_class = self.class_names[nearest_idx]
 
@@ -377,8 +394,19 @@ class SemanticSecurityEngine:
         suffix = "_nf" if use_nf else ""
         print("Initializing Semantic Security Engine...")
 
-        self.confidence_analyzer = ConfidenceAnalyzer(threshold=0.50)
-        print(f"  ConfidenceAnalyzer: threshold=0.50")
+        # Load confidence threshold from calibration config
+        calib_config_path = EXPERIMENTS / "calibration_config.json"
+        conf_threshold = 0.50
+        if calib_config_path.exists() and use_nf:
+            try:
+                with open(calib_config_path) as f:
+                    calib = json.load(f)
+                conf_threshold = float(calib.get("confidence_threshold", 0.50))
+            except Exception:
+                conf_threshold = 0.50
+
+        self.confidence_analyzer = ConfidenceAnalyzer(threshold=conf_threshold)
+        print(f"  ConfidenceAnalyzer: threshold={conf_threshold:.4f}")
 
         # Try to load drift detector (requires reference embeddings)
         try:
