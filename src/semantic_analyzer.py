@@ -182,30 +182,30 @@ class DriftDetector:
     def analyze(self, embedding: np.ndarray) -> DriftResult:
         """Analyze a single embedding vector for distribution drift.
 
+        Uses class-conditional Mahalanobis distance (Lee et al. 2018):
+        computes Mahalanobis distance to each per-class centroid and takes
+        the minimum. In-distribution samples will be close to at least one
+        class centroid; OOD samples will be far from all class centroids.
+
         Args:
             embedding: 1D array (64-dim) from ONNX model's fc3 layer.
 
         Returns:
             DriftResult with distances, score, flag, and nearest class.
         """
-        # Cosine distance to global centroid
-        # NaN cosine means zero-norm vector or corrupted embedding -> treat as maximum drift
-        cos_dist = cosine_distance(embedding, self.global_centroid)
-        if np.isnan(cos_dist):
-            cos_dist = 1.0  # Maximum cosine distance
-        else:
-            cos_dist = float(cos_dist)
-
-        # Mahalanobis distance to global centroid
-        diff = embedding - self.global_centroid
-        mahal_dist = float(np.sqrt(max(diff @ self.covariance_inverse @ diff, 0.0)))
-
-        # Nearest-class identification
-        class_distances = []
+        # Class-conditional Mahalanobis & Cosine distances (min distance to nearest class centroid)
+        class_mahal_dists = []
+        class_cos_dists = []
         for centroid in self.class_centroids:
-            d = cosine_distance(embedding, centroid)
-            class_distances.append(1.0 if np.isnan(d) else float(d))
-        nearest_idx = int(np.argmin(class_distances))
+            diff = embedding - centroid
+            m_dist = float(np.sqrt(max(diff @ self.covariance_inverse @ diff, 0.0)))
+            class_mahal_dists.append(m_dist)
+            c_dist = cosine_distance(embedding, centroid)
+            class_cos_dists.append(1.0 if np.isnan(c_dist) else float(c_dist))
+
+        mahal_dist = min(class_mahal_dists)  # minimum = closest class
+        cos_dist = min(class_cos_dists)      # minimum = closest class
+        nearest_idx = int(np.argmin(class_mahal_dists))
         nearest_class = self.class_names[nearest_idx]
 
         # Composite drift score (0.0 = in-distribution, 1.0 = extreme drift)

@@ -6,8 +6,8 @@
     "calibration_samples": 10000,
     "target_fpr": 0.05,
     "confidence_threshold": 0.4743,
-    "cosine_drift_threshold": 0.6269,
-    "mahalanobis_drift_threshold": 578.7668,
+    "cosine_drift_threshold": 0.4341,
+    "mahalanobis_drift_threshold": 18.1593,
     "zscore_threshold": 15.0,
     "zero_fill_ratio": 0.8
   },
@@ -18,50 +18,50 @@
       "fpr_at_95_tpr": 0.6414
     },
     "cosine_distance": {
-      "auroc": 0.7833,
-      "ap": 0.8468,
-      "fpr_at_95_tpr": 0.7861
+      "auroc": 0.9209,
+      "ap": 0.9256,
+      "fpr_at_95_tpr": 0.4497
     },
     "mahalanobis_distance": {
-      "auroc": 0.1401,
-      "ap": 0.4478,
-      "fpr_at_95_tpr": 0.95
+      "auroc": 0.9565,
+      "ap": 0.9528,
+      "fpr_at_95_tpr": 0.3603
     },
     "composite_engine": {
-      "auroc": 0.7251,
-      "ap": 0.8033,
-      "fpr_at_95_tpr": 0.9374
+      "auroc": 0.9624,
+      "ap": 0.9587,
+      "fpr_at_95_tpr": 0.2624
     }
   },
   "scenarios": {
     "in_distribution": {
       "scenario": "Scenario 1: In-Distribution (CIC-IDS2018)",
       "n_samples": 10000,
-      "drift_detected_count": 700,
-      "drift_detected_pct": 7.0,
+      "drift_detected_count": 682,
+      "drift_detected_pct": 6.82,
       "low_confidence_count": 120,
       "low_confidence_pct": 1.2,
       "validation_passed_count": 10000,
       "validation_passed_pct": 100.0,
       "drift_score_stats": {
-        "mean": 0.9376,
-        "std": 0.191,
-        "min": 0.5916,
-        "max": 5.0,
-        "median": 0.9724,
-        "p95": 1.0668
+        "mean": 0.4551,
+        "std": 0.2741,
+        "min": 0.2584,
+        "max": 12.0333,
+        "median": 0.3558,
+        "p95": 0.8716
       },
       "cosine_distance_stats": {
-        "mean": 0.5601,
-        "std": 0.0759,
-        "median": 0.6041,
-        "p95": 0.6222
+        "mean": 0.142,
+        "std": 0.114,
+        "median": 0.1005,
+        "p95": 0.3513
       },
       "mahalanobis_distance_stats": {
-        "mean": 365.3975,
-        "std": 202.2151,
-        "median": 326.1285,
-        "p95": 544.0644
+        "mean": 6.8008,
+        "std": 6.3643,
+        "median": 4.9344,
+        "p95": 16.6061
       },
       "confidence_stats": {
         "mean": 0.5914,
@@ -70,9 +70,9 @@
         "median": 0.5415
       },
       "engine_verdicts": {
-        "CLEAN": 9228,
-        "SUSPICIOUS": 709,
-        "HIGH_RISK": 63,
+        "CLEAN": 9260,
+        "SUSPICIOUS": 663,
+        "HIGH_RISK": 77,
         "REJECTED": 0
       },
       "validation_alert_types": {
@@ -82,31 +82,31 @@
     "out_of_distribution": {
       "scenario": "Scenario 2: Out-of-Distribution (ToN-IoT, real data)",
       "n_samples": 10000,
-      "drift_detected_count": 7415,
-      "drift_detected_pct": 74.15,
+      "drift_detected_count": 7431,
+      "drift_detected_pct": 74.31,
       "low_confidence_count": 7588,
       "low_confidence_pct": 75.88,
       "validation_passed_count": 10000,
       "validation_passed_pct": 100.0,
       "drift_score_stats": {
-        "mean": 0.9566,
-        "std": 0.1588,
-        "min": 0.6746,
-        "max": 5.0,
-        "median": 1.0086,
-        "p95": 1.0086
+        "mean": 3458250986039.2217,
+        "std": 345805511677332.0,
+        "min": 0.3904,
+        "max": 3.458228034717288e+16,
+        "median": 1.2791,
+        "p95": 1.2791
       },
       "cosine_distance_stats": {
-        "mean": 0.5969,
-        "std": 0.0662,
-        "median": 0.6324,
-        "p95": 0.6324
+        "mean": 0.3886,
+        "std": 0.1125,
+        "median": 0.4527,
+        "p95": 0.4527
       },
       "mahalanobis_distance_stats": {
-        "mean": 519177607346077.4,
-        "std": 5.191482020377419e+16,
-        "median": 248.9381,
-        "p95": 387.0709
+        "mean": 78499090449834.95,
+        "std": 7849464439913882.0,
+        "median": 23.8915,
+        "p95": 23.8915
       },
       "confidence_stats": {
         "mean": 0.4493,
@@ -115,9 +115,9 @@
         "median": 0.4044
       },
       "engine_verdicts": {
-        "CLEAN": 2275,
-        "SUSPICIOUS": 435,
-        "HIGH_RISK": 7290,
+        "CLEAN": 2265,
+        "SUSPICIOUS": 439,
+        "HIGH_RISK": 7296,
         "REJECTED": 0
       },
       "validation_alert_types": {
@@ -127,31 +127,31 @@
     "random_noise": {
       "scenario": "Scenario 3: Random Gaussian Noise",
       "n_samples": 1000,
-      "drift_detected_count": 999,
-      "drift_detected_pct": 99.9,
+      "drift_detected_count": 1000,
+      "drift_detected_pct": 100.0,
       "low_confidence_count": 2,
       "low_confidence_pct": 0.2,
       "validation_passed_count": 1000,
       "validation_passed_pct": 100.0,
       "drift_score_stats": {
-        "mean": 4.9214,
-        "std": 0.4093,
-        "min": 0.9799,
-        "max": 5.0,
-        "median": 5.0,
-        "p95": 5.0
+        "mean": 135.2694,
+        "std": 122.2319,
+        "min": 2.3444,
+        "max": 748.3255,
+        "median": 92.9704,
+        "p95": 384.1316
       },
       "cosine_distance_stats": {
-        "mean": 0.6606,
-        "std": 0.0988,
-        "median": 0.6675,
-        "p95": 0.8117
+        "mean": 0.3638,
+        "std": 0.1542,
+        "median": 0.3001,
+        "p95": 0.7728
       },
       "mahalanobis_distance_stats": {
-        "mean": 23317.9311,
-        "std": 22873.8277,
-        "median": 14638.9001,
-        "p95": 70722.8109
+        "mean": 3070.0876,
+        "std": 2774.8221,
+        "median": 2110.3398,
+        "p95": 8719.4317
       },
       "confidence_stats": {
         "mean": 0.9533,
@@ -161,8 +161,8 @@
       },
       "engine_verdicts": {
         "CLEAN": 0,
-        "SUSPICIOUS": 3,
-        "HIGH_RISK": 997,
+        "SUSPICIOUS": 2,
+        "HIGH_RISK": 998,
         "REJECTED": 0
       },
       "validation_alert_types": {
@@ -179,24 +179,24 @@
       "validation_passed_count": 0,
       "validation_passed_pct": 0.0,
       "drift_score_stats": {
-        "mean": 0.7403,
+        "mean": 0.7124,
         "std": 0.0,
-        "min": 0.7403,
-        "max": 0.7403,
-        "median": 0.7403,
-        "p95": 0.7403
+        "min": 0.7124,
+        "max": 0.7124,
+        "median": 0.7124,
+        "p95": 0.7124
       },
       "cosine_distance_stats": {
-        "mean": 0.4641,
+        "mean": 0.1785,
         "std": 0.0,
-        "median": 0.4641,
-        "p95": 0.4641
+        "median": 0.1785,
+        "p95": 0.1785
       },
       "mahalanobis_distance_stats": {
-        "mean": 136.7774,
+        "mean": 11.8904,
         "std": 0.0,
-        "median": 136.7774,
-        "p95": 136.7774
+        "median": 11.8904,
+        "p95": 11.8904
       },
       "confidence_stats": {
         "mean": 0.5044,
@@ -218,16 +218,16 @@
   "latency": {
     "iterations": 1000,
     "plain_inference": {
-      "mean_ms": 0.0799,
-      "median_ms": 0.0774,
-      "p95_ms": 0.0909
+      "mean_ms": 0.0828,
+      "median_ms": 0.0809,
+      "p95_ms": 0.0923
     },
     "semantic_inference": {
-      "mean_ms": 0.7593,
-      "median_ms": 0.7455,
-      "p95_ms": 0.8372
+      "mean_ms": 0.9519,
+      "median_ms": 0.921,
+      "p95_ms": 1.0995
     },
-    "overhead_pct": 850.71,
-    "overhead_ms": 0.6794
+    "overhead_pct": 1049.87,
+    "overhead_ms": 0.8692
   }
 }

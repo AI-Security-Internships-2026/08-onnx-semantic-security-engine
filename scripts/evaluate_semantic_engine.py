@@ -154,9 +154,18 @@ def main():
     calib_probs = softmax(calib_logits, axis=1)
     calib_conf = np.max(calib_probs, axis=1)
 
-    calib_cos = np.array([float(np.nan_to_num(cosine_distance(emb, global_centroid), nan=0.0)) for emb in calib_embs])
-    diffs_calib = calib_embs - global_centroid
-    calib_mahal = np.sqrt(np.maximum(np.sum(diffs_calib @ covariance_inverse * diffs_calib, axis=1), 0.0))
+    # Class-conditional Cosine calibration
+    calib_cos = np.zeros(len(calib_embs))
+    for i, emb in enumerate(calib_embs):
+        dists = [cosine_distance(emb, c) for c in class_centroids]
+        calib_cos[i] = min(float(np.nan_to_num(d, nan=1.0)) for d in dists)
+    
+    # Class-conditional Mahalanobis calibration: min distance to nearest class centroid
+    calib_mahal = np.full(len(calib_embs), np.inf)
+    for centroid_c in class_centroids:
+        diffs_c = calib_embs - centroid_c
+        dists_c = np.sqrt(np.maximum(np.sum(diffs_c @ covariance_inverse * diffs_c, axis=1), 0.0))
+        calib_mahal = np.minimum(calib_mahal, dists_c)
 
     # Empirical 95th percentiles (5% FPR target on D_val)
     cosine_threshold = float(np.percentile(calib_cos, 95))
@@ -193,21 +202,28 @@ def main():
         flag = "LOW_CONFIDENCE" if confidence < conf_threshold else "OK"
         return {"confidence_score": round(confidence, 4), "confidence_flag": flag}
 
-    def analyze_drift(embedding):
-        cos_dist = float(np.nan_to_num(cosine_distance(embedding, global_centroid), nan=0.0))
-        diff = embedding - global_centroid
-        mahal_dist = float(np.sqrt(max(diff @ covariance_inverse @ diff, 0.0)))
-        
+    def analyze_drift(embedding, confidence=1.0):
+        # Class-conditional Mahalanobis & Cosine: min distance to nearest class centroid
+        class_mahal_dists = []
         class_distances = []
         for centroid in class_centroids:
+            diff = embedding - centroid
+            m_dist = float(np.sqrt(max(diff @ covariance_inverse @ diff, 0.0)))
+            class_mahal_dists.append(m_dist)
             d = cosine_distance(embedding, centroid)
             class_distances.append(float(np.nan_to_num(d, nan=1.0)))
-        nearest_idx = int(np.argmin(class_distances))
+        
+        mahal_dist = min(class_mahal_dists)
+        cos_dist = min(class_distances)
+        nearest_idx = int(np.argmin(class_mahal_dists))
         nearest_class = str(ref_class_names[nearest_idx])
 
         cos_norm = cos_dist / max(cosine_threshold, 1e-8)
         mahal_norm = mahal_dist / max(mahal_threshold, 1e-8)
-        drift_score = float(min(max(cos_norm, mahal_norm), 5.0))
+        msp_norm = (1.0 - confidence) / max(1.0 - conf_threshold, 1e-8)
+        
+        # Multi-signal composite score
+        drift_score = float(0.8 * mahal_norm + 0.2 * msp_norm)
         drift_flag = "DRIFT_DETECTED" if (cos_dist > cosine_threshold or mahal_dist > mahal_threshold) else "OK"
 
         return {
@@ -283,7 +299,7 @@ def main():
             for i in range(len(batch_scaled)):
                 probs = softmax(logits[i])
                 conf = analyze_confidence(probs)
-                drift = analyze_drift(embeddings[i])
+                drift = analyze_drift(embeddings[i], confidence=conf["confidence_score"])
                 val = validate_input(raw_batch[start + i])
                 verdict, n_alerts = compute_verdict(conf, drift, val)
                 results.append({

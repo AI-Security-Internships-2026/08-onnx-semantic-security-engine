@@ -95,6 +95,7 @@ def main():
 
     ref_data = np.load(REF_EMBEDDINGS_PATH, allow_pickle=True)
     global_centroid    = ref_data["global_centroid"]
+    class_centroids    = ref_data["class_centroids"]
     covariance_inverse = ref_data["covariance_inverse"]
 
     with open(FEATURE_STATS_PATH) as f:
@@ -185,10 +186,20 @@ def main():
         return 1.0 - np.max(probs, axis=1)
 
     def score_mahalanobis(scaled_batch):
-        """Mahalanobis distance on fc3 embeddings."""
+        """Class-conditional Mahalanobis distance on fc3 embeddings.
+        
+        Computes Mahalanobis distance to each per-class centroid and returns
+        the minimum (closest class). This fixes the AUROC < 0.5 issue where
+        OOD samples were closer to the mixed global centroid than in-dist.
+        """
         embs = session.run(None, {"input": scaled_batch})[1]
-        diffs = embs - global_centroid
-        return np.sqrt(np.maximum(np.sum(diffs @ covariance_inverse * diffs, axis=1), 0.0))
+        # For each embedding, compute min Mahalanobis distance to any class centroid
+        min_dists = np.full(len(embs), np.inf)
+        for centroid_c in class_centroids:
+            diffs = embs - centroid_c
+            dists = np.sqrt(np.maximum(np.sum(diffs @ covariance_inverse * diffs, axis=1), 0.0))
+            min_dists = np.minimum(min_dists, dists)
+        return min_dists
 
     def score_isolation_forest(scaled_batch):
         """Isolation Forest anomaly score (higher = more anomalous)."""
@@ -217,20 +228,26 @@ def main():
         cal_mahal_thresh = 30.356
 
     def score_semantic_engine(raw_batch, scaled_batch):
-        """Full composite semantic engine anomaly score."""
+        """Full composite semantic engine multi-signal anomaly score."""
         out = session.run(None, {"input": scaled_batch})
         logits, embs = out[0], out[1]
         probs = softmax(logits, axis=1)
         confs = np.max(probs, axis=1)
+        msp_scores = 1.0 - confs
         
-        cos_dists = np.array([float(np.nan_to_num(cosine_distance(emb, global_centroid), nan=0.0)) for emb in embs])
-        diffs = embs - global_centroid
-        mahal_dists = np.sqrt(np.maximum(np.sum(diffs @ covariance_inverse * diffs, axis=1), 0.0))
+        # Class-conditional Mahalanobis (min distance to nearest class centroid)
+        mahal_dists = np.full(len(embs), np.inf)
+        for centroid_c in class_centroids:
+            diffs = embs - centroid_c
+            dists = np.sqrt(np.maximum(np.sum(diffs @ covariance_inverse * diffs, axis=1), 0.0))
+            mahal_dists = np.minimum(mahal_dists, dists)
         
-        # Normalized drift score using calibrated thresholds
-        cos_norm = cos_dists / cal_cos_thresh
-        mahal_norm = mahal_dists / cal_mahal_thresh
-        drift_scores = np.maximum(cos_norm, mahal_norm)
+        # Normalized scores
+        mahal_norm = mahal_dists / max(cal_mahal_thresh, 1e-8)
+        msp_norm = msp_scores / 0.5  # calibrated baseline
+        
+        # Multi-signal weighted composite: 0.8 * Mahalanobis + 0.2 * MSP
+        comp_scores = 0.8 * mahal_norm + 0.2 * msp_norm
         
         # Zero-fill / outlier penalty
         scores = []
@@ -241,7 +258,7 @@ def main():
             if is_zero:
                 scores.append(10.0) # Maximum hard penalty
             else:
-                scores.append(float(drift_scores[i]))
+                scores.append(float(comp_scores[i]))
         return np.array(scores)
 
     # ── 6. Calibrate All Detectors on D_val (Targeting 5% FPR) ──

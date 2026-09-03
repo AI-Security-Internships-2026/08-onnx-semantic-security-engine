@@ -79,6 +79,7 @@ def main():
 
     ref_data = np.load(REF_EMBEDDINGS_PATH, allow_pickle=True)
     global_centroid    = ref_data["global_centroid"]
+    class_centroids    = ref_data["class_centroids"]
     covariance_inverse = ref_data["covariance_inverse"]
 
     with open(FEATURE_STATS_PATH) as f:
@@ -162,9 +163,18 @@ def main():
         calib_probs = softmax(calib_logits, axis=1)
         calib_conf = np.max(calib_probs, axis=1)
 
-        calib_cos = np.array([float(np.nan_to_num(cosine_distance(emb, global_centroid), nan=0.0)) for emb in calib_embs])
-        diffs_calib = calib_embs - global_centroid
-        calib_mahal = np.sqrt(np.maximum(np.sum(diffs_calib @ covariance_inverse * diffs_calib, axis=1), 0.0))
+        # Class-conditional Cosine calibration
+        calib_cos = np.zeros(len(calib_embs))
+        for i, emb in enumerate(calib_embs):
+            dists = [cosine_distance(emb, c) for c in class_centroids]
+            calib_cos[i] = min(float(np.nan_to_num(d, nan=1.0)) for d in dists)
+        
+        # Class-conditional Mahalanobis calibration
+        calib_mahal = np.full(len(calib_embs), np.inf)
+        for centroid_c in class_centroids:
+            diffs_c = calib_embs - centroid_c
+            dists_c = np.sqrt(np.maximum(np.sum(diffs_c @ covariance_inverse * diffs_c, axis=1), 0.0))
+            calib_mahal = np.minimum(calib_mahal, dists_c)
 
         cos_thresh   = float(np.percentile(calib_cos, 95))
         mahal_thresh = float(np.percentile(calib_mahal, 95))
@@ -191,10 +201,20 @@ def main():
         test_logits, test_embs = test_out[0], test_out[1]
         test_probs = softmax(test_logits, axis=1)
         test_conf = np.max(test_probs, axis=1)
-        test_cos = np.array([float(np.nan_to_num(cosine_distance(emb, global_centroid), nan=0.0)) for emb in test_embs])
-        diffs_test = test_embs - global_centroid
-        test_mahal = np.sqrt(np.maximum(np.sum(diffs_test @ covariance_inverse * diffs_test, axis=1), 0.0))
-        test_comp = np.maximum(test_cos / cos_thresh, test_mahal / mahal_thresh)
+        
+        test_cos = np.zeros(len(test_embs))
+        for i, emb in enumerate(test_embs):
+            dists = [cosine_distance(emb, c) for c in class_centroids]
+            test_cos[i] = min(float(np.nan_to_num(d, nan=1.0)) for d in dists)
+        
+        test_mahal = np.full(len(test_embs), np.inf)
+        for centroid_c in class_centroids:
+            diffs_c = test_embs - centroid_c
+            dists_c = np.sqrt(np.maximum(np.sum(diffs_c @ covariance_inverse * diffs_c, axis=1), 0.0))
+            test_mahal = np.minimum(test_mahal, dists_c)
+        
+        # Multi-signal composite score: 0.8 * Mahalanobis + 0.2 * MSP
+        test_comp = 0.8 * (test_mahal / max(mahal_thresh, 1e-8)) + 0.2 * ((1.0 - test_conf) / max(1.0 - conf_thresh, 1e-8))
 
         # In-dist verdicts
         in_clean = 0
@@ -217,10 +237,20 @@ def main():
         ton_logits, ton_embs = ton_out[0], ton_out[1]
         ton_probs = softmax(ton_logits, axis=1)
         ton_conf = np.max(ton_probs, axis=1)
-        ton_cos = np.array([float(np.nan_to_num(cosine_distance(emb, global_centroid), nan=0.0)) for emb in ton_embs])
-        diffs_ton = ton_embs - global_centroid
-        ton_mahal = np.sqrt(np.maximum(np.sum(diffs_ton @ covariance_inverse * diffs_ton, axis=1), 0.0))
-        ton_comp = np.maximum(ton_cos / cos_thresh, ton_mahal / mahal_thresh)
+        
+        ton_cos = np.zeros(len(ton_embs))
+        for i, emb in enumerate(ton_embs):
+            dists = [cosine_distance(emb, c) for c in class_centroids]
+            ton_cos[i] = min(float(np.nan_to_num(d, nan=1.0)) for d in dists)
+        
+        ton_mahal = np.full(len(ton_embs), np.inf)
+        for centroid_c in class_centroids:
+            diffs_c = ton_embs - centroid_c
+            dists_c = np.sqrt(np.maximum(np.sum(diffs_c @ covariance_inverse * diffs_c, axis=1), 0.0))
+            ton_mahal = np.minimum(ton_mahal, dists_c)
+        
+        # Multi-signal composite score: 0.8 * Mahalanobis + 0.2 * MSP
+        ton_comp = 0.8 * (ton_mahal / max(mahal_thresh, 1e-8)) + 0.2 * ((1.0 - ton_conf) / max(1.0 - conf_thresh, 1e-8))
 
         # OOD AUROC metrics
         y_eval = np.concatenate([np.zeros(len(test_cos)), np.ones(len(ton_cos))])
@@ -236,8 +266,11 @@ def main():
         # 7. Evaluate Noise and Zero-Fill
         noise_out = session.run(None, {"input": X_noise_scaled})
         noise_embs = noise_out[1]
-        diffs_noise = noise_embs - global_centroid
-        noise_mahal = np.sqrt(np.maximum(np.sum(diffs_noise @ covariance_inverse * diffs_noise, axis=1), 0.0))
+        noise_mahal = np.full(len(noise_embs), np.inf)
+        for centroid_c in class_centroids:
+            diffs_c = noise_embs - centroid_c
+            dists_c = np.sqrt(np.maximum(np.sum(diffs_c @ covariance_inverse * diffs_c, axis=1), 0.0))
+            noise_mahal = np.minimum(noise_mahal, dists_c)
         noise_intercept = float(np.mean(noise_mahal > mahal_thresh)) * 100.0
 
         zero_rejected = float(np.mean([not validate_input(X_zero_raw[i])[0] for i in range(len(X_zero_raw))])) * 100.0
@@ -333,8 +366,11 @@ def main():
             _ = float(np.max(probs))
             # Drift analysis (cosine + Mahalanobis)
             cos_d = float(np.nan_to_num(cosine_distance(emb, global_centroid), nan=0.0))
-            diff_vec = emb - global_centroid
-            mahal_d = float(np.sqrt(max(diff_vec @ covariance_inverse @ diff_vec, 0.0)))
+            class_mahal_dists = [
+                float(np.sqrt(max((emb - c) @ covariance_inverse @ (emb - c), 0.0)))
+                for c in class_centroids
+            ]
+            mahal_d = min(class_mahal_dists)
             t1 = time.perf_counter()
             run_sem.append((t1 - t0) * 1000)
 

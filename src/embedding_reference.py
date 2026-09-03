@@ -224,9 +224,12 @@ print(f"  Global centroid shape: {global_centroid.shape}")
 
 # Covariance matrix (regularized for numerical stability)
 covariance = np.cov(all_embeddings.T)
-# Add small ridge to ensure invertibility
-covariance += np.eye(emb_dim) * 1e-6
+# Stronger regularization (λ=0.01) to shrink condition number
+# and stabilize Mahalanobis distances across all input types
+covariance += np.eye(emb_dim) * 0.01
 print(f"  Covariance matrix shape: {covariance.shape}")
+cond_num = np.linalg.cond(covariance)
+print(f"  Condition number: {cond_num:.2e}")
 
 # Per-class centroids (based on true ground-truth labels)
 class_centroids = np.zeros((num_classes, emb_dim))
@@ -239,18 +242,33 @@ for cls_idx in range(num_classes):
 print(f"  Per-class centroids shape: {class_centroids.shape}")
 
 # Compute distance thresholds from the training distribution
-# Cosine distances to global centroid
-cosine_distances = np.array([cosine(emb, global_centroid) for emb in all_embeddings])
+# Class-conditional cosine distances (min distance to nearest class centroid)
+cosine_distances = np.zeros(len(all_embeddings))
+for i, emb in enumerate(all_embeddings):
+    dists = [cosine(emb, c) for c in class_centroids]
+    cosine_distances[i] = min(float(np.nan_to_num(d, nan=1.0)) for d in dists)
 cosine_threshold = float(np.percentile(cosine_distances, 95))
-print(f"  Cosine distance 95th percentile: {cosine_threshold:.4f}")
+print(f"  Class-conditional Cosine distance 95th percentile: {cosine_threshold:.4f}")
 
-# Mahalanobis distances to global centroid
+# Class-conditional Mahalanobis distances (min distance to nearest class centroid)
+# This matches the inference-time class-conditional approach in semantic_analyzer.py
 try:
     cov_inv = np.linalg.inv(covariance)
-    diffs = all_embeddings - global_centroid
-    mahal_distances = np.sqrt(np.sum(diffs @ cov_inv * diffs, axis=1))
+    
+    # For each training sample, compute Mahalanobis distance to its nearest class centroid
+    mahal_distances = np.zeros(len(all_embeddings))
+    for i, emb in enumerate(all_embeddings):
+        class_dists = []
+        for centroid_c in class_centroids:
+            diff = emb - centroid_c
+            d = np.sqrt(max(diff @ cov_inv @ diff, 0.0))
+            class_dists.append(d)
+        mahal_distances[i] = min(class_dists)  # closest class
+    
     mahal_threshold = float(np.percentile(mahal_distances, 95))
-    print(f"  Mahalanobis distance 95th percentile: {mahal_threshold:.4f}")
+    print(f"  Class-conditional Mahalanobis 95th percentile: {mahal_threshold:.4f}")
+    print(f"  Mahalanobis distance stats: median={np.median(mahal_distances):.4f}, "
+          f"mean={np.mean(mahal_distances):.4f}, max={np.max(mahal_distances):.4f}")
 except np.linalg.LinAlgError:
     print("[WARN] Covariance matrix is singular, using default Mahalanobis threshold")
     cov_inv = np.linalg.pinv(covariance)

@@ -1,9 +1,9 @@
 {
-  "last_calibrated": "2026-08-27T11:02:27.831750",
+  "last_calibrated": "2026-09-01T01:17:05.754128",
   "calibration_samples": 10000,
   "target_fpr": 0.05,
-  "cosine_drift_threshold": 0.6269294351339341,
-  "mahalanobis_drift_threshold": 578.7668237118136,
+  "cosine_drift_threshold": 0.4340864243460131,
+  "mahalanobis_drift_threshold": 18.159258137535176,
   "confidence_threshold": 0.47432148456573486,
   "zscore_threshold": 15.0,
   "zero_fill_ratio": 0.8
