@@ -213,8 +213,10 @@ def main():
             dists_c = np.sqrt(np.maximum(np.sum(diffs_c @ covariance_inverse * diffs_c, axis=1), 0.0))
             test_mahal = np.minimum(test_mahal, dists_c)
         
-        # Multi-signal composite score: 0.8 * Mahalanobis + 0.2 * MSP
-        test_comp = 0.8 * (test_mahal / max(mahal_thresh, 1e-8)) + 0.2 * ((1.0 - test_conf) / max(1.0 - conf_thresh, 1e-8))
+        # Production composite score: min(max(cos_norm, mahal_norm), 2.0)
+        test_cos_norm = test_cos / max(cos_thresh, 1e-8)
+        test_mahal_norm = test_mahal / max(mahal_thresh, 1e-8)
+        test_comp = np.minimum(np.maximum(test_cos_norm, test_mahal_norm), 2.0)
 
         # In-dist verdicts
         in_clean = 0
@@ -249,8 +251,10 @@ def main():
             dists_c = np.sqrt(np.maximum(np.sum(diffs_c @ covariance_inverse * diffs_c, axis=1), 0.0))
             ton_mahal = np.minimum(ton_mahal, dists_c)
         
-        # Multi-signal composite score: 0.8 * Mahalanobis + 0.2 * MSP
-        ton_comp = 0.8 * (ton_mahal / max(mahal_thresh, 1e-8)) + 0.2 * ((1.0 - ton_conf) / max(1.0 - conf_thresh, 1e-8))
+        # Production composite score: min(max(cos_norm, mahal_norm), 2.0)
+        ton_cos_norm = ton_cos / max(cos_thresh, 1e-8)
+        ton_mahal_norm = ton_mahal / max(mahal_thresh, 1e-8)
+        ton_comp = np.minimum(np.maximum(ton_cos_norm, ton_mahal_norm), 2.0)
 
         # OOD AUROC metrics
         y_eval = np.concatenate([np.zeros(len(test_cos)), np.ones(len(ton_cos))])

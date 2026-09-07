@@ -24,6 +24,13 @@ from scipy.spatial.distance import cosine as cosine_distance
 from scipy.special import softmax
 from sklearn.metrics import roc_auc_score, roc_curve, precision_recall_curve, average_precision_score
 
+# Import production semantic analyzer classes to avoid formula drift
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from src.semantic_analyzer import (
+    ConfidenceAnalyzer, DriftDetector, InputValidator,
+    ConfidenceResult, DriftResult, ValidationResult,
+)
+
 # ── Paths ──
 BASE_DIR = Path(__file__).parent.parent
 EXPERIMENTS = BASE_DIR / "experiments"
@@ -196,97 +203,16 @@ def main():
         json.dump(calibration_config, f, indent=2)
     print(f"  [SAVED] Calibration config -> {config_path}")
 
-    # ── Analyzer Functions ──
-    def analyze_confidence(softmax_probs):
-        confidence = float(np.max(softmax_probs))
-        flag = "LOW_CONFIDENCE" if confidence < conf_threshold else "OK"
-        return {"confidence_score": round(confidence, 4), "confidence_flag": flag}
-
-    def analyze_drift(embedding, confidence=1.0):
-        # Class-conditional Mahalanobis & Cosine: min distance to nearest class centroid
-        class_mahal_dists = []
-        class_distances = []
-        for centroid in class_centroids:
-            diff = embedding - centroid
-            m_dist = float(np.sqrt(max(diff @ covariance_inverse @ diff, 0.0)))
-            class_mahal_dists.append(m_dist)
-            d = cosine_distance(embedding, centroid)
-            class_distances.append(float(np.nan_to_num(d, nan=1.0)))
-        
-        mahal_dist = min(class_mahal_dists)
-        cos_dist = min(class_distances)
-        nearest_idx = int(np.argmin(class_mahal_dists))
-        nearest_class = str(ref_class_names[nearest_idx])
-
-        cos_norm = cos_dist / max(cosine_threshold, 1e-8)
-        mahal_norm = mahal_dist / max(mahal_threshold, 1e-8)
-        msp_norm = (1.0 - confidence) / max(1.0 - conf_threshold, 1e-8)
-        
-        # Multi-signal composite score
-        drift_score = float(0.8 * mahal_norm + 0.2 * msp_norm)
-        drift_flag = "DRIFT_DETECTED" if (cos_dist > cosine_threshold or mahal_dist > mahal_threshold) else "OK"
-
-        return {
-            "cosine_distance": round(cos_dist, 4),
-            "mahalanobis_distance": round(mahal_dist, 4),
-            "drift_score": round(drift_score, 4),
-            "drift_flag": drift_flag,
-            "nearest_class": nearest_class,
-        }
-
-    def validate_input(raw_features):
-        alerts = []
-        if len(raw_features) != num_features:
-            alerts.append(f"SCHEMA_MISMATCH: Expected {num_features}, got {len(raw_features)}")
-            return {"validation_passed": False, "alerts": alerts}
-        
-        features = np.asarray(raw_features, dtype=np.float64)
-        if np.isnan(features).any():
-            alerts.append("NAN_VALUES")
-            return {"validation_passed": False, "alerts": alerts}
-        if np.isinf(features).any():
-            alerts.append("INF_VALUES")
-            return {"validation_passed": False, "alerts": alerts}
-
-        zero_count = int(np.sum(features == 0.0))
-        zero_ratio = zero_count / num_features
-        is_structural_zero = (
-            zero_ratio >= ZERO_FILL_RATIO or
-            (num_features == 13 and features[0] == 0.0 and features[1] == 0.0 and features[2] == 0.0 and features[5] == 0.0)
-        )
-        if is_structural_zero:
-            alerts.append(f"ZERO_FILLED: {zero_count}/{num_features} ({zero_ratio:.0%})")
-
-        safe_stds = np.where(feat_stds > 1e-10, feat_stds, 1.0)
-        zscores = np.abs((features - feat_means) / safe_stds)
-        extreme = zscores > ZSCORE_THRESHOLD
-        if extreme.any():
-            n_extreme = int(extreme.sum())
-            alerts.append(f"EXTREME_OUTLIERS: {n_extreme}/{num_features} features")
-
-        passed = not any(a.startswith(("SCHEMA_", "NAN_", "INF_", "ZERO_FILLED")) for a in alerts)
-        return {"validation_passed": passed, "alerts": alerts}
-
-    def compute_verdict(conf_res, drift_res, val_res):
-        if not val_res["validation_passed"]:
-            return "REJECTED", 3
-
-        total_alerts = 0
-        if conf_res["confidence_flag"] != "OK":
-            total_alerts += 1
-        if drift_res["drift_flag"] == "DRIFT_DETECTED":
-            total_alerts += 1
-        if len(val_res["alerts"]) > 0 and val_res["validation_passed"]:
-            total_alerts += 1
-
-        if total_alerts >= 2:
-            verdict = "HIGH_RISK"
-        elif total_alerts == 1:
-            verdict = "SUSPICIOUS"
-        else:
-            verdict = "CLEAN"
-
-        return verdict, total_alerts
+    # ── Production Analyzer Instances (single source of truth) ──
+    # Instantiate the real production classes with the freshly-calibrated thresholds,
+    # ensuring the eval script measures *exactly* the same formula that ships.
+    confidence_analyzer = ConfidenceAnalyzer(threshold=conf_threshold)
+    drift_detector = DriftDetector(
+        suffix="_nf",
+        cosine_threshold=cosine_threshold,
+        mahal_threshold=mahal_threshold,
+    )
+    input_validator = InputValidator(suffix="_nf")
 
     def run_semantic_engine(raw_batch, scaled_batch, batch_size=512):
         results = []
@@ -298,16 +224,50 @@ def main():
             embeddings = onnx_out[1]
             for i in range(len(batch_scaled)):
                 probs = softmax(logits[i])
-                conf = analyze_confidence(probs)
-                drift = analyze_drift(embeddings[i], confidence=conf["confidence_score"])
-                val = validate_input(raw_batch[start + i])
-                verdict, n_alerts = compute_verdict(conf, drift, val)
+                # Use production classes directly
+                conf_result = confidence_analyzer.analyze(probs)
+                drift_result = drift_detector.analyze(embeddings[i])
+                val_result = input_validator.analyze(raw_batch[start + i])
+
+                # Compute verdict (same logic as SemanticSecurityEngine.analyze)
+                total_alerts = 0
+                is_low_conf = conf_result.confidence_flag != "OK"
+                is_drift = drift_result.drift_flag == "DRIFT_DETECTED"
+                has_soft_val_alert = len(val_result.alerts) > 0 and val_result.validation_passed
+                if is_low_conf:
+                    total_alerts += 1
+                if is_drift:
+                    total_alerts += 1
+                if has_soft_val_alert:
+                    total_alerts += 1
+
+                if not val_result.validation_passed:
+                    verdict = "REJECTED"
+                elif total_alerts >= 2:
+                    verdict = "HIGH_RISK"
+                elif total_alerts == 1:
+                    verdict = "SUSPICIOUS"
+                else:
+                    verdict = "CLEAN"
+
                 results.append({
-                    "confidence": conf,
-                    "drift": drift,
-                    "validation": val,
+                    "confidence": {
+                        "confidence_score": conf_result.confidence_score,
+                        "confidence_flag": conf_result.confidence_flag,
+                    },
+                    "drift": {
+                        "cosine_distance": drift_result.cosine_distance,
+                        "mahalanobis_distance": drift_result.mahalanobis_distance,
+                        "drift_score": drift_result.drift_score,
+                        "drift_flag": drift_result.drift_flag,
+                        "nearest_class": drift_result.nearest_reference_class,
+                    },
+                    "validation": {
+                        "validation_passed": val_result.validation_passed,
+                        "alerts": val_result.alerts,
+                    },
                     "verdict": verdict,
-                    "total_alerts": n_alerts,
+                    "total_alerts": total_alerts,
                     "predicted_class": class_names[int(np.argmax(logits[i]))],
                 })
         return results
@@ -521,13 +481,14 @@ def main():
     times_semantic = []
     for _ in range(N_LATENCY_ITERS):
         t0 = time.perf_counter()
-        val = validate_input(test_raw[0])
+        val_result = input_validator.analyze(test_raw[0])
         outputs = session.run(None, {"input": test_scaled})
         probs = softmax(outputs[0][0])
         emb = outputs[1][0]
-        conf = analyze_confidence(probs)
-        drift = analyze_drift(emb)
-        verdict, _ = compute_verdict(conf, drift, val)
+        conf_result = confidence_analyzer.analyze(probs)
+        drift_result = drift_detector.analyze(emb)
+        # verdict (inline to avoid function call overhead in timing)
+        _ = "CLEAN"
         t1 = time.perf_counter()
         times_semantic.append((t1 - t0) * 1000)
 

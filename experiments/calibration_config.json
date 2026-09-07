@@ -1,5 +1,5 @@
 {
-  "last_calibrated": "2026-09-01T01:17:05.754128",
+  "last_calibrated": "2026-09-07T20:12:45.534323",
   "calibration_samples": 10000,
   "target_fpr": 0.05,
   "cosine_drift_threshold": 0.4340864243460131,

@@ -14,7 +14,7 @@
       "in_clean_pct": 87.49,
       "in_fpr_pct": 12.509999999999998,
       "auroc_mahal": 0.7738006099999999,
-      "auroc_comp": 0.8381125000000001,
+      "auroc_comp": 0.7533521650000001,
       "auroc_cos": 0.78022736,
       "auroc_msp": 0.8106633249999999,
       "ap_mahal": 0.7181121536269376,
@@ -30,7 +30,7 @@
       "in_clean_pct": 87.07000000000001,
       "in_fpr_pct": 12.93,
       "auroc_mahal": 0.77512033,
-      "auroc_comp": 0.83852591,
+      "auroc_comp": 0.7544146100000001,
       "auroc_cos": 0.7795343800000001,
       "auroc_msp": 0.8086529849999999,
       "ap_mahal": 0.7189336946079308,
@@ -46,7 +46,7 @@
       "in_clean_pct": 86.82,
       "in_fpr_pct": 13.18,
       "auroc_mahal": 0.77519952,
-      "auroc_comp": 0.8383667799999999,
+      "auroc_comp": 0.75464828,
       "auroc_cos": 0.7818938700000001,
       "auroc_msp": 0.81085576,
       "ap_mahal": 0.7195449766776841,
@@ -62,7 +62,7 @@
       "in_clean_pct": 86.29,
       "in_fpr_pct": 13.71,
       "auroc_mahal": 0.7711617700000001,
-      "auroc_comp": 0.83490116,
+      "auroc_comp": 0.7492901200000001,
       "auroc_cos": 0.7757175000000001,
       "auroc_msp": 0.80740005,
       "ap_mahal": 0.7138072720090441,
@@ -78,7 +78,7 @@
       "in_clean_pct": 87.01,
       "in_fpr_pct": 12.989999999999998,
       "auroc_mahal": 0.7767253800000001,
-      "auroc_comp": 0.84008404,
+      "auroc_comp": 0.7546979399999999,
       "auroc_cos": 0.7820248699999999,
       "auroc_msp": 0.8104364799999999,
       "ap_mahal": 0.7183629334352457,
@@ -113,11 +113,11 @@
       "formatted_pct": "0.77% +/- 0.00%"
     },
     "composite_engine_auroc": {
-      "mean": 0.838,
-      "std": 0.0019,
-      "ci95_margin": 0.0024,
-      "formatted": "0.8380 +/- 0.0019",
-      "formatted_pct": "0.84% +/- 0.00%"
+      "mean": 0.7533,
+      "std": 0.0023,
+      "ci95_margin": 0.0029,
+      "formatted": "0.7533 +/- 0.0023",
+      "formatted_pct": "0.75% +/- 0.00%"
     },
     "cosine_distance_auroc": {
       "mean": 0.7799,
@@ -171,20 +171,20 @@
   },
   "latency_percentiles": {
     "plain_inference": {
-      "mean_ms": 0.0563,
-      "std_ms": 0.0086,
-      "median_p50": 0.0545,
-      "p95_ms": 0.0664,
-      "p99_ms": 0.0947
+      "mean_ms": 0.0582,
+      "std_ms": 0.0135,
+      "median_p50": 0.0557,
+      "p95_ms": 0.072,
+      "p99_ms": 0.0988
     },
     "semantic_inference": {
-      "mean_ms": 0.3456,
-      "std_ms": 0.042,
-      "median_p50": 0.336,
-      "p95_ms": 0.4053,
-      "p99_ms": 0.5621,
-      "overhead_mean_ms": 0.2893,
-      "overhead_pct": 513.84
+      "mean_ms": 0.347,
+      "std_ms": 0.0435,
+      "median_p50": 0.3364,
+      "p95_ms": 0.4062,
+      "p99_ms": 0.5791,
+      "overhead_mean_ms": 0.2887,
+      "overhead_pct": 495.98
     }
   }
 }

@@ -228,12 +228,13 @@ def main():
         cal_mahal_thresh = 30.356
 
     def score_semantic_engine(raw_batch, scaled_batch):
-        """Full composite semantic engine multi-signal anomaly score."""
+        """Full composite semantic engine score using the production formula.
+        
+        Uses the exact same drift_score formula as DriftDetector.analyze():
+        min(max(cos_norm, mahal_norm), 2.0) — bounded [0, 2.0].
+        """
         out = session.run(None, {"input": scaled_batch})
         logits, embs = out[0], out[1]
-        probs = softmax(logits, axis=1)
-        confs = np.max(probs, axis=1)
-        msp_scores = 1.0 - confs
         
         # Class-conditional Mahalanobis (min distance to nearest class centroid)
         mahal_dists = np.full(len(embs), np.inf)
@@ -242,24 +243,20 @@ def main():
             dists = np.sqrt(np.maximum(np.sum(diffs @ covariance_inverse * diffs, axis=1), 0.0))
             mahal_dists = np.minimum(mahal_dists, dists)
         
-        # Normalized scores
+        # Class-conditional Cosine (min distance to nearest class centroid)
+        cos_dists = np.full(len(embs), np.inf)
+        for centroid_c in class_centroids:
+            for i in range(len(embs)):
+                d = cosine_distance(embs[i], centroid_c)
+                d = 1.0 if np.isnan(d) else float(d)
+                cos_dists[i] = min(cos_dists[i], d)
+        
+        # Production formula: min(max(cos_norm, mahal_norm), 2.0)
+        cos_norm = cos_dists / max(cal_cos_thresh, 1e-8)
         mahal_norm = mahal_dists / max(cal_mahal_thresh, 1e-8)
-        msp_norm = msp_scores / 0.5  # calibrated baseline
+        comp_scores = np.minimum(np.maximum(cos_norm, mahal_norm), 2.0)
         
-        # Multi-signal weighted composite: 0.8 * Mahalanobis + 0.2 * MSP
-        comp_scores = 0.8 * mahal_norm + 0.2 * msp_norm
-        
-        # Zero-fill / outlier penalty
-        scores = []
-        for i in range(len(raw_batch)):
-            raw = raw_batch[i]
-            z_count = np.sum(raw == 0.0)
-            is_zero = z_count >= 11 or (raw[0] == 0 and raw[1] == 0 and raw[2] == 0 and raw[5] == 0)
-            if is_zero:
-                scores.append(10.0) # Maximum hard penalty
-            else:
-                scores.append(float(comp_scores[i]))
-        return np.array(scores)
+        return comp_scores
 
     # ── 6. Calibrate All Detectors on D_val (Targeting 5% FPR) ──
     print("\n[Step 5] Calibrating 95th-percentile threshold on held-out validation set (D_val)...")
