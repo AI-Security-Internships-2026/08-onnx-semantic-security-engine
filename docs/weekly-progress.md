@@ -483,9 +483,9 @@ This brings the potential corrected map to **13 features** (8 exact + 5 approxim
   |---|---|---|---|---|
   | **76-feature (CICFlowMeter baseline)** | 76 | 0.0427 | 0.8134 | — (Baseline) |
   | **21-feature (NF-mapped, 8 mismatches)** | 21 | 0.0571 | 0.7658 | +33.7% |
-  | **13-feature (NF-corrected, valid pairs only)** | 13 | **0.0087** | 0.7723 | **−79.6% (regression)** |
+  | **13-feature (NF-corrected, valid pairs only)** | 13 | **0.0208** | 0.7779 | **−51.3% (regression)** |
 
-  *Source: `experiments/nf_cross_dataset_comparison.json` (nf_toniot_f1: 0.0087, previous_toniot_f1: 0.0427, improvement_over_previous: −0.034).*
+  *Source: `experiments/nf_cross_dataset_comparison.json` (nf_toniot_f1: 0.0208, previous_toniot_f1: 0.0427, improvement_over_previous: −0.0219).*
 
   **Root Cause Analysis:**
   - **Feature Purity vs. Discriminability Trade-off:** The 8 removed features (TCP retransmission counts, packet-size bucket counts, throughput rates) were semantically mismatched between CIC-IDS2018 and ToN-IoT, but the model had learned cross-feature correlations involving these fields. Removing them produced a semantically cleaner input but destroyed discriminative capacity for cross-dataset transfer.
