@@ -1,0 +1,26 @@
+{
+  "experiment": "NF-standardized cross-dataset evaluation",
+  "nf_cic_ids2018_f1": 0.7778784898075153,
+  "nf_toniot_f1": 0.02083932327409321,
+  "nf_f1_drop": 0.7570391665334221,
+  "previous_toniot_f1": 0.0427,
+  "improvement_over_previous": -0.021860676725906792,
+  "toniot_samples_evaluated": 13135881,
+  "features_used": 13,
+  "zero_filled_features": 0,
+  "feature_mapping_used": {
+    "FLOW_DURATION_MILLISECONDS": "Flow Duration",
+    "IN_PKTS": "Total Fwd Packets",
+    "OUT_PKTS": "Total Backward Packets",
+    "IN_BYTES": "Fwd Packets Length Total",
+    "OUT_BYTES": "Bwd Packets Length Total",
+    "LONGEST_FLOW_PKT": "Packet Length Max",
+    "SHORTEST_FLOW_PKT": "Packet Length Min",
+    "PROTOCOL": "Protocol",
+    "MAX_IP_PKT_LEN": "Fwd Packet Length Max",
+    "MIN_IP_PKT_LEN": "Fwd Packet Length Min",
+    "SRC_TO_DST_SECOND_BYTES": "Flow Bytes/s",
+    "TCP_WIN_MAX_IN": "Init Fwd Win Bytes",
+    "TCP_WIN_MAX_OUT": "Init Bwd Win Bytes"
+  }
+}

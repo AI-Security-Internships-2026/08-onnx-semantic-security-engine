@@ -1,0 +1,117 @@
+{
+  "experiment": "Full Precision/Quantization Comparison Benchmark",
+  "test_samples": 138069,
+  "n_warmup": 500,
+  "n_latency_runs": 5000,
+  "batch_sizes_throughput": [
+    1,
+    32,
+    128
+  ],
+  "variants": {
+    "FP32": {
+      "variant": "FP32",
+      "model_file": "threat_mlp_nf_fp32.onnx",
+      "size_mb": 0.1765,
+      "macro_f1": 0.780129,
+      "accuracy": 0.871897,
+      "latency": {
+        "n_warmup": 500,
+        "n_runs": 5000,
+        "mean_ms": 0.0377,
+        "std_ms": 0.0054,
+        "min_ms": 0.0353,
+        "max_ms": 0.1955,
+        "p50_ms": 0.0363,
+        "p95_ms": 0.047,
+        "p99_ms": 0.0587
+      },
+      "throughput_samples_per_sec": {
+        "batch_1": 27534.8,
+        "batch_32": 420455.7,
+        "batch_128": 769801.2
+      },
+      "f1_drop_vs_fp32_pct": 0.0,
+      "size_reduction_vs_fp32_pct": 0.0,
+      "latency_change_vs_fp32_pct": 0.0
+    },
+    "FP16": {
+      "variant": "FP16",
+      "model_file": "threat_mlp_nf_fp16.onnx",
+      "size_mb": 0.0889,
+      "macro_f1": 0.780232,
+      "accuracy": 0.872144,
+      "latency": {
+        "n_warmup": 500,
+        "n_runs": 5000,
+        "mean_ms": 0.0418,
+        "std_ms": 0.0113,
+        "min_ms": 0.0391,
+        "max_ms": 0.734,
+        "p50_ms": 0.0407,
+        "p95_ms": 0.0482,
+        "p99_ms": 0.067
+      },
+      "throughput_samples_per_sec": {
+        "batch_1": 24210.1,
+        "batch_32": 358368.3,
+        "batch_128": 710605.0
+      },
+      "f1_drop_vs_fp32_pct": -0.01,
+      "size_reduction_vs_fp32_pct": 49.63,
+      "latency_change_vs_fp32_pct": 10.88
+    },
+    "INT8": {
+      "variant": "INT8",
+      "model_file": "threat_mlp_nf_int8.onnx",
+      "size_mb": 0.0479,
+      "macro_f1": 0.483342,
+      "accuracy": 0.556939,
+      "latency": {
+        "n_warmup": 500,
+        "n_runs": 5000,
+        "mean_ms": 0.0426,
+        "std_ms": 0.003,
+        "min_ms": 0.041,
+        "max_ms": 0.0954,
+        "p50_ms": 0.0419,
+        "p95_ms": 0.0497,
+        "p99_ms": 0.053
+      },
+      "throughput_samples_per_sec": {
+        "batch_1": 23959.0,
+        "batch_32": 358004.7,
+        "batch_128": 801384.9
+      },
+      "f1_drop_vs_fp32_pct": 38.04,
+      "size_reduction_vs_fp32_pct": 72.86,
+      "latency_change_vs_fp32_pct": 13.0
+    },
+    "INT4": {
+      "variant": "INT4",
+      "model_file": "threat_mlp_nf_int4.onnx",
+      "size_mb": 0.034,
+      "macro_f1": 0.762674,
+      "accuracy": 0.851618,
+      "latency": {
+        "n_warmup": 500,
+        "n_runs": 5000,
+        "mean_ms": 0.0655,
+        "std_ms": 0.0056,
+        "min_ms": 0.0633,
+        "max_ms": 0.2249,
+        "p50_ms": 0.0643,
+        "p95_ms": 0.0728,
+        "p99_ms": 0.0945
+      },
+      "throughput_samples_per_sec": {
+        "batch_1": 15492.6,
+        "batch_32": 349848.0,
+        "batch_128": 813572.4
+      },
+      "f1_drop_vs_fp32_pct": 2.24,
+      "size_reduction_vs_fp32_pct": 80.74,
+      "latency_change_vs_fp32_pct": 73.74
+    }
+  }
+}

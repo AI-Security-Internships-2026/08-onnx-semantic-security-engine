@@ -1,5 +1,5 @@
 onnx
-onnxruntime>=1.18
+onnxruntime>=1.18,<2.0
 torch
 scikit-learn
 numpy
@@ -10,3 +10,4 @@ uvicorn>=0.29
 pydantic>=2.0
 joblib
 scipy
+onnxconverter-common>=1.14

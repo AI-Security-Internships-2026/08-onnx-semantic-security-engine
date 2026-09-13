@@ -40,7 +40,8 @@
       "samples_evaluated": 13135881,
       "features_matched": 21,
       "features_zero_filled": 0,
-      "failure_mode": "Still poor generalization despite all features matched — indicates semantic gap between CICFlowMeter and NetFlow feature extraction, not just schema mismatch"
+      "mapping_quality_note": "Post-hoc review revealed 8 of 21 mapped features are semantic mismatches (different physical quantities). Only 12 pairs are genuinely equivalent (7 exact, 5 approximate). See nf_cross_dataset_comparison.json for details.",
+      "failure_mode": "Still poor generalization despite zero-filling eliminated — likely caused by a combination of residual semantic mismatch in ~38% of features AND distributional shift between CICFlowMeter and NetFlow extractors"
     },
     "quantization": {
       "fp32_size_mb": 0.184,
@@ -52,7 +53,8 @@
     "in_distribution_f1_delta": -0.0476,
     "cross_dataset_f1_delta": 0.0144,
     "cross_dataset_improvement_pct": 33.7,
-    "key_finding": "NF-standardization eliminated zero-filling and produced a marginal improvement in cross-dataset F1 (0.0427 -> 0.0571, +33.7% relative). However, the absolute cross-dataset F1 remains catastrophically low (0.0571), confirming that the generalization failure is NOT caused by feature schema mismatch alone — the underlying feature distributions between CICFlowMeter and NetFlow/IPFIX extractors are fundamentally different.",
-    "implication": "Cross-dataset generalization requires domain adaptation techniques beyond feature alignment — e.g., adversarial domain adaptation, feature distribution normalization, or training on multi-source data."
+    "key_finding": "NF-standardization eliminated zero-filling and produced a marginal improvement in cross-dataset F1 (0.0427 -> 0.0571, +33.7% relative). However, the absolute cross-dataset F1 remains catastrophically low (0.0571). NOTE: Post-hoc review identified that 8 of the 21 mapped features were semantic mismatches (e.g., throughput-rate mapped to header-byte-count). This means the cross-dataset failure is likely explained by BOTH residual schema mismatch (~38% of features) AND distributional shift, rather than distributional shift alone as originally claimed.",
+    "implication": "Cross-dataset generalization requires both (1) verified semantic feature alignment and (2) domain adaptation techniques — e.g., adversarial domain adaptation, feature distribution normalization, or training on multi-source data. Retraining with the corrected 12-feature map is a required follow-up.",
+    "mapping_caveat": "The original claim that schema mismatch was 'conclusively' eliminated is not fully supported — see nf_cross_dataset_comparison.json for the detailed mapping quality analysis."
   }
 }

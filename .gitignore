@@ -61,6 +61,17 @@ credentials/
 # Results that can be reproduced
 experiments/results/*.png
 experiments/results/*.pdf
+experiments/*.npy
+experiments/*.onnx
+experiments/**/*.onnx
+experiments/*.onnx.data
+experiments/**/*.onnx.data
+experiments/*.pth
+experiments/*.joblib
+experiments/*.npz
+experiments/training_feature_stats_nf.json
 
 # Personal plans / notes (not for GitHub)
 sikandar-plans/
+scratch/
+scratch_test_api.py

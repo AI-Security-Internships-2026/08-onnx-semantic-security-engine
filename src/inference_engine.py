@@ -1,22 +1,16 @@
 """
 ONNX Semantic Security Engine — FastAPI Inference Server
 
-Supports both Baseline (76-feature) and NF-Standardized (21-feature) models.
+Supports both Baseline (76-feature) and NF-Standardized (13-feature) models.
 Provides standard prediction endpoints and a /predict/secure endpoint with
 full semantic analysis (confidence, drift detection, input validation).
 
 Usage:
-    # Run with baseline model (default)
+    # Run with NF model (default)
     uvicorn src.inference_engine:app --host 0.0.0.0 --port 8000
-
-    # Run with NF-standardized model
-    USE_NF=true uvicorn src.inference_engine:app --host 0.0.0.0 --port 8000
 
     # Run with INT8 quantized model
     USE_QUANTIZED=true uvicorn src.inference_engine:app --host 0.0.0.0 --port 8000
-
-    # Run with NF + INT8
-    USE_NF=true USE_QUANTIZED=true uvicorn src.inference_engine:app --host 0.0.0.0 --port 8000
     
 Then visit: http://localhost:8000/docs for Swagger UI
 """
@@ -41,7 +35,7 @@ EXPERIMENTS = BASE_DIR / "experiments"
 
 # ── Pydantic Models ──
 class PredictRequest(BaseModel):
-    features: List[float] = Field(..., description="Raw feature vector (dimensions depend on model: 76 for baseline, 21 for NF)")
+    features: List[float] = Field(..., description="Raw feature vector (dimensions depend on model: 76 for baseline, 13 for NF)")
 
 class BatchPredictRequest(BaseModel):
     instances: List[List[float]] = Field(..., description="List of feature vectors")
@@ -89,13 +83,23 @@ class SecurePredictResponse(BaseModel):
     latency_ms: float
 
 
-# ── Confidence threshold for anomaly flagging ──
-CONFIDENCE_THRESHOLD = 0.70
+# ── Confidence threshold — loaded from calibration config if available ──
+_calib_path = EXPERIMENTS / "calibration_config.json"
+if _calib_path.exists():
+    try:
+        import json as _json
+        with open(_calib_path) as _f:
+            _calib = _json.load(_f)
+        CONFIDENCE_THRESHOLD = float(_calib.get("confidence_threshold", 0.50))
+    except Exception:
+        CONFIDENCE_THRESHOLD = 0.50
+else:
+    CONFIDENCE_THRESHOLD = 0.50
 
 
 # ── Engine Class ──
 class OnnxSecurityEngine:
-    def __init__(self, use_nf: bool = False, quantized: bool = False):
+    def __init__(self, use_nf: bool = True, quantized: bool = False):
         # Determine model file name based on variant and precision
         prefix = "threat_mlp_nf" if use_nf else "threat_mlp"
         if quantized:
@@ -109,7 +113,7 @@ class OnnxSecurityEngine:
             raise FileNotFoundError(f"Model not found: {model_path}")
         
         self.model_type = "INT8" if quantized else "FP32"
-        self.model_variant = "NF-Standardized (21 features)" if use_nf else "Baseline (76 features)"
+        self.model_variant = "NF-Standardized (13 features)" if use_nf else "Baseline (76 features)"
         self.session = ort.InferenceSession(str(model_path), providers=["CPUExecutionProvider"])
         
         # Detect available outputs
@@ -133,7 +137,7 @@ class OnnxSecurityEngine:
         self.input_dim = self.session.get_inputs()[0].shape[1]
         self.start_time = time.time()
         
-        print(f"✓ Engine loaded: {model_name} | Variant: {self.model_variant}")
+        print(f"[OK] Engine loaded: {model_name} | Variant: {self.model_variant}")
         print(f"  Classes: {list(self.encoder.classes_)}")
         print(f"  Input features: {self.input_dim}")
         print(f"  ONNX outputs: {self.output_names}")
@@ -228,7 +232,7 @@ class OnnxSecurityEngine:
 
 
 # ── Determine model configuration from environment variables ──
-USE_NF = os.environ.get("USE_NF", "false").lower() == "true"
+USE_NF = os.environ.get("USE_NF", "true").lower() == "true"
 USE_QUANTIZED = os.environ.get("USE_QUANTIZED", "false").lower() == "true"
 engine = OnnxSecurityEngine(use_nf=USE_NF, quantized=USE_QUANTIZED)
 

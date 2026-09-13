@@ -1,0 +1,46 @@
+# ==============================================================================
+# Dockerfile.engine: ONNX Semantic Security Engine Service
+# ==============================================================================
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Prevent python from buffering stdout/stderr (vital for real-time docker logs)
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Default to the NF-standardized model for edge inference
+ENV USE_NF=true
+ENV USE_QUANTIZED=false
+
+# Install required Python packages
+RUN pip install --no-cache-dir \
+    fastapi>=0.110 \
+    uvicorn>=0.29 \
+    pydantic>=2.0 \
+    onnxruntime>=1.18 \
+    numpy \
+    pandas \
+    scipy \
+    joblib \
+    scikit-learn
+
+# Copy source code
+COPY src/ /app/src/
+
+# Copy only required model artifacts (not raw datasets or .pth training checkpoints)
+COPY experiments/threat_mlp_nf_fp32.onnx /app/experiments/
+COPY experiments/threat_mlp_nf_fp32.onnx.data /app/experiments/
+COPY experiments/threat_mlp_nf_fp16.onnx /app/experiments/
+COPY experiments/threat_mlp_nf_int8.onnx /app/experiments/
+COPY experiments/standard_scaler_nf.joblib /app/experiments/
+COPY experiments/label_encoder_nf.joblib /app/experiments/
+COPY experiments/reference_embeddings_nf.npz /app/experiments/
+COPY experiments/training_feature_stats_nf.json /app/experiments/
+COPY experiments/calibration_config.json /app/experiments/
+
+# Expose API port
+EXPOSE 8000
+
+# Run FastAPI inference server with uvicorn
+CMD ["uvicorn", "src.inference_engine:app", "--host", "0.0.0.0", "--port", "8000"]

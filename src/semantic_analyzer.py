@@ -132,7 +132,13 @@ class DriftDetector:
         - Nearest-class identification (cosine to per-class centroids)
     """
 
-    def __init__(self, reference_path: Optional[Path] = None, suffix: str = ""):
+    def __init__(
+        self,
+        reference_path: Optional[Path] = None,
+        suffix: str = "",
+        cosine_threshold: Optional[float] = None,
+        mahal_threshold: Optional[float] = None,
+    ):
         if reference_path is None:
             reference_path = EXPERIMENTS / f"reference_embeddings{suffix}.npz"
 
@@ -146,8 +152,27 @@ class DriftDetector:
         self.global_centroid = data["global_centroid"]
         self.class_centroids = data["class_centroids"]
         self.covariance_inverse = data["covariance_inverse"]
-        self.cosine_threshold = float(data["cosine_threshold"])
-        self.mahal_threshold = float(data["mahal_threshold"])
+        
+        # Load calibrated thresholds from config file (written by evaluate_semantic_engine.py)
+        calib_config_path = EXPERIMENTS / "calibration_config.json"
+        if calib_config_path.exists() and "_nf" in suffix:
+            try:
+                with open(calib_config_path) as f:
+                    calib = json.load(f)
+                default_cos = float(calib.get("cosine_drift_threshold", data["cosine_threshold"]))
+                default_mahal = float(calib.get("mahalanobis_drift_threshold", data["mahal_threshold"]))
+                print(f"  Loaded calibrated thresholds from {calib_config_path.name} "
+                      f"(calibrated: {calib.get('last_calibrated', 'unknown')})")
+            except Exception as e:
+                print(f"  [WARN] Failed reading calibration_config.json ({e}), using npz defaults")
+                default_cos = float(data["cosine_threshold"])
+                default_mahal = float(data["mahal_threshold"])
+        else:
+            default_cos = float(data["cosine_threshold"])
+            default_mahal = float(data["mahal_threshold"])
+        
+        self.cosine_threshold = cosine_threshold if cosine_threshold is not None else default_cos
+        self.mahal_threshold = mahal_threshold if mahal_threshold is not None else default_mahal
         self.class_names = list(data["class_names"])
 
         print(f"  DriftDetector loaded: {len(self.class_names)} classes, "
@@ -157,27 +182,30 @@ class DriftDetector:
     def analyze(self, embedding: np.ndarray) -> DriftResult:
         """Analyze a single embedding vector for distribution drift.
 
+        Uses class-conditional Mahalanobis distance (Lee et al. 2018):
+        computes Mahalanobis distance to each per-class centroid and takes
+        the minimum. In-distribution samples will be close to at least one
+        class centroid; OOD samples will be far from all class centroids.
+
         Args:
             embedding: 1D array (64-dim) from ONNX model's fc3 layer.
 
         Returns:
             DriftResult with distances, score, flag, and nearest class.
         """
-        # Cosine distance to global centroid
-        # scipy cosine returns NaN if either vector is all zeros; fall back to 0.0
-        cos_dist = cosine_distance(embedding, self.global_centroid)
-        cos_dist = float(np.nan_to_num(cos_dist, nan=0.0))
-
-        # Mahalanobis distance to global centroid
-        diff = embedding - self.global_centroid
-        mahal_dist = float(np.sqrt(max(diff @ self.covariance_inverse @ diff, 0.0)))
-
-        # Nearest-class identification
-        class_distances = []
+        # Class-conditional Mahalanobis & Cosine distances (min distance to nearest class centroid)
+        class_mahal_dists = []
+        class_cos_dists = []
         for centroid in self.class_centroids:
-            d = cosine_distance(embedding, centroid)
-            class_distances.append(float(np.nan_to_num(d, nan=1.0)))
-        nearest_idx = int(np.argmin(class_distances))
+            diff = embedding - centroid
+            m_dist = float(np.sqrt(max(diff @ self.covariance_inverse @ diff, 0.0)))
+            class_mahal_dists.append(m_dist)
+            c_dist = cosine_distance(embedding, centroid)
+            class_cos_dists.append(1.0 if np.isnan(c_dist) else float(c_dist))
+
+        mahal_dist = min(class_mahal_dists)  # minimum = closest class
+        cos_dist = min(class_cos_dists)      # minimum = closest class
+        nearest_idx = int(np.argmin(class_mahal_dists))
         nearest_class = self.class_names[nearest_idx]
 
         # Composite drift score (0.0 = in-distribution, 1.0 = extreme drift)
@@ -242,10 +270,10 @@ class InputValidator:
         self.maxs = np.array([f["max_approx"] for f in self.feature_stats])
         self.names = [f["name"] for f in self.feature_stats]
 
-        # Configurable thresholds
-        self.zscore_threshold = 5.0
-        self.zero_fill_ratio = 0.50
-        self.range_tolerance_sigmas = 5.0  # features beyond mean ± 5*std flagged
+        # Configurable thresholds calibrated for long-tailed network flows
+        self.zscore_threshold = 15.0
+        self.zero_fill_ratio = 0.80  # requires >=80% zeros to prevent false alarms on valid unidirectional flows
+        self.range_tolerance_sigmas = 15.0
 
         print(f"  InputValidator loaded: {self.num_features} features, "
               f"zscore_thresh={self.zscore_threshold}, "
@@ -268,7 +296,6 @@ class InputValidator:
                 f"SCHEMA_MISMATCH: Expected {self.num_features} features, "
                 f"got {len(raw_features)}"
             )
-            # Can't do further checks if schema is wrong
             return ValidationResult(validation_passed=False, alerts=alerts)
 
         features = np.asarray(raw_features, dtype=np.float64)
@@ -291,62 +318,59 @@ class InputValidator:
             return ValidationResult(validation_passed=False, alerts=alerts)
 
         # ── Check 3: Zero-fill detection (RQ3 failure mode) ──
+        # In network telemetry, unidirectional flows (e.g. UDP/DNS) naturally have ~5-7 zero fields out of 13.
+        # True zero-fill corruption/tampering occurs when >=80% of features are zero or all core fields are 0.
         zero_count = int(np.sum(features == 0.0))
         zero_ratio = zero_count / self.num_features
 
-        if zero_ratio > self.zero_fill_ratio:
+        is_structural_zero = (
+            zero_ratio >= self.zero_fill_ratio or
+            (self.num_features == 13 and features[0] == 0.0 and features[1] == 0.0 and features[2] == 0.0 and features[5] == 0.0)
+        )
+
+        if is_structural_zero:
             alerts.append(
-                f"ZERO_FILLED: {zero_count}/{self.num_features} features are exactly 0.0 "
-                f"({zero_ratio:.0%}). This pattern indicates missing or incompatible "
-                f"feature extraction — the exact failure mode identified in RQ3 "
-                f"cross-dataset evaluation."
+                f"ZERO_FILLED: {zero_count}/{self.num_features} features are 0.0 "
+                f"({zero_ratio:.0%}). This pattern indicates telemetry corruption or zero-fill tampering (RQ3 failure mode)."
             )
 
-        # ── Check 4: Range check ──
+        # ── Check 4: Range check (soft statistical warning) ──
         range_lower = self.means - self.range_tolerance_sigmas * self.stds
         range_upper = self.means + self.range_tolerance_sigmas * self.stds
         out_of_range = (features < range_lower) | (features > range_upper)
 
         if out_of_range.any():
             oor_indices = np.where(out_of_range)[0]
-            oor_details = []
-            for idx in oor_indices[:5]:  # limit to first 5 for readability
-                oor_details.append(
-                    f"{self.names[idx]}={features[idx]:.2f} "
-                    f"(expected [{range_lower[idx]:.2f}, {range_upper[idx]:.2f}])"
-                )
-            suffix_text = f" (+{len(oor_indices) - 5} more)" if len(oor_indices) > 5 else ""
+            oor_details = [
+                f"{self.names[idx]}={features[idx]:.2f} "
+                f"(expected [{range_lower[idx]:.2f}, {range_upper[idx]:.2f}])"
+                for idx in oor_indices[:3]
+            ]
+            suffix_text = f" (+{len(oor_indices) - 3} more)" if len(oor_indices) > 3 else ""
             alerts.append(
                 f"OUT_OF_RANGE: {len(oor_indices)} feature(s) outside "
-                f"training range (mean ± {self.range_tolerance_sigmas}σ): "
-                f"{', '.join(oor_details)}{suffix_text}"
+                f"training range (mean ± {self.range_tolerance_sigmas}σ): {', '.join(oor_details)}{suffix_text}"
             )
 
-        # ── Check 5: Z-score outlier check ──
-        # Avoid division by zero for constant features
+        # ── Check 5: Z-score outlier check (soft statistical warning) ──
         safe_stds = np.where(self.stds > 1e-10, self.stds, 1.0)
         zscores = np.abs((features - self.means) / safe_stds)
         extreme_outliers = zscores > self.zscore_threshold
 
         if extreme_outliers.any():
             outlier_indices = np.where(extreme_outliers)[0]
-            outlier_details = []
-            for idx in outlier_indices[:5]:
-                outlier_details.append(
-                    f"{self.names[idx]}: z={zscores[idx]:.1f}"
-                )
-            suffix_text = f" (+{len(outlier_indices) - 5} more)" if len(outlier_indices) > 5 else ""
+            outlier_details = [f"{self.names[idx]}: z={zscores[idx]:.1f}" for idx in outlier_indices[:3]]
+            suffix_text = f" (+{len(outlier_indices) - 3} more)" if len(outlier_indices) > 3 else ""
             alerts.append(
                 f"EXTREME_OUTLIERS: {len(outlier_indices)} feature(s) with "
-                f"|z-score| > {self.zscore_threshold}: "
-                f"{', '.join(outlier_details)}{suffix_text}"
+                f"|z-score| > {self.zscore_threshold}: {', '.join(outlier_details)}{suffix_text}"
             )
 
         # Determine pass/fail
-        # Hard failures: schema, nan, inf
-        # Soft warnings: zero-fill, range, outliers (still pass but with alerts)
-        validation_passed = len(alerts) == 0 or all(
-            not alert.startswith(("SCHEMA_", "NAN_", "INF_"))
+        # Hard failures: schema mismatch, NaN, Inf, true zero-fill tampering
+        # Soft warnings: out-of-range, extreme outliers (still pass validation, but flagged for threat analysis)
+        validation_passed = not any(
+            alert.startswith(("SCHEMA_", "NAN_", "INF_", "ZERO_FILLED"))
             for alert in alerts
         )
 
@@ -370,8 +394,19 @@ class SemanticSecurityEngine:
         suffix = "_nf" if use_nf else ""
         print("Initializing Semantic Security Engine...")
 
-        self.confidence_analyzer = ConfidenceAnalyzer(threshold=0.70)
-        print(f"  ConfidenceAnalyzer: threshold=0.70")
+        # Load confidence threshold from calibration config
+        calib_config_path = EXPERIMENTS / "calibration_config.json"
+        conf_threshold = 0.50
+        if calib_config_path.exists() and use_nf:
+            try:
+                with open(calib_config_path) as f:
+                    calib = json.load(f)
+                conf_threshold = float(calib.get("confidence_threshold", 0.50))
+            except Exception:
+                conf_threshold = 0.50
+
+        self.confidence_analyzer = ConfidenceAnalyzer(threshold=conf_threshold)
+        print(f"  ConfidenceAnalyzer: threshold={conf_threshold:.4f}")
 
         # Try to load drift detector (requires reference embeddings)
         try:
@@ -391,8 +426,8 @@ class SemanticSecurityEngine:
             self.input_validator = None
             self.has_validation = False
 
-        print(f"  Engine ready: confidence=✓, drift={'✓' if self.has_drift else '✗'}, "
-              f"validation={'✓' if self.has_validation else '✗'}")
+        print(f"  Engine ready: confidence=OK, drift={'OK' if self.has_drift else 'NO'}, "
+              f"validation={'OK' if self.has_validation else 'NO'}")
 
     def analyze(
         self,
@@ -435,19 +470,25 @@ class SemanticSecurityEngine:
             )
 
         # ── Compute overall verdict ──
+        # Count independent anomaly signals without duplicate penalty
         total_alerts = 0
-        if confidence_result.confidence_flag != "OK":
-            total_alerts += 1
-        if drift_result.drift_flag == "DRIFT_DETECTED":
-            total_alerts += 1
-        total_alerts += len(validation_result.alerts)
+        is_low_conf = confidence_result.confidence_flag != "OK"
+        is_drift = drift_result.drift_flag == "DRIFT_DETECTED"
+        has_soft_val_alert = len(validation_result.alerts) > 0 and validation_result.validation_passed
 
-        # Determine engine verdict
+        if is_low_conf:
+            total_alerts += 1
+        if is_drift:
+            total_alerts += 1
+        if has_soft_val_alert:
+            total_alerts += 1
+
+        # Determine calibrated engine verdict
         if not validation_result.validation_passed:
             verdict = "REJECTED"
         elif total_alerts >= 2:
             verdict = "HIGH_RISK"
-        elif total_alerts >= 1:
+        elif total_alerts == 1:
             verdict = "SUSPICIOUS"
         else:
             verdict = "CLEAN"
@@ -467,3 +508,4 @@ class SemanticSecurityEngine:
             total_alerts=total_alerts,
             engine_verdict=verdict,
         )
+
