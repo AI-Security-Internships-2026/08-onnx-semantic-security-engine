@@ -25,6 +25,13 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+# Import production scoring classes (single source of truth — Issue #21)
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from src.semantic_analyzer import (
+    ConfidenceAnalyzer, DriftDetector, InputValidator,
+    SemanticSecurityEngine,
+)
+
 # ── Paths ──
 BASE_DIR = Path(__file__).parent.parent
 EXPERIMENTS = BASE_DIR / "experiments"
@@ -112,30 +119,14 @@ def main():
     df_ton_all.columns = df_ton_all.columns.str.strip()
     print(f"  Total ToN-IoT pool available: {len(df_ton_all)} samples")
 
-    # ── Validation Functions ──
+    # ── Validation Function: use production InputValidator ──
+    prod_validator = InputValidator(suffix="_nf")
+
     def validate_input(raw_features):
-        alerts = []
-        if len(raw_features) != num_features:
-            return False, ["SCHEMA_MISMATCH"]
-        features = np.asarray(raw_features, dtype=np.float64)
-        if np.isnan(features).any() or np.isinf(features).any():
-            return False, ["NON_FINITE"]
-        
-        zero_count = int(np.sum(features == 0.0))
-        zero_ratio = zero_count / num_features
-        is_structural_zero = (
-            zero_ratio >= 0.80 or
-            (num_features == 13 and features[0] == 0.0 and features[1] == 0.0 and features[2] == 0.0 and features[5] == 0.0)
-        )
-        if is_structural_zero:
-            return False, ["ZERO_FILLED"]
-
-        safe_stds = np.where(feat_stds > 1e-10, feat_stds, 1.0)
-        zscores = np.abs((features - feat_means) / safe_stds)
-        if (zscores > 15.0).any():
-            alerts.append("EXTREME_OUTLIERS")
-
-        return True, alerts
+        """Wrapper around production InputValidator for quick pass/fail + alerts."""
+        result = prod_validator.analyze(raw_features)
+        alert_types = [a.split(":")[0] for a in result.alerts]
+        return result.validation_passed, alert_types
 
     # ── 5-Seed Evaluation Loop ──
     print(f"\n[Step 3] Running 5-seed evaluation ({len(EVAL_SEEDS)} independent runs)...")
@@ -163,18 +154,11 @@ def main():
         calib_probs = softmax(calib_logits, axis=1)
         calib_conf = np.max(calib_probs, axis=1)
 
-        # Class-conditional Cosine calibration
-        calib_cos = np.zeros(len(calib_embs))
-        for i, emb in enumerate(calib_embs):
-            dists = [cosine_distance(emb, c) for c in class_centroids]
-            calib_cos[i] = min(float(np.nan_to_num(d, nan=1.0)) for d in dists)
-        
-        # Class-conditional Mahalanobis calibration
-        calib_mahal = np.full(len(calib_embs), np.inf)
-        for centroid_c in class_centroids:
-            diffs_c = calib_embs - centroid_c
-            dists_c = np.sqrt(np.maximum(np.sum(diffs_c @ covariance_inverse * diffs_c, axis=1), 0.0))
-            calib_mahal = np.minimum(calib_mahal, dists_c)
+        # Compute distances using production DriftDetector (Issue #21)
+        calib_drift = DriftDetector(suffix="_nf")
+        calib_drift_out = calib_drift.analyze_batch(calib_embs)
+        calib_cos = calib_drift_out['cosine_distances']
+        calib_mahal = calib_drift_out['mahalanobis_distances']
 
         cos_thresh   = float(np.percentile(calib_cos, 95))
         mahal_thresh = float(np.percentile(calib_mahal, 95))
@@ -202,34 +186,34 @@ def main():
         test_probs = softmax(test_logits, axis=1)
         test_conf = np.max(test_probs, axis=1)
         
-        test_cos = np.zeros(len(test_embs))
-        for i, emb in enumerate(test_embs):
-            dists = [cosine_distance(emb, c) for c in class_centroids]
-            test_cos[i] = min(float(np.nan_to_num(d, nan=1.0)) for d in dists)
-        
-        test_mahal = np.full(len(test_embs), np.inf)
-        for centroid_c in class_centroids:
-            diffs_c = test_embs - centroid_c
-            dists_c = np.sqrt(np.maximum(np.sum(diffs_c @ covariance_inverse * diffs_c, axis=1), 0.0))
-            test_mahal = np.minimum(test_mahal, dists_c)
-        
-        # Production composite score: min(max(cos_norm, mahal_norm), 2.0)
-        test_cos_norm = test_cos / max(cos_thresh, 1e-8)
-        test_mahal_norm = test_mahal / max(mahal_thresh, 1e-8)
-        test_comp = np.minimum(np.maximum(test_cos_norm, test_mahal_norm), 2.0)
+        # Use production DriftDetector for class-conditional scoring
+        drift_det = DriftDetector(
+            suffix="_nf",
+            cosine_threshold=cos_thresh,
+            mahal_threshold=mahal_thresh,
+        )
+        test_drift = drift_det.analyze_batch(test_embs)
+        test_cos = test_drift['cosine_distances']
+        test_mahal = test_drift['mahalanobis_distances']
+        test_comp = test_drift['drift_scores']
 
-        # In-dist verdicts
+        # In-dist verdicts (using production compute_verdict)
         in_clean = 0
         in_high_risk = 0
         for i in range(len(X_test_raw)):
             val_ok, alerts = validate_input(X_test_raw[i])
-            is_drift = test_cos[i] > cos_thresh or test_mahal[i] > mahal_thresh
-            is_low_conf = test_conf[i] < conf_thresh
-            n_alerts = int(is_drift) + int(is_low_conf) + int(len(alerts) > 0)
-            if not val_ok or n_alerts >= 2:
-                in_high_risk += 1
-            elif n_alerts == 0:
+            is_drift_flag = "DRIFT_DETECTED" if (test_cos[i] > cos_thresh or test_mahal[i] > mahal_thresh) else "OK"
+            is_low_conf_flag = "LOW_CONFIDENCE" if test_conf[i] < conf_thresh else "OK"
+            n_alerts, verdict = SemanticSecurityEngine.compute_verdict(
+                confidence_flag=is_low_conf_flag,
+                drift_flag=is_drift_flag,
+                validation_passed=val_ok,
+                validation_alerts=alerts,
+            )
+            if verdict == "CLEAN":
                 in_clean += 1
+            elif verdict in ("HIGH_RISK", "REJECTED"):
+                in_high_risk += 1
 
         in_clean_pct = in_clean / len(X_test_raw) * 100.0
         in_fpr_pct = (len(X_test_raw) - in_clean) / len(X_test_raw) * 100.0
@@ -240,21 +224,11 @@ def main():
         ton_probs = softmax(ton_logits, axis=1)
         ton_conf = np.max(ton_probs, axis=1)
         
-        ton_cos = np.zeros(len(ton_embs))
-        for i, emb in enumerate(ton_embs):
-            dists = [cosine_distance(emb, c) for c in class_centroids]
-            ton_cos[i] = min(float(np.nan_to_num(d, nan=1.0)) for d in dists)
-        
-        ton_mahal = np.full(len(ton_embs), np.inf)
-        for centroid_c in class_centroids:
-            diffs_c = ton_embs - centroid_c
-            dists_c = np.sqrt(np.maximum(np.sum(diffs_c @ covariance_inverse * diffs_c, axis=1), 0.0))
-            ton_mahal = np.minimum(ton_mahal, dists_c)
-        
-        # Production composite score: min(max(cos_norm, mahal_norm), 2.0)
-        ton_cos_norm = ton_cos / max(cos_thresh, 1e-8)
-        ton_mahal_norm = ton_mahal / max(mahal_thresh, 1e-8)
-        ton_comp = np.minimum(np.maximum(ton_cos_norm, ton_mahal_norm), 2.0)
+        # Use same production DriftDetector instance
+        ton_drift = drift_det.analyze_batch(ton_embs)
+        ton_cos = ton_drift['cosine_distances']
+        ton_mahal = ton_drift['mahalanobis_distances']
+        ton_comp = ton_drift['drift_scores']
 
         # OOD AUROC metrics
         y_eval = np.concatenate([np.zeros(len(test_cos)), np.ones(len(ton_cos))])
@@ -270,12 +244,10 @@ def main():
         # 7. Evaluate Noise and Zero-Fill
         noise_out = session.run(None, {"input": X_noise_scaled})
         noise_embs = noise_out[1]
-        noise_mahal = np.full(len(noise_embs), np.inf)
-        for centroid_c in class_centroids:
-            diffs_c = noise_embs - centroid_c
-            dists_c = np.sqrt(np.maximum(np.sum(diffs_c @ covariance_inverse * diffs_c, axis=1), 0.0))
-            noise_mahal = np.minimum(noise_mahal, dists_c)
-        noise_intercept = float(np.mean(noise_mahal > mahal_thresh)) * 100.0
+        # Use production DriftDetector for noise Mahalanobis scoring
+        noise_drift = drift_det.analyze_batch(noise_embs)
+        noise_mahal_scores = noise_drift['mahalanobis_distances']
+        noise_intercept = float(np.mean(noise_mahal_scores > mahal_thresh)) * 100.0
 
         zero_rejected = float(np.mean([not validate_input(X_zero_raw[i])[0] for i in range(len(X_zero_raw))])) * 100.0
 
@@ -352,6 +324,9 @@ def main():
     plain_latencies = []
     semantic_latencies = []
 
+    # Production engine instance for latency benchmarking (Issue #21)
+    prod_engine = SemanticSecurityEngine(use_nf=True)
+
     for run_i in range(5):
         run_plain = []
         run_sem = []
@@ -362,19 +337,10 @@ def main():
             run_plain.append((t1 - t0) * 1000)
 
             t0 = time.perf_counter()
-            val_ok, val_alerts = validate_input(single_raw[0])
             outs = session.run(None, {"input": single_scaled})
             probs = softmax(outs[0][0])
             emb = outs[1][0]
-            # Confidence check
-            _ = float(np.max(probs))
-            # Drift analysis (cosine + Mahalanobis)
-            cos_d = float(np.nan_to_num(cosine_distance(emb, global_centroid), nan=0.0))
-            class_mahal_dists = [
-                float(np.sqrt(max((emb - c) @ covariance_inverse @ (emb - c), 0.0)))
-                for c in class_centroids
-            ]
-            mahal_d = min(class_mahal_dists)
+            _ = prod_engine.analyze(raw_features=single_raw[0], softmax_probs=probs, embedding=emb)
             t1 = time.perf_counter()
             run_sem.append((t1 - t0) * 1000)
 

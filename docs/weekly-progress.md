@@ -734,5 +734,154 @@ This brings the potential corrected map to **13 features** (8 exact + 5 approxim
 
 ---
 
+## Week 13
+
+**Branch:** `sikandarhussain6858-week-08`
+**Issue Reference:** Issue #21 — *Unify SEMANTICSHIELD Runtime and Evaluation Logic*
+
+### Issue 1: Unify SEMANTICSHIELD Runtime and Evaluation Logic
+
+### Checklist
+- [x] **Component 1: Production Batch Scoring API (`src/semantic_analyzer.py`):** Added `analyze_batch()` to `ConfidenceAnalyzer`, `DriftDetector`, and `InputValidator`; added `compute_verdict()` static method and `from_config()` classmethod to `SemanticSecurityEngine`.
+- [x] **Component 2: Evaluation Script Refactoring:** Replaced duplicate inline formulas, distance calculations, and verdict loops in `scripts/evaluate_semantic_engine.py`, `scripts/benchmark_ood_baselines.py`, and `scripts/statistical_rigor_benchmark.py` with canonical production calls.
+- [x] **Component 3: Inference Server Alignment (`src/inference_engine.py`):** Removed duplicate module-level `CONFIDENCE_THRESHOLD`, aligned the `/predict` endpoint to use `ConfidenceAnalyzer`, and synchronized alert messages.
+- [x] **Component 4: Versioned Paper Configuration (`configs/paper_v1.yaml`):** Created frozen YAML specification defining all decision thresholds, model paths, evaluation seeds, calibration rules, and scoring equations for deterministic manuscript reproducibility.
+- [x] **Component 5: Runtime/Evaluation Equivalence Test Suite (`tests/test_runtime_eval_equivalence.py`):** Created 21 automated equivalence tests verifying that single-sample runtime logic and batch evaluation scoring yield identical numerical results and verdicts.
+- [x] **Component 6: Separation of Structural Validation and Statistical OOD:** Separated schema/zero-fill/NaN structural rejection (`REJECTED`) from continuous class-conditional distance monitoring (`cosine_distance`, `mahalanobis_distance`) in `SemanticResult` and `SecurePredictionResult`.
+- [x] **Component 7: Authoritative Documentation (`README.md`):** Added the "Canonical SEMANTICSHIELD Implementation & Reproducibility" section identifying `src/semantic_analyzer.py` as the single authoritative source of truth.
+- [x] **End-to-End Verification & Benchmarking:** Ran full test suite (56/56 tests passing), executed `benchmark_ood_baselines.py` under calibrated 5% FPR targets, and executed 5-seed `statistical_rigor_benchmark.py` with multi-run latency profiling.
+
+---
+
+### What I Did This Week (Issue 1 Implementation Details)
+
+#### 1. Architectural Unification of Production Code (`src/semantic_analyzer.py`)
+- **Problem:** Evaluation scripts previously duplicated scoring formulas inline (re-implementing Mahalanobis quadratic forms, cosine distance loops, and composite threshold bounding) because production analyzer methods were single-sample only.
+- **Solution:**
+  - Implemented high-throughput vectorized `analyze_batch()` methods across all three component analyzers:
+    - `ConfidenceAnalyzer.analyze_batch(softmax_probs)`: Vectorized maximum softmax probability computation returning unrounded floats for high-precision AUROC calculation.
+    - `DriftDetector.analyze_batch(embeddings)`: Vectorized class-conditional Mahalanobis distances, class-conditional cosine distances, and composite drift scores bounded to $[0.0, 2.0]$.
+    - `InputValidator.analyze_batch(raw_features)`: Batched input validation returning schema, NaN, range, and zero-fill checks.
+  - Implemented `SemanticSecurityEngine.compute_verdict(confidence_flag, drift_flag, validation_passed, validation_alerts)` as a canonical `@staticmethod`, establishing a single source of truth for the verdict decision matrix.
+  - Implemented `SemanticSecurityEngine.from_config(config_path)` with explicit UTF-8 encoding support to deterministically instantiate the engine from versioned YAML files.
+
+#### 2. Evaluation Scripts Modernization
+- **`scripts/evaluate_semantic_engine.py`:**
+  - Replaced manual centroid distance calibration loops with `calib_drift_detector.analyze_batch()`.
+  - Replaced inline verdict resolution logic with `SemanticSecurityEngine.compute_verdict()`.
+- **`scripts/benchmark_ood_baselines.py`:**
+  - Removed duplicate inline scoring functions (`score_msp`, `score_mahalanobis`, `score_semantic_engine`).
+  - Directly imported `ConfidenceAnalyzer` and `DriftDetector`, loading calibrated thresholds from `calibration_config.json` with fallback defaults matching the paper configuration.
+- **`scripts/statistical_rigor_benchmark.py`:**
+  - Replaced inline validation function with `InputValidator(suffix="_nf").analyze()`.
+  - Replaced inline calibration distance loops and test scoring with `DriftDetector.analyze_batch()`.
+  - Replaced inline verdict logic with `SemanticSecurityEngine.compute_verdict()`.
+  - Updated latency benchmarking to execute the real `SemanticSecurityEngine.analyze()` method end-to-end (profiling validation + embedding extraction + drift scoring + verdict resolution).
+
+#### 3. Inference Engine Divergence Elimination (`src/inference_engine.py`)
+- Removed the separate global `CONFIDENCE_THRESHOLD` variable and its divergent alert string (`"LOW_CONFIDENCE — possible novel attack or adversarial input"`).
+- Updated `/predict` and `/predict_batch` to route confidence evaluation through `ConfidenceAnalyzer` from the active `SemanticSecurityEngine` instance.
+- Updated `SecurePredictionResult` and `SemanticResult` to expose `cosine_distance` and `mahalanobis_distance` as dedicated float fields.
+
+#### 4. Versioned Paper Configuration (`configs/paper_v1.yaml`)
+- Created a versioned, immutable configuration file freezing all parameters required to reproduce every reported result in the final paper:
+  - Model: `threat_mlp_nf_fp32.onnx` (13 features, NetFlow standardized).
+  - Decision thresholds calibrated at 5% target FPR on CIC-IDS2018 Benign validation split ($D_{\text{val}}$):
+    - `confidence`: $0.4743$ (5th percentile)
+    - `cosine_drift`: $0.4341$ (95th percentile)
+    - `mahalanobis_drift`: $18.1593$ (95th percentile)
+    - `zscore`: $15.0$
+    - `zero_fill_ratio`: $0.80$
+  - Evaluation parameters: Seeds `[42, 123, 456, 789, 1024]`, $N=10{,}000$ calibration samples, $N=10{,}000$ in-distribution samples, $N=10{,}000$ ToN-IoT OOD samples, $N=1{,}000$ Gaussian noise samples, and $N=500$ zero-fill samples.
+  - Documented canonical scoring equations and verdict rules directly within the configuration.
+
+#### 5. Runtime & Evaluation Equivalence Test Suite (`tests/test_runtime_eval_equivalence.py`)
+- Authored 21 automated equivalence tests across 6 dedicated test classes:
+  - `TestConfidenceEquivalence`: Proves `ConfidenceAnalyzer.analyze()` and `analyze_batch()` yield identical MSP scores, match mathematical $\max(\text{softmax}(\mathbf{z}))$, and maintain identical flag thresholds.
+  - `TestDriftEquivalence`: Proves runtime single-sample calls, vectorized batch calls, and theoretical minimum-distance mathematical equations yield identical cosine and Mahalanobis distances within floating-point tolerances.
+  - `TestInputValidatorEquivalence`: Proves single-sample and batched input validation produce identical pass/fail flags and alert strings.
+  - `TestVerdictEquivalence`: Exhaustively tests the complete 10-case truth table for `compute_verdict()` and confirms `SemanticSecurityEngine.analyze()` output strictly matches `compute_verdict()`.
+  - `TestPaperConfigDeterminism`: Proves `configs/paper_v1.yaml` loads deterministically, configures all thresholds accurately, and maintains idempotency across multiple loads.
+  - `TestSemanticResultSeparation`: Verifies clean separation between structural rejection and statistical distance telemetry.
+
+#### 6. Documentation Updates (`README.md`)
+- Added the *"Canonical SEMANTICSHIELD Implementation & Reproducibility"* section to the main repository `README.md`.
+- Explicitly documented `src/semantic_analyzer.py` as the authoritative source of truth, outlined the mathematical scoring equations, and published the canonical verdict decision matrix.
+
+---
+
+### Key Findings & Verification Results
+
+#### 1. Test Suite Verification
+- **Equivalence Suite (`tests/test_runtime_eval_equivalence.py`):** **21/21 passed (100%)**
+- **Existing Semantic Suite (`tests/test_semantic.py`):** **35/35 passed (100%)**
+- **Total Test Coverage:** **56 passed, 0 failed** in 1.06s.
+
+#### 2. Calibrated OOD Anomaly Detector Baseline Comparison (`scripts/benchmark_ood_baselines.py`)
+*All detectors calibrated on clean held-out validation set ($D_{\text{val}}$, $N=10{,}000$) targeting an empirical 5% False Positive Rate:*
+
+| Detector Method | OOD AUROC (ToN-IoT) | OOD Intercept Rate | Gaussian Noise Intercept | Zero-Fill Intercept | Inference Latency |
+|---|:---:|:---:|:---:|:---:|:---:|
+| **Isolation Forest** | 0.6381 | 0.8% | 71.1% | 0.0% | 12.2857 ms |
+| **One-Class SVM** | 0.2129 | 4.5% | 100.0% | 100.0% | 0.2603 ms |
+| **MSP (Confidence Alone)** | 0.8503 | 75.9% | 0.2% *(Blind)* | 0.0% | 0.0876 ms |
+| **Mahalanobis Distance Alone** | **0.9592** | 74.4% | **100.0%** | 0.0% | 0.6259 ms |
+| **SEMANTICSHIELD (Combined)** | **0.9378** | **74.3%** | **100.0%** | **100.0%** *(via Validator)* | **0.6366 ms** |
+
+*Key Insights:*
+- **Classical Anomaly Detectors Fail on Flow Embeddings:** Isolation Forest achieves poor OOD AUROC (0.6381) and introduces an unacceptable 12.29 ms latency overhead (~19× slower than SEMANTICSHIELD). One-Class SVM fails completely in high-dimensional embedding space (AUROC 0.2129).
+- **MSP Confidence is Vulnerable to Noise:** Standard softmax confidence catches only 0.2% of Gaussian noise anomalies due to softmax overconfidence on out-of-distribution feature spaces.
+- **SEMANTICSHIELD Provides Dual Protection:** Combining class-conditional embedding drift with input sanitization provides 0.9378 AUROC on real cross-dataset traffic while achieving 100% deterministic interception of adversarial Gaussian noise and zero-fill tampering.
+
+#### 3. 5-Seed Statistical Rigor Benchmark Re-Run (`scripts/statistical_rigor_benchmark.py`)
+*Evaluated across 5 independent random seeds ($N=50{,}000$ test samples, Mean $\pm$ Std, 95% Confidence Interval):*
+
+| Evaluation Metric | Mean $\pm$ Std ($N=5$) | 95% Confidence Interval | Result Assessment |
+|---|:---:|:---:|---|
+| **In-Distribution Clean Rate (%)** | **86.94% ± 0.44%** | [86.39%, 87.48%] | Highly stable across seeds |
+| **In-Distribution FPR (%)** | **13.06% ± 0.44%** | [12.52%, 13.61%] | Consistent multi-signal alerting |
+| **Mahalanobis AUROC** | **0.7744 ± 0.0021** | [0.7718, 0.7770] | Extremely low variance ($\sigma = 0.0021$) |
+| **Cosine Distance AUROC** | **0.7799 ± 0.0026** | [0.7767, 0.7831] | Low variance ($\sigma = 0.0026$) |
+| **MSP Confidence AUROC** | **0.8096 ± 0.0015** | [0.8077, 0.8115] | Low variance ($\sigma = 0.0015$) |
+| **Mahalanobis Avg. Precision** | **0.7178 ± 0.0023** | [0.7150, 0.7206] | Robust precision-recall curve |
+| **ToN-IoT OOD Intercept Rate (%)** | **61.72% ± 0.25%** | [61.41%, 62.04%] | Consistent statistical trigger |
+| **Gaussian Noise Intercept Rate (%)** | **100.00% ± 0.00%** | [100.00%, 100.00%] | Deterministic rejection |
+| **Zero-Fill Tampering Rejected (%)** | **100.00% ± 0.00%** | [100.00%, 100.00%] | Deterministic structural rejection |
+| **Cross-Dataset Binary $F_1$ (ToN-IoT)** | **0.7734 ± 0.0049** | [0.7673, 0.7795] | Validated ground truth |
+
+#### 4. End-to-End Latency Benchmarking (5,000 Iterations with Warm-Up & Percentiles)
+```
+Plain ONNX Baseline:
+  • Mean ± Std: 0.0684 ms ± 0.0299 ms
+  • Median (p50): 0.0606 ms | p95: 0.1058 ms | p99: 0.1764 ms
+
+SEMANTICSHIELD Full Pipeline (Validation + ONNX + Softmax + Drift + Verdict):
+  • Mean ± Std: 0.6641 ms ± 0.2276 ms
+  • Median (p50): 0.6186 ms | p95: 0.9084 ms | p99: 1.3005 ms
+  • Net Overhead: +0.5957 ms (sub-millisecond execution)
+  • SLA Status: 95th percentile (0.9084 ms) meets edge SLA target (< 1.0 ms)
+```
+
+#### 5. Acceptance Criteria Compliance Summary
+All 9 acceptance criteria for Issue #21 are verified and satisfied:
+1. **One canonical SEMANTICSHIELD implementation exists:** Centralized in `src/semantic_analyzer.py`.
+2. **Evaluation scripts call production scoring code:** `evaluate_semantic_engine.py`, `benchmark_ood_baselines.py`, and `statistical_rigor_benchmark.py` all use production classes.
+3. **Structural validation and statistical OOD monitoring are separated:** Separate fields in `SemanticResult` and `SecurePredictionResult`.
+4. **Final equations are documented:** Added to `README.md`, `configs/paper_v1.yaml`, and code docstrings.
+5. **Versioned paper configuration exists:** Frozen at `configs/paper_v1.yaml`.
+6. **Runtime/evaluation equivalence tests pass:** 21/21 equivalence tests pass in `tests/test_runtime_eval_equivalence.py`.
+7. **Obsolete/contradictory scoring code is removed:** Removed inline loops and module-level constants.
+8. **Relevant existing tests pass:** 35/35 existing tests in `tests/test_semantic.py` pass (56/56 total).
+9. **README/docs identify authoritative implementation:** Documented in `README.md`.
+
+---
+
+### Next Steps
+- Proceed to remaining assigned issues.
+- Re-generate final paper plots incorporating the unified benchmark artifacts.
+
+---
+
 _(Add a new section each week)_
+
 

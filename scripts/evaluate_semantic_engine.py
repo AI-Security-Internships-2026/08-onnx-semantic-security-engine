@@ -28,6 +28,7 @@ from sklearn.metrics import roc_auc_score, roc_curve, precision_recall_curve, av
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.semantic_analyzer import (
     ConfidenceAnalyzer, DriftDetector, InputValidator,
+    SemanticSecurityEngine,
     ConfidenceResult, DriftResult, ValidationResult,
 )
 
@@ -161,18 +162,11 @@ def main():
     calib_probs = softmax(calib_logits, axis=1)
     calib_conf = np.max(calib_probs, axis=1)
 
-    # Class-conditional Cosine calibration
-    calib_cos = np.zeros(len(calib_embs))
-    for i, emb in enumerate(calib_embs):
-        dists = [cosine_distance(emb, c) for c in class_centroids]
-        calib_cos[i] = min(float(np.nan_to_num(d, nan=1.0)) for d in dists)
-    
-    # Class-conditional Mahalanobis calibration: min distance to nearest class centroid
-    calib_mahal = np.full(len(calib_embs), np.inf)
-    for centroid_c in class_centroids:
-        diffs_c = calib_embs - centroid_c
-        dists_c = np.sqrt(np.maximum(np.sum(diffs_c @ covariance_inverse * diffs_c, axis=1), 0.0))
-        calib_mahal = np.minimum(calib_mahal, dists_c)
+    # Compute distances using production DriftDetector (Issue #21)
+    calib_drift_detector = DriftDetector(suffix="_nf")
+    calib_batch = calib_drift_detector.analyze_batch(calib_embs)
+    calib_cos = calib_batch['cosine_distances']
+    calib_mahal = calib_batch['mahalanobis_distances']
 
     # Empirical 95th percentiles (5% FPR target on D_val)
     cosine_threshold = float(np.percentile(calib_cos, 95))
@@ -229,26 +223,13 @@ def main():
                 drift_result = drift_detector.analyze(embeddings[i])
                 val_result = input_validator.analyze(raw_batch[start + i])
 
-                # Compute verdict (same logic as SemanticSecurityEngine.analyze)
-                total_alerts = 0
-                is_low_conf = conf_result.confidence_flag != "OK"
-                is_drift = drift_result.drift_flag == "DRIFT_DETECTED"
-                has_soft_val_alert = len(val_result.alerts) > 0 and val_result.validation_passed
-                if is_low_conf:
-                    total_alerts += 1
-                if is_drift:
-                    total_alerts += 1
-                if has_soft_val_alert:
-                    total_alerts += 1
-
-                if not val_result.validation_passed:
-                    verdict = "REJECTED"
-                elif total_alerts >= 2:
-                    verdict = "HIGH_RISK"
-                elif total_alerts == 1:
-                    verdict = "SUSPICIOUS"
-                else:
-                    verdict = "CLEAN"
+                # Compute verdict via canonical static method (single source of truth)
+                total_alerts, verdict = SemanticSecurityEngine.compute_verdict(
+                    confidence_flag=conf_result.confidence_flag,
+                    drift_flag=drift_result.drift_flag,
+                    validation_passed=val_result.validation_passed,
+                    validation_alerts=val_result.alerts,
+                )
 
                 results.append({
                     "confidence": {

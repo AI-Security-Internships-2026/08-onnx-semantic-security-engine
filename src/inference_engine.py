@@ -62,6 +62,8 @@ class SecurePredictionResult(BaseModel):
     label: str
     confidence: float
     confidence_flag: str
+    cosine_distance: float
+    mahalanobis_distance: float
     drift_score: float
     drift_flag: str
     nearest_reference_class: str
@@ -83,19 +85,8 @@ class SecurePredictResponse(BaseModel):
     latency_ms: float
 
 
-# ── Confidence threshold — loaded from calibration config if available ──
-_calib_path = EXPERIMENTS / "calibration_config.json"
-if _calib_path.exists():
-    try:
-        import json as _json
-        with open(_calib_path) as _f:
-            _calib = _json.load(_f)
-        CONFIDENCE_THRESHOLD = float(_calib.get("confidence_threshold", 0.50))
-    except Exception:
-        CONFIDENCE_THRESHOLD = 0.50
-else:
-    CONFIDENCE_THRESHOLD = 0.50
-
+# ── Confidence threshold is managed by SemanticSecurityEngine ──
+# All confidence scoring flows through ConfidenceAnalyzer for consistency.
 
 # ── Engine Class ──
 class OnnxSecurityEngine:
@@ -143,8 +134,14 @@ class OnnxSecurityEngine:
         print(f"  ONNX outputs: {self.output_names}")
         print(f"  Embedding output: {'available (64-dim)' if self.has_embedding else 'not available'}")
     
-    def predict(self, features: np.ndarray) -> list[dict]:
-        """Run inference on a batch of feature vectors."""
+    def predict(self, features: np.ndarray, confidence_analyzer=None) -> list[dict]:
+        """Run inference on a batch of feature vectors.
+        
+        Args:
+            features: Raw feature vectors (will be scaled internally).
+            confidence_analyzer: Optional ConfidenceAnalyzer for consistent flagging.
+                                 If None, no confidence flag is applied.
+        """
         # Scale
         scaled = self.scaler.transform(features)
         
@@ -158,12 +155,13 @@ class OnnxSecurityEngine:
         labels = self.encoder.inverse_transform(pred_indices)
         
         results = []
-        for label, conf in zip(labels, confidences):
+        for i, (label, conf) in enumerate(zip(labels, confidences)):
             mitre = get_mitre_label(label)
             
-            # Confidence-based anomaly flagging (Feature A)
-            if conf < CONFIDENCE_THRESHOLD:
-                confidence_flag = "LOW_CONFIDENCE — possible novel attack or adversarial input"
+            # Use production ConfidenceAnalyzer if available
+            if confidence_analyzer is not None:
+                conf_result = confidence_analyzer.analyze(probs[i])
+                confidence_flag = conf_result.confidence_flag
             else:
                 confidence_flag = "OK"
             
@@ -216,6 +214,8 @@ class OnnxSecurityEngine:
                 "label": label,
                 "confidence": semantic_result.confidence_score,
                 "confidence_flag": semantic_result.confidence_flag,
+                "cosine_distance": semantic_result.cosine_distance,
+                "mahalanobis_distance": semantic_result.mahalanobis_distance,
                 "drift_score": semantic_result.drift_score,
                 "drift_flag": semantic_result.drift_flag,
                 "nearest_reference_class": semantic_result.nearest_reference_class,
@@ -260,7 +260,6 @@ def health():
         "uptime_seconds": round(time.time() - engine.start_time, 1),
         "classes": list(engine.encoder.classes_),
         "input_features": engine.input_dim,
-        "confidence_threshold": CONFIDENCE_THRESHOLD,
         "semantic_features": {
             "confidence": True,
             "drift_detection": engine.has_embedding and semantic_engine.has_drift,
@@ -283,7 +282,6 @@ def model_info():
         "num_classes": len(engine.encoder.classes_),
         "classes": list(engine.encoder.classes_),
         "input_dim": engine.input_dim,
-        "confidence_threshold": CONFIDENCE_THRESHOLD,
         "onnx_outputs": engine.output_names,
         "has_embedding_output": engine.has_embedding,
     }
@@ -304,7 +302,7 @@ def predict(request: PredictRequest):
     
     start = time.perf_counter()
     features = np.array([request.features])
-    results = engine.predict(features)
+    results = engine.predict(features, confidence_analyzer=semantic_engine.confidence_analyzer)
     latency = (time.perf_counter() - start) * 1000
     
     return PredictResponse(
@@ -326,7 +324,7 @@ def predict_batch(request: BatchPredictRequest):
     
     start = time.perf_counter()
     features = np.array(request.instances)
-    results = engine.predict(features)
+    results = engine.predict(features, confidence_analyzer=semantic_engine.confidence_analyzer)
     latency = (time.perf_counter() - start) * 1000
     
     return PredictResponse(
