@@ -16,9 +16,9 @@
       "zero_fill_auroc": 0.9169,
       "zero_fill_detect_rate": 0.0,
       "latency": {
-        "mean_ms": 0.1028,
-        "median_ms": 0.0896,
-        "p95_ms": 0.156
+        "mean_ms": 0.0876,
+        "median_ms": 0.0859,
+        "p95_ms": 0.0967
       }
     },
     "Mahalanobis Distance Alone": {
@@ -33,9 +33,9 @@
       "zero_fill_auroc": 0.9198,
       "zero_fill_detect_rate": 0.0,
       "latency": {
-        "mean_ms": 0.3577,
-        "median_ms": 0.325,
-        "p95_ms": 0.562
+        "mean_ms": 0.6259,
+        "median_ms": 0.6198,
+        "p95_ms": 0.654
       }
     },
     "Isolation Forest": {
@@ -50,9 +50,9 @@
       "zero_fill_auroc": 0.7082,
       "zero_fill_detect_rate": 0.0,
       "latency": {
-        "mean_ms": 11.9645,
-        "median_ms": 11.6694,
-        "p95_ms": 13.178
+        "mean_ms": 12.2857,
+        "median_ms": 11.6933,
+        "p95_ms": 14.8657
       }
     },
     "One-Class SVM": {
@@ -67,9 +67,9 @@
       "zero_fill_auroc": 0.9583,
       "zero_fill_detect_rate": 1.0,
       "latency": {
-        "mean_ms": 0.2641,
-        "median_ms": 0.257,
-        "p95_ms": 0.2944
+        "mean_ms": 0.2603,
+        "median_ms": 0.2569,
+        "p95_ms": 0.2756
       }
     },
     "Semantic Engine (Combined)": {
@@ -84,9 +84,9 @@
       "zero_fill_auroc": 0.8346,
       "zero_fill_detect_rate": 0.0,
       "latency": {
-        "mean_ms": 0.6489,
-        "median_ms": 0.6041,
-        "p95_ms": 0.9761
+        "mean_ms": 0.6366,
+        "median_ms": 0.62,
+        "p95_ms": 0.7279
       }
     }
   },

@@ -26,7 +26,7 @@ import json
 import numpy as np
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional, Tuple
 from scipy.spatial.distance import cosine as cosine_distance
 
 
@@ -69,6 +69,8 @@ class SemanticResult:
     confidence_flag: str
 
     # Drift detection (Feature B)
+    cosine_distance: float
+    mahalanobis_distance: float
     drift_score: float
     drift_flag: str
     nearest_reference_class: str
@@ -79,7 +81,7 @@ class SemanticResult:
 
     # Summary
     total_alerts: int
-    engine_verdict: str  # "CLEAN" | "SUSPICIOUS" | "REJECTED"
+    engine_verdict: str  # "CLEAN" | "SUSPICIOUS" | "HIGH_RISK" | "REJECTED"
 
 
 # ── Feature A: Confidence Analyzer ──
@@ -115,6 +117,17 @@ class ConfidenceAnalyzer:
             confidence_score=round(confidence, 4),
             confidence_flag=flag,
         )
+
+    def analyze_batch(self, softmax_probs_batch: np.ndarray) -> np.ndarray:
+        """Vectorized confidence scoring for a batch of softmax probability vectors.
+
+        Args:
+            softmax_probs_batch: 2D array of shape (N, num_classes).
+
+        Returns:
+            1D array of shape (N,) with maximum softmax confidence scores.
+        """
+        return np.max(softmax_probs_batch, axis=1)
 
 
 # ── Feature B: Drift Detector ──
@@ -227,6 +240,50 @@ class DriftDetector:
             drift_flag=drift_flag,
             nearest_reference_class=nearest_class,
         )
+
+    def analyze_batch(self, embeddings: np.ndarray) -> Dict[str, np.ndarray]:
+        """Vectorized drift scoring for a batch of embedding vectors.
+
+        Computes class-conditional Mahalanobis and cosine distances for all
+        samples simultaneously, returning raw arrays suitable for AUROC
+        computation and evaluation scripts.
+
+        Args:
+            embeddings: 2D array of shape (N, emb_dim).
+
+        Returns:
+            Dict with keys:
+                'cosine_distances':      (N,) min cosine distance to nearest class centroid
+                'mahalanobis_distances':  (N,) min Mahalanobis distance to nearest class centroid
+                'drift_scores':          (N,) normalized composite drift scores
+        """
+        n = len(embeddings)
+
+        # Class-conditional Mahalanobis (vectorized across all centroids)
+        min_mahal = np.full(n, np.inf)
+        for centroid in self.class_centroids:
+            diffs = embeddings - centroid
+            dists = np.sqrt(np.maximum(np.sum(diffs @ self.covariance_inverse * diffs, axis=1), 0.0))
+            min_mahal = np.minimum(min_mahal, dists)
+
+        # Class-conditional Cosine (per-sample, per-centroid)
+        min_cos = np.full(n, np.inf)
+        for centroid in self.class_centroids:
+            for i in range(n):
+                d = cosine_distance(embeddings[i], centroid)
+                d = 1.0 if np.isnan(d) else float(d)
+                min_cos[i] = min(min_cos[i], d)
+
+        # Composite drift score (same formula as single-sample analyze())
+        cos_norm = min_cos / max(self.cosine_threshold, 1e-8)
+        mahal_norm = min_mahal / max(self.mahal_threshold, 1e-8)
+        drift_scores = np.minimum(np.maximum(cos_norm, mahal_norm), 2.0)
+
+        return {
+            'cosine_distances': min_cos,
+            'mahalanobis_distances': min_mahal,
+            'drift_scores': drift_scores,
+        }
 
 
 # ── Feature C: Input Validator ──
@@ -379,6 +436,17 @@ class InputValidator:
             alerts=alerts,
         )
 
+    def analyze_batch(self, raw_features_batch: np.ndarray) -> List[ValidationResult]:
+        """Run input validation on a batch of raw feature vectors.
+
+        Args:
+            raw_features_batch: 2D array of shape (N, num_features).
+
+        Returns:
+            List of N ValidationResult objects.
+        """
+        return [self.analyze(row) for row in raw_features_batch]
+
 
 # ── Orchestrator ──
 
@@ -429,6 +497,120 @@ class SemanticSecurityEngine:
         print(f"  Engine ready: confidence=OK, drift={'OK' if self.has_drift else 'NO'}, "
               f"validation={'OK' if self.has_validation else 'NO'}")
 
+    @classmethod
+    def from_config(cls, config_path: str) -> 'SemanticSecurityEngine':
+        """Create a SemanticSecurityEngine from a versioned YAML configuration.
+
+        Loads thresholds deterministically from the given config file,
+        bypassing any auto-calibration logic. Use for paper reproducibility.
+
+        Args:
+            config_path: Path to a YAML config file (e.g. configs/paper_v1.yaml).
+
+        Returns:
+            Fully configured SemanticSecurityEngine instance.
+        """
+        try:
+            import yaml
+        except ImportError:
+            raise ImportError("PyYAML is required: pip install pyyaml")
+
+        config_path = Path(config_path)
+        if not config_path.is_absolute():
+            config_path = BASE_DIR / config_path
+
+        with open(config_path, encoding="utf-8") as f:
+            cfg = yaml.safe_load(f)
+
+        thresholds = cfg.get('thresholds', {})
+        model_cfg = cfg.get('model', {})
+        use_nf = model_cfg.get('variant', '').lower() == 'nf-standardized'
+        suffix = '_nf' if use_nf else ''
+
+        print(f"Loading SemanticSecurityEngine from config: {config_path.name}")
+        engine = cls.__new__(cls)
+
+        conf_threshold = thresholds.get('confidence', 0.50)
+        engine.confidence_analyzer = ConfidenceAnalyzer(threshold=conf_threshold)
+        print(f"  ConfidenceAnalyzer: threshold={conf_threshold:.4f}")
+
+        try:
+            engine.drift_detector = DriftDetector(
+                suffix=suffix,
+                cosine_threshold=thresholds.get('cosine_drift'),
+                mahal_threshold=thresholds.get('mahalanobis_drift'),
+            )
+            engine.has_drift = True
+        except FileNotFoundError as e:
+            print(f"  [WARN] DriftDetector unavailable: {e}")
+            engine.drift_detector = None
+            engine.has_drift = False
+
+        try:
+            engine.input_validator = InputValidator(suffix=suffix)
+            engine.has_validation = True
+            # Apply config overrides for validator thresholds
+            if 'zscore' in thresholds:
+                engine.input_validator.zscore_threshold = thresholds['zscore']
+            if 'zero_fill_ratio' in thresholds:
+                engine.input_validator.zero_fill_ratio = thresholds['zero_fill_ratio']
+            if 'range_tolerance_sigmas' in thresholds:
+                engine.input_validator.range_tolerance_sigmas = thresholds['range_tolerance_sigmas']
+        except FileNotFoundError as e:
+            print(f"  [WARN] InputValidator unavailable: {e}")
+            engine.input_validator = None
+            engine.has_validation = False
+
+        print(f"  Engine ready (from config): confidence=OK, "
+              f"drift={'OK' if engine.has_drift else 'NO'}, "
+              f"validation={'OK' if engine.has_validation else 'NO'}")
+        return engine
+
+    @staticmethod
+    def compute_verdict(
+        confidence_flag: str,
+        drift_flag: str,
+        validation_passed: bool,
+        validation_alerts: List[str],
+    ) -> Tuple[int, str]:
+        """Compute the canonical engine verdict from individual component results.
+
+        This is the single source of truth for the verdict formula. All runtime
+        and evaluation paths MUST call this method rather than duplicating the logic.
+
+        Args:
+            confidence_flag: "OK" or "LOW_CONFIDENCE".
+            drift_flag: "OK", "DRIFT_DETECTED", or "UNAVAILABLE".
+            validation_passed: Whether structural validation passed.
+            validation_alerts: List of validation alert strings.
+
+        Returns:
+            Tuple of (total_alerts, verdict_string).
+            verdict is one of: "CLEAN", "SUSPICIOUS", "HIGH_RISK", "REJECTED".
+        """
+        total_alerts = 0
+        is_low_conf = confidence_flag != "OK"
+        is_drift = drift_flag == "DRIFT_DETECTED"
+        has_soft_val_alert = len(validation_alerts) > 0 and validation_passed
+
+        if is_low_conf:
+            total_alerts += 1
+        if is_drift:
+            total_alerts += 1
+        if has_soft_val_alert:
+            total_alerts += 1
+
+        if not validation_passed:
+            verdict = "REJECTED"
+        elif total_alerts >= 2:
+            verdict = "HIGH_RISK"
+        elif total_alerts == 1:
+            verdict = "SUSPICIOUS"
+        else:
+            verdict = "CLEAN"
+
+        return total_alerts, verdict
+
     def analyze(
         self,
         raw_features: np.ndarray,
@@ -469,35 +651,21 @@ class SemanticSecurityEngine:
                 alerts=["INPUT_VALIDATION_UNAVAILABLE"],
             )
 
-        # ── Compute overall verdict ──
-        # Count independent anomaly signals without duplicate penalty
-        total_alerts = 0
-        is_low_conf = confidence_result.confidence_flag != "OK"
-        is_drift = drift_result.drift_flag == "DRIFT_DETECTED"
-        has_soft_val_alert = len(validation_result.alerts) > 0 and validation_result.validation_passed
-
-        if is_low_conf:
-            total_alerts += 1
-        if is_drift:
-            total_alerts += 1
-        if has_soft_val_alert:
-            total_alerts += 1
-
-        # Determine calibrated engine verdict
-        if not validation_result.validation_passed:
-            verdict = "REJECTED"
-        elif total_alerts >= 2:
-            verdict = "HIGH_RISK"
-        elif total_alerts == 1:
-            verdict = "SUSPICIOUS"
-        else:
-            verdict = "CLEAN"
+        # ── Compute overall verdict (single source of truth) ──
+        total_alerts, verdict = SemanticSecurityEngine.compute_verdict(
+            confidence_flag=confidence_result.confidence_flag,
+            drift_flag=drift_result.drift_flag,
+            validation_passed=validation_result.validation_passed,
+            validation_alerts=validation_result.alerts,
+        )
 
         return SemanticResult(
             # Confidence
             confidence_score=confidence_result.confidence_score,
             confidence_flag=confidence_result.confidence_flag,
-            # Drift
+            # Drift (structural evidence separated)
+            cosine_distance=drift_result.cosine_distance,
+            mahalanobis_distance=drift_result.mahalanobis_distance,
             drift_score=drift_result.drift_score,
             drift_flag=drift_result.drift_flag,
             nearest_reference_class=drift_result.nearest_reference_class,

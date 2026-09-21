@@ -117,6 +117,48 @@ python src/main.py
 
 ---
 
+## Canonical SEMANTICSHIELD Implementation & Reproducibility
+
+> **Architectural Standard (Issue #21)**: The production engine in `src/semantic_analyzer.py` is the single source of truth for all runtime inference and evaluation benchmarks. Inline scoring formulas in evaluation scripts are prohibited to prevent methodology drift.
+
+### Core Modules
+
+- **[`src/semantic_analyzer.py`](src/semantic_analyzer.py)**: Canonical implementation of:
+  - `ConfidenceAnalyzer`: Maximum Softmax Probability (MSP) confidence scoring and anomaly flagging.
+  - `DriftDetector`: Class-conditional Cosine and Mahalanobis distance scoring with composite drift quantification.
+  - `InputValidator`: Pre-inference schema validation, NaN/Inf rejection, zero-fill ratio check, and z-score bounds.
+  - `SemanticSecurityEngine`: Master orchestrator providing `analyze()`, `compute_verdict()`, and `from_config()`.
+- **[`src/inference_engine.py`](src/inference_engine.py)**: FastAPI inference server (`/predict` and `/predict/secure`) powered by ONNX Runtime.
+- **[`configs/paper_v1.yaml`](configs/paper_v1.yaml)**: Frozen paper configuration guaranteeing deterministic reproducibility of all reported benchmark metrics.
+
+### Canonical Mathematical Formulation
+
+$$\text{MSP Confidence} = \max(\text{softmax}(\mathbf{z}))$$
+
+$$d_{\cos}(\mathbf{e}) = \min_{c \in C} \left(1 - \frac{\mathbf{e} \cdot \boldsymbol{\mu}_c}{\|\mathbf{e}\|_2 \|\boldsymbol{\mu}_c\|_2}\right)$$
+
+$$d_{\text{mahal}}(\mathbf{e}) = \min_{c \in C} \sqrt{(\mathbf{e} - \boldsymbol{\mu}_c)^T \mathbf{\Sigma}^{-1} (\mathbf{e} - \boldsymbol{\mu}_c)}$$
+
+$$\text{Drift Score} = \min\left(\max\left(\frac{d_{\cos}}{\tau_{\cos}}, \frac{d_{\text{mahal}}}{\tau_{\text{mahal}}}\right), 2.0\right)$$
+
+### Canonical Verdict Decision Matrix
+
+$$\text{Verdict} = \begin{cases}
+\text{REJECTED} & \text{if } \neg \text{validation\_passed (schema, NaN/Inf, zero-fill)} \\
+\text{HIGH\_RISK} & \text{if } \sum \text{alerts} \ge 2 \\
+\text{SUSPICIOUS} & \text{if } \sum \text{alerts} = 1 \\
+\text{CLEAN} & \text{if } \sum \text{alerts} = 0
+\end{cases}$$
+
+### Running Verified Tests
+
+```bash
+# Run full test suite (56 tests covering unit logic + runtime/eval equivalence)
+python -m pytest tests/ -v
+```
+
+---
+
 ## Supervisor Note
 
 This repository is managed by **CNIT/PNTLab Pisa, TECIP, Scuola Superiore Sant'Anna**.

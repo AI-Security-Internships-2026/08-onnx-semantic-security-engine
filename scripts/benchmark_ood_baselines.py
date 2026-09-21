@@ -39,6 +39,10 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+# Import production scoring classes (single source of truth)
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from src.semantic_analyzer import ConfidenceAnalyzer, DriftDetector
+
 # ── Paths ──
 BASE_DIR = Path(__file__).parent.parent
 EXPERIMENTS = BASE_DIR / "experiments"
@@ -179,84 +183,61 @@ def main():
     print(f"  [Trained] One-Class SVM ({t_svm:.1f}ms)")
 
     # ── 5. Define Scoring Functions ──
-    def score_msp(scaled_batch):
-        """MSP Score: 1 - max(softmax(logits)) (higher = more anomalous)."""
-        out = session.run(None, {"input": scaled_batch})[0]
-        probs = softmax(out, axis=1)
-        return 1.0 - np.max(probs, axis=1)
+    # NOTE: MSP, Mahalanobis, and Semantic Engine scoring use production classes
+    # from src/semantic_analyzer.py to avoid formula drift (Issue #21).
 
-    def score_mahalanobis(scaled_batch):
-        """Class-conditional Mahalanobis distance on fc3 embeddings.
-        
-        Computes Mahalanobis distance to each per-class centroid and returns
-        the minimum (closest class). This fixes the AUROC < 0.5 issue where
-        OOD samples were closer to the mixed global centroid than in-dist.
-        """
-        embs = session.run(None, {"input": scaled_batch})[1]
-        # For each embedding, compute min Mahalanobis distance to any class centroid
-        min_dists = np.full(len(embs), np.inf)
-        for centroid_c in class_centroids:
-            diffs = embs - centroid_c
-            dists = np.sqrt(np.maximum(np.sum(diffs @ covariance_inverse * diffs, axis=1), 0.0))
-            min_dists = np.minimum(min_dists, dists)
-        return min_dists
-
-    def score_isolation_forest(scaled_batch):
-        """Isolation Forest anomaly score (higher = more anomalous)."""
-        # score_samples returns negative anomaly score (lower is more anomalous)
-        # We negate it so higher = more anomalous
-        return -iso_forest.score_samples(scaled_batch)
-
-    def score_one_class_svm(scaled_batch):
-        """One-Class SVM score (higher = more anomalous)."""
-        # decision_function returns signed distance (negative = outside boundary)
-        return -oc_svm.decision_function(scaled_batch)
-
-    # Load calibrated thresholds from config file if available
+    # Load calibrated thresholds from config file or defaults
     calib_config_path = EXPERIMENTS / "calibration_config.json"
     if calib_config_path.exists():
         try:
             with open(calib_config_path) as f:
                 calib_cfg = json.load(f)
-            cal_cos_thresh = float(calib_cfg.get("cosine_drift_threshold", 0.6811))
-            cal_mahal_thresh = float(calib_cfg.get("mahalanobis_drift_threshold", 30.356))
+            cal_cos_thresh = float(calib_cfg.get("cosine_drift_threshold", 0.4341))
+            cal_mahal_thresh = float(calib_cfg.get("mahalanobis_drift_threshold", 18.1593))
         except Exception:
-            cal_cos_thresh = 0.6811
-            cal_mahal_thresh = 30.356
+            cal_cos_thresh = 0.4341
+            cal_mahal_thresh = 18.1593
     else:
-        cal_cos_thresh = 0.6811
-        cal_mahal_thresh = 30.356
+        cal_cos_thresh = 0.4341
+        cal_mahal_thresh = 18.1593
+
+    # Production drift detector instance for scoring
+    prod_drift_detector = DriftDetector(
+        suffix="_nf",
+        cosine_threshold=cal_cos_thresh,
+        mahal_threshold=cal_mahal_thresh,
+    )
+    prod_confidence_analyzer = ConfidenceAnalyzer(threshold=0.50)  # threshold only matters for flag, not score
+
+    def score_msp(scaled_batch):
+        """MSP Score: 1 - max(softmax(logits)) (higher = more anomalous).
+        Uses production ConfidenceAnalyzer.analyze_batch() for consistency."""
+        out = session.run(None, {"input": scaled_batch})[0]
+        probs = softmax(out, axis=1)
+        return 1.0 - prod_confidence_analyzer.analyze_batch(probs)
+
+    def score_mahalanobis(scaled_batch):
+        """Class-conditional Mahalanobis distance on fc3 embeddings.
+        Uses production DriftDetector.analyze_batch() for consistency."""
+        embs = session.run(None, {"input": scaled_batch})[1]
+        batch_result = prod_drift_detector.analyze_batch(embs)
+        return batch_result['mahalanobis_distances']
+
+    def score_isolation_forest(scaled_batch):
+        """Isolation Forest anomaly score (higher = more anomalous)."""
+        return -iso_forest.score_samples(scaled_batch)
+
+    def score_one_class_svm(scaled_batch):
+        """One-Class SVM score (higher = more anomalous)."""
+        return -oc_svm.decision_function(scaled_batch)
 
     def score_semantic_engine(raw_batch, scaled_batch):
         """Full composite semantic engine score using the production formula.
-        
-        Uses the exact same drift_score formula as DriftDetector.analyze():
-        min(max(cos_norm, mahal_norm), 2.0) — bounded [0, 2.0].
-        """
+        Uses production DriftDetector.analyze_batch() for consistency."""
         out = session.run(None, {"input": scaled_batch})
-        logits, embs = out[0], out[1]
-        
-        # Class-conditional Mahalanobis (min distance to nearest class centroid)
-        mahal_dists = np.full(len(embs), np.inf)
-        for centroid_c in class_centroids:
-            diffs = embs - centroid_c
-            dists = np.sqrt(np.maximum(np.sum(diffs @ covariance_inverse * diffs, axis=1), 0.0))
-            mahal_dists = np.minimum(mahal_dists, dists)
-        
-        # Class-conditional Cosine (min distance to nearest class centroid)
-        cos_dists = np.full(len(embs), np.inf)
-        for centroid_c in class_centroids:
-            for i in range(len(embs)):
-                d = cosine_distance(embs[i], centroid_c)
-                d = 1.0 if np.isnan(d) else float(d)
-                cos_dists[i] = min(cos_dists[i], d)
-        
-        # Production formula: min(max(cos_norm, mahal_norm), 2.0)
-        cos_norm = cos_dists / max(cal_cos_thresh, 1e-8)
-        mahal_norm = mahal_dists / max(cal_mahal_thresh, 1e-8)
-        comp_scores = np.minimum(np.maximum(cos_norm, mahal_norm), 2.0)
-        
-        return comp_scores
+        embs = out[1]
+        batch_result = prod_drift_detector.analyze_batch(embs)
+        return batch_result['drift_scores']
 
     # ── 6. Calibrate All Detectors on D_val (Targeting 5% FPR) ──
     print("\n[Step 5] Calibrating 95th-percentile threshold on held-out validation set (D_val)...")
