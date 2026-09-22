@@ -1,0 +1,61 @@
+{
+  "experiment": "Real-Time Streaming vs. Offline Batch Inference Comparison",
+  "model": "ThreatMLP NF (13 features, FP32)",
+  "offline_in_memory": {
+    "plain_onnx_single": {
+      "mean_ms": 0.0636,
+      "std_ms": 0.0614,
+      "p50_ms": 0.0598,
+      "p95_ms": 0.0978,
+      "p99_ms": 0.2319,
+      "throughput_flows_per_sec": 15715.4
+    },
+    "semantic_engine_single": {
+      "mean_ms": 1.0657,
+      "std_ms": 0.112,
+      "p50_ms": 1.0434,
+      "p95_ms": 1.1576,
+      "p99_ms": 1.6191,
+      "throughput_flows_per_sec": 938.3
+    },
+    "plain_onnx_batch128_throughput": 831953.2
+  },
+  "realtime_http_streaming": {
+    "plain_rest_streaming": {
+      "client_e2e_latency": {
+        "mean_ms": 4.261,
+        "std_ms": 0.6211,
+        "p50_ms": 4.0365,
+        "p95_ms": 5.8136,
+        "p99_ms": 6.7851
+      },
+      "server_inference_latency": {
+        "mean_ms": 0.9827,
+        "std_ms": 0.165,
+        "p50_ms": 0.928,
+        "p95_ms": 1.3771,
+        "p99_ms": 1.6934
+      },
+      "network_and_serialization_overhead_ms": 3.2784,
+      "streaming_throughput_flows_per_sec": 234.7
+    },
+    "secure_rest_streaming": {
+      "client_e2e_latency": {
+        "mean_ms": 5.0471,
+        "std_ms": 0.5532,
+        "p50_ms": 4.8897,
+        "p95_ms": 6.0596,
+        "p99_ms": 7.561
+      },
+      "server_inference_latency": {
+        "mean_ms": 1.7618,
+        "std_ms": 0.2598,
+        "p50_ms": 1.692,
+        "p95_ms": 2.033,
+        "p99_ms": 3.0027
+      },
+      "network_and_serialization_overhead_ms": 3.2853,
+      "streaming_throughput_flows_per_sec": 198.1
+    }
+  }
+}

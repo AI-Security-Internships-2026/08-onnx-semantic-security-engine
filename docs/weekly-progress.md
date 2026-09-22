@@ -903,13 +903,79 @@ All 9 acceptance criteria for Issue #21 are verified and satisfied:
 
 ---
 
+### Issue 2: Regenerate and Consolidate All Paper Results
+
+**Status:** Completed  
+**Branch:** `sikandarhussain6858-issue-1`  
+**Priority:** CRITICAL (Paper Correctness, Reproducibility, & Research Validity)
+
+#### Problem Statement
+The draft manuscript contained results generated at disparate development stages, causing inconsistencies:
+1. `classification_report.json` evaluated the legacy 76-feature CICFlowMeter model rather than the 13-feature paper model.
+2. `nf_classification_report.json` contained stale metadata ("21 features") despite being evaluated on the 13-feature model.
+3. Composite OOD values changed after evaluation corrections (0.966 vs 0.938 AUROC).
+4. No machine-readable JSON confusion matrix existed (only loose PNGs).
+5. Essential paper analyses were missing: component ablation study, cross-model comparison, and FPR@95TPR statistical bounds.
+6. Benchmark scripts wrote to scattered locations without audit trails or provenance metadata.
+
+---
+
+#### Checklist
+- [x] **Component 1: Canonical Results Directory Structure:** Established `experiments/paper_results/{json,figures}/` as the single authoritative destination for all paper evidence.
+- [x] **Component 2: Automated Reproduction Orchestrator (`experiments/reproduce_paper.py`):** Single-command reproduction runner with `--dry-run`, `--skip-slow`, `--only <stage>`, and artifact verification.
+- [x] **Component 3: Canonical Classifier Metrics & Confusion Matrix (`scripts/generate_classifier_metrics.py`):** Evaluates the 13-feature model on 138,069 test samples, outputting `classifier_metrics.json` and publication-quality heatmap `confusion_matrix_cic.png`.
+- [x] **Component 4: Architectural Component Ablation Study (`scripts/ablation_study.py`):** Systematically evaluates all 7 component subsets across in-distribution benign, ToN-IoT OOD, noise, and zero-fill tampering; generates `ablation_study.json` and `ablation_comparison.png`.
+- [x] **Component 5: Cross-Model Complexity & Portability Benchmark (`scripts/cross_model_comparison.py`):** Directly compares 76-feature baseline vs 13-feature NF model across parameters, size, latency, throughput, and zero-fill collapse; generates `cross_model_comparison.json` and `cross_model_comparison.png`.
+- [x] **Component 6: Standardized Provenance Metadata & Script Enhancements:** Modified 6 benchmark scripts to accept `--output-dir` / `--figures-dir`, compute FPR@95TPR, and record git commit, branch, timestamp, python version, and config version.
+- [x] **Component 7: Legacy Results Archival (`experiments/results/_archived/`):** Safely moved 11 stale/fragmented/duplicate files to `_archived/` with an explanatory `README.md`.
+- [x] **Component 8: Provenance & Manuscript Manifest Documentation:** Created `RESULTS_PROVENANCE.md` (root-cause audit for numerical discrepancies) and `paper_artifact_manifest.md` (complete table/figure-to-JSON mapping).
+
+---
+
+#### Key Experimental Findings from Regenerated Results
+
+##### 1. Canonical Classification Metrics (13-Feature ThreatMLP NF on 138,069 Test Samples)
+- **Accuracy:** **87.19%**
+- **Macro-Averaged $F_1$:** **0.7801**
+- **Weighted-Averaged $F_1$:** **0.8655**
+- **Confusion Matrix:** Formatted as full $15 \times 15$ JSON matrix and saved as high-resolution normalized heatmap `confusion_matrix_cic.png`.
+
+##### 2. Architectural Component Ablation Results (N=5,000 samples/scenario)
+
+| Configuration | In-Dist FPR | ToN-IoT OOD Intercept | Any Anomaly Alert | Noise Intercept | Zero-Fill Rejection |
+|---|---|---|---|---|---|
+| **Full System (All 3 Components)** | **1.9%** | **64.9%** | **84.3%** | **100.0%** | **100.0%** |
+| Without Confidence (-confidence) | 1.8% | 0.3% | 79.6% | 100.0% | 100.0% |
+| Without Drift (-drift) | 0.2% | 0.0% | 79.3% | 0.0% | 100.0% |
+| Without Validator (-validator) | 1.9% | 64.6% | 84.3% | 100.0% | **0.0% (VULNERABLE)** |
+| Validator Only | **0.0%** | 0.0% | 0.2% | 0.0% | **100.0%** |
+| Drift Detector Only | 1.8% | 0.0% | 79.6% | 100.0% | 0.0% |
+| Confidence Analyzer Only | 0.2% | 0.0% | 79.3% | 0.0% | 0.0% |
+
+*Ablation Insight:* Structural zero-fill evasion is completely eliminated ($100\%$ interception) whenever `InputValidator` is active, but drops to $0.0\%$ when ablated. High-risk OOD interception relies on composite confirmation between drift detection and softmax confidence.
+
+##### 3. Cross-Model Comparison: 76-Feature Baseline vs 13-Feature Standardized
+
+| Metric | 76-Feature Baseline (CICFlowMeter) | 13-Feature NF (SEMANTICSHIELD) | Improvement / Gain |
+|---|---|---|---|
+| **Input Features** | 76 | **13** | **−82.9% feature dimensionality** |
+| **Model Parameters** | 62,735 | **46,542** | **−25.8% parameter reduction** |
+| **FP32 Storage Size** | 0.250 MB | **0.177 MB** | **−29.2% memory footprint** |
+| **In-Distribution Macro-$F_1$** | 0.8134 | 0.7801 | −4.1% accuracy trade-off |
+| **Cross-Dataset Portability** | Fails (55/76 zero-filled, 72.4% missing) | **100% feature coverage (0 missing)** | **Zero-fill evasion eliminated** |
+| **Cross-Dataset Macro-$F_1$** | 0.0427 (collapsed) | **0.0571** | **+33.7% relative improvement** |
+| **Inference Latency (Single Flow)** | 0.7018 ms | **0.0836 ms** | **8.4× faster inference** |
+| **Throughput (Flows/Sec)** | 1,425 flows/s | **11,958 flows/s** | **8.4× throughput scalability** |
+
+---
+
 ### Next Steps
-- Address remaining supervisor review comments on Issue #1.
-- Proceed to remaining assigned issues.
-- Re-generate final paper plots incorporating the unified benchmark artifacts.
+- Review final paper draft tables against `paper_artifact_manifest.md`.
+- Prepare final PR for merging `sikandarhussain6858-issue-1` into `dev`.
 
 ---
 
 _(Add a new section each week)_
+
 
 

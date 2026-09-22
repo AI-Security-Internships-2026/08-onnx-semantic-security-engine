@@ -31,7 +31,8 @@ from src.semantic_analyzer import (
     SemanticSecurityEngine,
     ConfidenceResult, DriftResult, ValidationResult,
 )
-from scripts.config_loader import load_paper_config
+import argparse
+from scripts.config_loader import load_paper_config, get_provenance_metadata
 
 # ── Paths ──
 BASE_DIR = Path(__file__).parent.parent
@@ -83,6 +84,25 @@ TONIOT_FEATURES = list(FEATURE_MAP.keys())
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Evaluate semantic security engine.")
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=str(EXPERIMENTS / "paper_results" / "json"),
+        help="Directory to save semantic_engine_evaluation.json",
+    )
+    parser.add_argument(
+        "--figures-dir",
+        type=str,
+        default=str(EXPERIMENTS / "paper_results" / "figures"),
+        help="Directory to save evaluation plots",
+    )
+    args = parser.parse_args()
+
+    output_dir = Path(args.output_dir)
+    figures_dir = Path(args.figures_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    figures_dir.mkdir(parents=True, exist_ok=True)
     print("=" * 75)
     print("  SEMANTIC ENGINE INTEGRATION EVALUATION (CALIBRATED RUNNER)")
     print("=" * 75)
@@ -507,6 +527,7 @@ def main():
     # SAVE RESULTS JSON
     # ══════════════════════════════════════════════════════════════
     final_results = {
+        "provenance": get_provenance_metadata(),
         "experiment": "Calibrated Semantic Security Engine Integration Evaluation",
         "model": f"ThreatMLP NF-Standardized ({num_features} features, {len(class_names)} classes)",
         "onnx_model": "threat_mlp_nf_fp32.onnx",
@@ -529,10 +550,18 @@ def main():
         "latency": latency_results,
     }
 
-    output_path = EXPERIMENTS / "results" / "semantic_engine_evaluation.json"
+    # Save to canonical output directory
+    output_path = output_dir / "semantic_engine_evaluation.json"
     with open(output_path, "w") as f:
         json.dump(final_results, f, indent=2)
     print(f"\n[SAVED] {output_path}")
+
+    # Mirror to legacy results directory for backwards compatibility
+    legacy_path = EXPERIMENTS / "results" / "semantic_engine_evaluation.json"
+    if legacy_path.parent.exists() and output_path != legacy_path:
+        with open(legacy_path, "w") as f:
+            json.dump(final_results, f, indent=2)
+        print(f"[MIRRORED] {legacy_path}")
 
     # ══════════════════════════════════════════════════════════════
     # GENERATE 4-PANEL PUBLICATION PLOTS
@@ -611,10 +640,15 @@ def main():
     ax.grid(True, alpha=0.25)
 
     plt.tight_layout()
-    plot_path = EXPERIMENTS / "images" / "semantic_engine_evaluation_plots.png"
-    plt.savefig(str(plot_path), dpi=300, bbox_inches="tight")
+    canonical_plot = figures_dir / "semantic_engine_evaluation_plots.png"
+    plt.savefig(str(canonical_plot), dpi=300, bbox_inches="tight")
+    print(f"[SAVED] {canonical_plot}")
+
+    legacy_plot = EXPERIMENTS / "images" / "semantic_engine_evaluation_plots.png"
+    if legacy_plot.parent.exists() and canonical_plot != legacy_plot:
+        plt.savefig(str(legacy_plot), dpi=300, bbox_inches="tight")
+        print(f"[MIRRORED] {legacy_plot}")
     plt.close()
-    print(f"[SAVED] {plot_path}")
 
     # ── Final Executive Summary Table ──
     print(f"\n{'=' * 85}")

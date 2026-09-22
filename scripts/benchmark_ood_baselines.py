@@ -41,8 +41,9 @@ import matplotlib.pyplot as plt
 
 # Import production scoring classes (single source of truth)
 sys.path.insert(0, str(Path(__file__).parent.parent))
+import argparse
 from src.semantic_analyzer import ConfidenceAnalyzer, DriftDetector
-from scripts.config_loader import load_paper_config
+from scripts.config_loader import load_paper_config, get_provenance_metadata
 
 # ── Paths ──
 BASE_DIR = Path(__file__).parent.parent
@@ -92,6 +93,26 @@ NF_FEATURES = list(FEATURE_MAP.values())
 
 
 def main():
+    parser = argparse.ArgumentParser(description="OOD and anomaly detector baselines benchmarking.")
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=str(EXPERIMENTS / "paper_results" / "json"),
+        help="Directory to save ood_baselines_benchmark.json",
+    )
+    parser.add_argument(
+        "--figures-dir",
+        type=str,
+        default=str(EXPERIMENTS / "paper_results" / "figures"),
+        help="Directory to save baseline comparison plots",
+    )
+    args = parser.parse_args()
+
+    output_dir = Path(args.output_dir)
+    figures_dir = Path(args.figures_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    figures_dir.mkdir(parents=True, exist_ok=True)
+
     print("=" * 80)
     print("  OOD & ANOMALY DETECTOR BASELINE BENCHMARKING (5% FPR CALIBRATED)")
     print("=" * 80)
@@ -382,6 +403,7 @@ def main():
 
     # ── 12. Save Results JSON ──
     final_output = {
+        "provenance": get_provenance_metadata(),
         "experiment": "OOD & Anomaly Baseline Comparison Benchmark",
         "calibration_target_fpr": 0.05,
         "calibration_samples": N_CALIB_SAMPLES,
@@ -390,10 +412,18 @@ def main():
         "literature_baselines": literature_baselines
     }
 
-    out_json = EXPERIMENTS / "results" / "ood_baselines_benchmark.json"
+    # Save to canonical output directory
+    out_json = output_dir / "ood_baselines_benchmark.json"
     with open(out_json, "w") as f:
         json.dump(final_output, f, indent=2)
     print(f"\n[SAVED] {out_json}")
+
+    # Mirror to legacy results directory
+    legacy_json = EXPERIMENTS / "results" / "ood_baselines_benchmark.json"
+    if legacy_json.parent.exists() and out_json != legacy_json:
+        with open(legacy_json, "w") as f:
+            json.dump(final_output, f, indent=2)
+        print(f"[MIRRORED] {legacy_json}")
 
     # ── 13. Generate 4-Panel Baseline Comparison Plots ──
     print("\nGenerating baseline comparison plots...")
@@ -475,10 +505,15 @@ def main():
     ax.grid(True, alpha=0.25)
 
     plt.tight_layout()
-    out_plot = EXPERIMENTS / "images" / "ood_baselines_comparison.png"
-    plt.savefig(str(out_plot), dpi=300, bbox_inches="tight")
+    canonical_plot = figures_dir / "ood_baselines_comparison.png"
+    plt.savefig(str(canonical_plot), dpi=300, bbox_inches="tight")
+    print(f"[SAVED] {canonical_plot}")
+
+    legacy_plot = EXPERIMENTS / "images" / "ood_baselines_comparison.png"
+    if legacy_plot.parent.exists() and canonical_plot != legacy_plot:
+        plt.savefig(str(legacy_plot), dpi=300, bbox_inches="tight")
+        print(f"[MIRRORED] {legacy_plot}")
     plt.close()
-    print(f"[SAVED] {out_plot}")
     print("\nBaseline benchmarking complete!")
 
 

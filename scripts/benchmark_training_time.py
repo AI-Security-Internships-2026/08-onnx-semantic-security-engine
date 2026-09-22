@@ -24,6 +24,7 @@ import json
 import time
 import sys
 import os
+import argparse
 import numpy as np
 import pandas as pd
 import torch
@@ -40,6 +41,8 @@ from pathlib import Path
 BASE_DIR = Path(__file__).parent.parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
+
+from scripts.config_loader import load_paper_config, get_provenance_metadata
 
 EXPERIMENTS = BASE_DIR / "experiments"
 RESULTS_DIR = EXPERIMENTS / "results"
@@ -246,7 +249,7 @@ def train_and_benchmark_schema(
         "epoch_losses": [round(l, 4) for l in epoch_losses]
     }
 
-def generate_comparison_plots(results: dict):
+def generate_comparison_plots(results: dict, figures_dir=None):
     """Generate plots comparing training time and throughput across feature schemas."""
     import matplotlib
     matplotlib.use('Agg')
@@ -285,12 +288,37 @@ def generate_comparison_plots(results: dict):
     ax2.grid(axis='y', alpha=0.3)
     
     plt.tight_layout()
+    if figures_dir is not None:
+        canonical_plot = Path(figures_dir) / "training_time_comparison.png"
+        plt.savefig(canonical_plot, dpi=150, bbox_inches='tight')
+        print(f"\n[SAVED] {canonical_plot}")
+
     plot_path = IMAGES_DIR / "training_time_comparison.png"
     plt.savefig(plot_path, dpi=150, bbox_inches='tight')
     plt.close()
-    print(f"\n[SAVED] {plot_path}")
+    print(f"[SAVED] {plot_path}")
 
 def main():
+    parser = argparse.ArgumentParser(description="Training time per feature-schema stage benchmark.")
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=str(EXPERIMENTS / "paper_results" / "json"),
+        help="Directory to save training_time_benchmark.json",
+    )
+    parser.add_argument(
+        "--figures-dir",
+        type=str,
+        default=str(EXPERIMENTS / "paper_results" / "figures"),
+        help="Directory to save training time comparison plots",
+    )
+    args = parser.parse_args()
+
+    output_dir = Path(args.output_dir)
+    figures_dir = Path(args.figures_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    figures_dir.mkdir(parents=True, exist_ok=True)
+
     print("=" * 70)
     print("  TRAINING TIME PER FEATURE-SCHEMA STAGE BENCHMARK")
     print(f"  Epochs: {N_EPOCHS}, Batch Size: {BATCH_SIZE}, Seed: {RANDOM_SEED}")
@@ -350,6 +378,7 @@ def main():
         
     # ── Save JSON Results ──
     output = {
+        "provenance": get_provenance_metadata(),
         "experiment": "Training Time per Feature-Schema Stage Benchmark",
         "device": str(device),
         "hyperparameters": {
@@ -362,13 +391,19 @@ def main():
         "schemas": benchmarks
     }
     
-    json_path = RESULTS_DIR / "training_time_benchmark.json"
-    with open(json_path, "w") as f:
+    canonical_json = output_dir / "training_time_benchmark.json"
+    with open(canonical_json, "w") as f:
         json.dump(output, f, indent=2)
-    print(f"\n[SAVED] {json_path}")
+    print(f"\n[SAVED] {canonical_json}")
+
+    legacy_json = RESULTS_DIR / "training_time_benchmark.json"
+    if legacy_json.parent.exists() and canonical_json != legacy_json:
+        with open(legacy_json, "w") as f:
+            json.dump(output, f, indent=2)
+        print(f"[MIRRORED] {legacy_json}")
     
     # ── Generate Plots ──
-    generate_comparison_plots(benchmarks)
+    generate_comparison_plots(benchmarks, figures_dir=figures_dir)
     
     # ── Print Summary Table ──
     print(f"\n{'='*105}")

@@ -59,3 +59,42 @@ def load_paper_config(config_path: str = None) -> dict:
     print(f"[CONFIG] Using {path.name} (version: {version}, frozen: {frozen_date})")
 
     return cfg
+
+
+def get_provenance_metadata(config_path: str = None) -> dict:
+    """Generate standardized provenance metadata for benchmark result files.
+
+    Includes config version, git commit hash, branch, timestamp, python version,
+    and platform info to ensure paper results are fully auditable.
+    """
+    import subprocess
+    import sys
+    from datetime import datetime, timezone
+
+    cfg = load_paper_config(config_path)
+
+    # Git commit and branch
+    try:
+        git_commit = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=str(BASE_DIR)
+        ).decode().strip()
+    except Exception:
+        git_commit = "unknown"
+
+    try:
+        git_branch = subprocess.check_output(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=str(BASE_DIR)
+        ).decode().strip()
+    except Exception:
+        git_branch = "unknown"
+
+    return {
+        "config_version": cfg.get("version", "paper_v1"),
+        "config_frozen_date": cfg.get("frozen_date", "2026-09-11"),
+        "git_commit": git_commit,
+        "git_branch": git_branch,
+        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "python_version": sys.version.split()[0],
+        "platform": sys.platform,
+    }
+
