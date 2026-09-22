@@ -42,6 +42,7 @@ import matplotlib.pyplot as plt
 # Import production scoring classes (single source of truth)
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.semantic_analyzer import ConfidenceAnalyzer, DriftDetector
+from scripts.config_loader import load_paper_config
 
 # ── Paths ──
 BASE_DIR = Path(__file__).parent.parent
@@ -57,14 +58,19 @@ FEATURE_STATS_PATH  = EXPERIMENTS / "training_feature_stats_nf.json"
 CIC_DIR     = DATASETS / "CIC-IDS2018"
 TONIOT_PATH = DATASETS / "ToN-IoT" / "NF-ToN-IoT-V2.parquet"
 
-# ── Evaluation parameters ──
-N_FIT_SAMPLES      = 10000  # For training IsoForest and OC-SVM
-N_CALIB_SAMPLES    = 10000  # Held-out validation split for threshold calibration
-N_IN_DIST_SAMPLES  = 10000  # Evaluation split
-N_OOD_SAMPLES      = 10000
-N_NOISE_SAMPLES    = 1000
-N_ZERO_SAMPLES     = 500
-N_LATENCY_ITERS    = 1000
+# ── Load frozen paper configuration (single source of truth) ──
+PAPER_CFG = load_paper_config()
+PAPER_THRESHOLDS = PAPER_CFG['thresholds']
+PAPER_EVAL = PAPER_CFG['evaluation']
+
+# ── Evaluation parameters (from paper_v1.yaml) ──
+N_FIT_SAMPLES      = 10000  # For training IsoForest and OC-SVM (baselines only)
+N_CALIB_SAMPLES    = PAPER_EVAL['n_calibration']
+N_IN_DIST_SAMPLES  = PAPER_EVAL['n_in_dist']
+N_OOD_SAMPLES      = PAPER_EVAL['n_ood']
+N_NOISE_SAMPLES    = PAPER_EVAL['n_noise']
+N_ZERO_SAMPLES     = PAPER_EVAL['n_zero']
+N_LATENCY_ITERS    = PAPER_EVAL['n_latency_iters']
 
 # ── 13 NetFlow Features ──
 FEATURE_MAP = {
@@ -186,20 +192,11 @@ def main():
     # NOTE: MSP, Mahalanobis, and Semantic Engine scoring use production classes
     # from src/semantic_analyzer.py to avoid formula drift (Issue #21).
 
-    # Load calibrated thresholds from config file or defaults
-    calib_config_path = EXPERIMENTS / "calibration_config.json"
-    if calib_config_path.exists():
-        try:
-            with open(calib_config_path) as f:
-                calib_cfg = json.load(f)
-            cal_cos_thresh = float(calib_cfg.get("cosine_drift_threshold", 0.4341))
-            cal_mahal_thresh = float(calib_cfg.get("mahalanobis_drift_threshold", 18.1593))
-        except Exception:
-            cal_cos_thresh = 0.4341
-            cal_mahal_thresh = 18.1593
-    else:
-        cal_cos_thresh = 0.4341
-        cal_mahal_thresh = 18.1593
+    # Load calibrated thresholds from frozen paper config (paper_v1.yaml)
+    cal_cos_thresh = float(PAPER_THRESHOLDS['cosine_drift'])
+    cal_mahal_thresh = float(PAPER_THRESHOLDS['mahalanobis_drift'])
+    cal_conf_thresh = float(PAPER_THRESHOLDS['confidence'])
+    print(f"  [CONFIG] Thresholds from paper_v1.yaml: cosine={cal_cos_thresh}, mahal={cal_mahal_thresh}, conf={cal_conf_thresh}")
 
     # Production drift detector instance for scoring
     prod_drift_detector = DriftDetector(
@@ -207,7 +204,7 @@ def main():
         cosine_threshold=cal_cos_thresh,
         mahal_threshold=cal_mahal_thresh,
     )
-    prod_confidence_analyzer = ConfidenceAnalyzer(threshold=0.50)  # threshold only matters for flag, not score
+    prod_confidence_analyzer = ConfidenceAnalyzer(threshold=cal_conf_thresh)
 
     def score_msp(scaled_batch):
         """MSP Score: 1 - max(softmax(logits)) (higher = more anomalous).

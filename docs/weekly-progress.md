@@ -749,6 +749,7 @@ This brings the potential corrected map to **13 features** (8 exact + 5 approxim
 - [x] **Component 5: Runtime/Evaluation Equivalence Test Suite (`tests/test_runtime_eval_equivalence.py`):** Created 21 automated equivalence tests verifying that single-sample runtime logic and batch evaluation scoring yield identical numerical results and verdicts.
 - [x] **Component 6: Separation of Structural Validation and Statistical OOD:** Separated schema/zero-fill/NaN structural rejection (`REJECTED`) from continuous class-conditional distance monitoring (`cosine_distance`, `mahalanobis_distance`) in `SemanticResult` and `SecurePredictionResult`.
 - [x] **Component 7: Authoritative Documentation (`README.md`):** Added the "Canonical SEMANTICSHIELD Implementation & Reproducibility" section identifying `src/semantic_analyzer.py` as the single authoritative source of truth.
+- [x] **Component 8: Centralize All Paper Scripts on `paper_v1.yaml` (Supervisor Review):** Created shared `scripts/config_loader.py` utility; refactored all 4 final-paper scripts (`benchmark_ood_baselines.py`, `evaluate_semantic_engine.py`, `statistical_rigor_benchmark.py`, `benchmark_realtime_vs_offline.py`) to load thresholds, evaluation parameters, and engine configuration exclusively from `configs/paper_v1.yaml` — eliminating all hard-coded fallbacks and `calibration_config.json` reads.
 - [x] **End-to-End Verification & Benchmarking:** Ran full test suite (56/56 tests passing), executed `benchmark_ood_baselines.py` under calibrated 5% FPR targets, and executed 5-seed `statistical_rigor_benchmark.py` with multi-run latency profiling.
 
 ---
@@ -807,6 +808,32 @@ This brings the potential corrected map to **13 features** (8 exact + 5 approxim
 #### 6. Documentation Updates (`README.md`)
 - Added the *"Canonical SEMANTICSHIELD Implementation & Reproducibility"* section to the main repository `README.md`.
 - Explicitly documented `src/semantic_analyzer.py` as the authoritative source of truth, outlined the mathematical scoring equations, and published the canonical verdict decision matrix.
+
+#### 7. Centralized Paper Config Loading (`scripts/config_loader.py` + Script Refactoring)
+- **Problem (Supervisor Feedback):** Final-paper scripts obtained thresholds and settings partly from hard-coded fallbacks (`0.4341`, `18.1593`, `0.50`, `15.0`, `0.80`) or from the legacy `calibration_config.json` file, rather than exclusively from the frozen `configs/paper_v1.yaml`.
+- **Solution:**
+  - **Created `scripts/config_loader.py`:** A shared utility providing `load_paper_config()` that loads, validates, and confirms the frozen paper configuration. Prints `[CONFIG] Using paper_v1.yaml (version: paper_v1, frozen: 2026-09-11)` on every script invocation.
+  - **Refactored `scripts/benchmark_ood_baselines.py`:**
+    - Removed the triple-fallback chain that loaded thresholds from `calibration_config.json` with hard-coded defaults (`0.4341`, `18.1593`).
+    - Removed `ConfidenceAnalyzer(threshold=0.50)` hard-coded initialization.
+    - All thresholds now loaded from `PAPER_CFG['thresholds']` via config loader.
+    - All evaluation parameters (`N_CALIB_SAMPLES`, `N_IN_DIST_SAMPLES`, etc.) now loaded from `PAPER_CFG['evaluation']`.
+  - **Refactored `scripts/evaluate_semantic_engine.py`:**
+    - Removed hard-coded `ZSCORE_THRESHOLD = 15.0` and `ZERO_FILL_RATIO = 0.80`.
+    - Validator thresholds now loaded from `PAPER_CFG['thresholds']['zscore']` and `PAPER_CFG['thresholds']['zero_fill_ratio']`.
+    - All evaluation sample sizes now loaded from `PAPER_CFG['evaluation']`.
+    - Per-run calibration of confidence/cosine/mahalanobis thresholds preserved (by design — measuring calibration variability).
+  - **Refactored `scripts/statistical_rigor_benchmark.py`:**
+    - Removed hard-coded `EVAL_SEEDS = [42, 123, 456, 789, 1024]` and sample size constants.
+    - All values now loaded from `PAPER_CFG['evaluation']`.
+    - Replaced `SemanticSecurityEngine(use_nf=True)` (default constructor reading `calibration_config.json`) with `SemanticSecurityEngine.from_config("configs/paper_v1.yaml")`.
+  - **Refactored `scripts/benchmark_realtime_vs_offline.py`:**
+    - Replaced `SemanticSecurityEngine(use_nf=True)` with `SemanticSecurityEngine.from_config("configs/paper_v1.yaml")`.
+- **Verification (Grep Audit):** Post-refactoring grep confirms:
+  - `0` hits for hard-coded values `0.4341`, `18.1593`, `threshold=0.50`, `ZSCORE_THRESHOLD = 15`, `ZERO_FILL_RATIO = 0.80` in `scripts/`.
+  - `0` hits for `SemanticSecurityEngine(use_nf=True)` default constructor in `scripts/`.
+  - `0` hits for `calibration_config.json` as a *read* source in any paper script.
+  - `13` references to `paper_v1.yaml` across all scripts confirming centralized config loading.
 
 ---
 
@@ -877,6 +904,7 @@ All 9 acceptance criteria for Issue #21 are verified and satisfied:
 ---
 
 ### Next Steps
+- Address remaining supervisor review comments on Issue #1.
 - Proceed to remaining assigned issues.
 - Re-generate final paper plots incorporating the unified benchmark artifacts.
 

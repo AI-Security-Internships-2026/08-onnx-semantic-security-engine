@@ -57,8 +57,8 @@ def run_offline_benchmarks(X_test: np.ndarray, model_path: Path):
     output_names = [o.name for o in session.get_outputs()]
     scaler = joblib.load(EXPERIMENTS / "standard_scaler_nf.joblib")
     
-    # ── Initialize Semantic Engine ──
-    engine = SemanticSecurityEngine(use_nf=True)
+    # ── Initialize Semantic Engine from frozen paper config ──
+    engine = SemanticSecurityEngine.from_config("configs/paper_v1.yaml")
     
     single_raw = X_test[0].tolist()
     single_scaled = scaler.transform([single_raw]).astype(np.float32)

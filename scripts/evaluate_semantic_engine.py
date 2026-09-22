@@ -31,6 +31,7 @@ from src.semantic_analyzer import (
     SemanticSecurityEngine,
     ConfidenceResult, DriftResult, ValidationResult,
 )
+from scripts.config_loader import load_paper_config
 
 # ── Paths ──
 BASE_DIR = Path(__file__).parent.parent
@@ -45,14 +46,18 @@ FEATURE_STATS_PATH  = EXPERIMENTS / "training_feature_stats_nf.json"
 
 CIC_DIR     = DATASETS / "CIC-IDS2018"
 TONIOT_PATH = DATASETS / "ToN-IoT" / "NF-ToN-IoT-V2.parquet"
+# ── Load frozen paper configuration (single source of truth) ──
+PAPER_CFG = load_paper_config()
+PAPER_THRESHOLDS = PAPER_CFG['thresholds']
+PAPER_EVAL = PAPER_CFG['evaluation']
 
-# ── Evaluation parameters ──
-N_CALIB_SAMPLES    = 10000
-N_IN_DIST_SAMPLES  = 10000
-N_OOD_SAMPLES      = 10000
-N_NOISE_SAMPLES    = 1000
-N_ZERO_SAMPLES     = 500
-N_LATENCY_ITERS    = 1000
+# ── Evaluation parameters (from paper_v1.yaml) ──
+N_CALIB_SAMPLES    = PAPER_EVAL['n_calibration']
+N_IN_DIST_SAMPLES  = PAPER_EVAL['n_in_dist']
+N_OOD_SAMPLES      = PAPER_EVAL['n_ood']
+N_NOISE_SAMPLES    = PAPER_EVAL['n_noise']
+N_ZERO_SAMPLES     = PAPER_EVAL['n_zero']
+N_LATENCY_ITERS    = PAPER_EVAL['n_latency_iters']
 
 # ── NF Feature Schema (13 features) ──
 FEATURE_MAP = {
@@ -177,9 +182,10 @@ def main():
     print(f"  [Calibrated] Mahalanobis Threshold (95th %ile): {mahal_threshold:.4f}")
     print(f"  [Calibrated] Confidence Threshold (5th %ile):   {conf_threshold:.4f}")
 
-    # Configurable validator thresholds
-    ZSCORE_THRESHOLD = 15.0
-    ZERO_FILL_RATIO = 0.80
+    # Validator thresholds from paper_v1.yaml (frozen config)
+    ZSCORE_THRESHOLD = float(PAPER_THRESHOLDS['zscore'])
+    ZERO_FILL_RATIO = float(PAPER_THRESHOLDS['zero_fill_ratio'])
+    print(f"  [CONFIG] Validator thresholds from paper_v1.yaml: zscore={ZSCORE_THRESHOLD}, zero_fill={ZERO_FILL_RATIO}")
 
     # Write calibration config for deployment
     calibration_config = {

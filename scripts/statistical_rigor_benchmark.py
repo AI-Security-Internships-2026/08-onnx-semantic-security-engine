@@ -31,6 +31,7 @@ from src.semantic_analyzer import (
     ConfidenceAnalyzer, DriftDetector, InputValidator,
     SemanticSecurityEngine,
 )
+from scripts.config_loader import load_paper_config
 
 # ── Paths ──
 BASE_DIR = Path(__file__).parent.parent
@@ -45,13 +46,16 @@ FEATURE_STATS_PATH  = EXPERIMENTS / "training_feature_stats_nf.json"
 
 CIC_DIR     = DATASETS / "CIC-IDS2018"
 TONIOT_PATH = DATASETS / "ToN-IoT" / "NF-ToN-IoT-V2.parquet"
+# ── Load frozen paper configuration (single source of truth) ──
+PAPER_CFG = load_paper_config()
+PAPER_EVAL = PAPER_CFG['evaluation']
 
-# ── 5 Evaluation Seeds ──
-EVAL_SEEDS = [42, 123, 456, 789, 1024]
-N_SAMPLES_PER_SCENARIO = 10000
-N_NOISE_SAMPLES = 1000
-N_ZERO_SAMPLES = 500
-N_LATENCY_ITERS = 1000
+# ── Evaluation parameters (from paper_v1.yaml) ──
+EVAL_SEEDS = PAPER_EVAL['seeds']
+N_SAMPLES_PER_SCENARIO = PAPER_EVAL['n_in_dist']
+N_NOISE_SAMPLES = PAPER_EVAL['n_noise']
+N_ZERO_SAMPLES = PAPER_EVAL['n_zero']
+N_LATENCY_ITERS = PAPER_EVAL['n_latency_iters']
 
 FEATURE_MAP = {
     "FLOW_DURATION_MILLISECONDS":    "Flow Duration",
@@ -324,8 +328,8 @@ def main():
     plain_latencies = []
     semantic_latencies = []
 
-    # Production engine instance for latency benchmarking (Issue #21)
-    prod_engine = SemanticSecurityEngine(use_nf=True)
+    # Production engine instance for latency benchmarking — loaded from paper_v1.yaml
+    prod_engine = SemanticSecurityEngine.from_config("configs/paper_v1.yaml")
 
     for run_i in range(5):
         run_plain = []
