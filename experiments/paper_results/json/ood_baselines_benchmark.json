@@ -1,4 +1,13 @@
 {
+  "provenance": {
+    "config_version": "paper_v1",
+    "config_frozen_date": "2026-09-11",
+    "git_commit": "3532595b2f3d78397df64e35f6f9659e5a541223",
+    "git_branch": "sikandarhussain6858-issue-1",
+    "timestamp_utc": "2026-09-22T16:47:15.478175+00:00",
+    "python_version": "3.14.3",
+    "platform": "win32"
+  },
   "experiment": "OOD & Anomaly Baseline Comparison Benchmark",
   "calibration_target_fpr": 0.05,
   "calibration_samples": 10000,
@@ -16,9 +25,9 @@
       "zero_fill_auroc": 0.9169,
       "zero_fill_detect_rate": 0.0,
       "latency": {
-        "mean_ms": 0.0876,
-        "median_ms": 0.0859,
-        "p95_ms": 0.0967
+        "mean_ms": 0.0944,
+        "median_ms": 0.0885,
+        "p95_ms": 0.1264
       }
     },
     "Mahalanobis Distance Alone": {
@@ -33,9 +42,9 @@
       "zero_fill_auroc": 0.9198,
       "zero_fill_detect_rate": 0.0,
       "latency": {
-        "mean_ms": 0.6259,
-        "median_ms": 0.6198,
-        "p95_ms": 0.654
+        "mean_ms": 0.6464,
+        "median_ms": 0.6131,
+        "p95_ms": 0.865
       }
     },
     "Isolation Forest": {
@@ -50,9 +59,9 @@
       "zero_fill_auroc": 0.7082,
       "zero_fill_detect_rate": 0.0,
       "latency": {
-        "mean_ms": 12.2857,
-        "median_ms": 11.6933,
-        "p95_ms": 14.8657
+        "mean_ms": 13.0016,
+        "median_ms": 12.2371,
+        "p95_ms": 16.8034
       }
     },
     "One-Class SVM": {
@@ -67,16 +76,16 @@
       "zero_fill_auroc": 0.9583,
       "zero_fill_detect_rate": 1.0,
       "latency": {
-        "mean_ms": 0.2603,
-        "median_ms": 0.2569,
-        "p95_ms": 0.2756
+        "mean_ms": 0.3099,
+        "median_ms": 0.2635,
+        "p95_ms": 0.5361
       }
     },
     "Semantic Engine (Combined)": {
       "calibrated_threshold": 1.0798,
       "in_dist_fpr": 0.0387,
       "ood_toniot_auroc": 0.9378,
-      "ood_toniot_avg_precision": 0.929,
+      "ood_toniot_avg_precision": 0.9295,
       "ood_toniot_fpr95": 0.3504,
       "ood_toniot_detect_rate": 0.743,
       "noise_auroc": 0.9989,
@@ -84,9 +93,9 @@
       "zero_fill_auroc": 0.8346,
       "zero_fill_detect_rate": 0.0,
       "latency": {
-        "mean_ms": 0.6366,
-        "median_ms": 0.62,
-        "p95_ms": 0.7279
+        "mean_ms": 0.6982,
+        "median_ms": 0.6298,
+        "p95_ms": 1.0789
       }
     }
   },

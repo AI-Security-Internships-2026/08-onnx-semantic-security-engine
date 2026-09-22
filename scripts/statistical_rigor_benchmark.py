@@ -13,6 +13,7 @@ Outputs:
 import json
 import time
 import sys
+import argparse
 import numpy as np
 import pandas as pd
 import joblib
@@ -173,12 +174,12 @@ def main():
         np.random.seed(seed)
 
         # 1. Sample Calibration and Test splits from CIC-IDS2018
-        df_cic_sampled = df_cic_all.sample(n=N_SAMPLES_PER_SCENARIO * 2, random_state=seed)
+        df_cic_sampled = df_cic_all.sample(n=N_CALIB_SAMPLES + N_IN_DIST_SAMPLES, random_state=seed)
         available_nf = [f for f in NF_FEATURES if f in df_cic_sampled.columns]
         if len(available_nf) < len(NF_FEATURES):
             print(f"  [WARN] Missing {len(NF_FEATURES) - len(available_nf)} NF features in CIC data")
-        X_calib_raw = df_cic_sampled[available_nf].values[:N_SAMPLES_PER_SCENARIO]
-        X_test_raw  = df_cic_sampled[available_nf].values[N_SAMPLES_PER_SCENARIO:]
+        X_calib_raw = df_cic_sampled[available_nf].values[:N_CALIB_SAMPLES]
+        X_test_raw  = df_cic_sampled[available_nf].values[N_CALIB_SAMPLES:]
 
         X_calib_scaled = scaler.transform(X_calib_raw).astype(np.float32)
         X_test_scaled  = scaler.transform(X_test_raw).astype(np.float32)
@@ -200,8 +201,8 @@ def main():
         conf_thresh  = float(np.percentile(calib_conf, 5))
 
         # 3. Sample ToN-IoT OOD data
-        df_ton_sampled = df_ton_all.sample(n=N_SAMPLES_PER_SCENARIO, random_state=seed)
-        X_ton_raw = np.zeros((N_SAMPLES_PER_SCENARIO, len(NF_FEATURES)), dtype=np.float64)
+        df_ton_sampled = df_ton_all.sample(n=N_OOD_SAMPLES, random_state=seed)
+        X_ton_raw = np.zeros((N_OOD_SAMPLES, len(NF_FEATURES)), dtype=np.float64)
         for i, (ton_col, cic_col) in enumerate(FEATURE_MAP.items()):
             if ton_col in df_ton_sampled.columns:
                 X_ton_raw[:, i] = df_ton_sampled[ton_col].values

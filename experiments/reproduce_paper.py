@@ -32,6 +32,7 @@ from scripts.config_loader import load_paper_config, get_provenance_metadata
 PAPER_RESULTS_DIR = BASE_DIR / "experiments" / "paper_results"
 JSON_DIR = PAPER_RESULTS_DIR / "json"
 FIG_DIR = PAPER_RESULTS_DIR / "figures"
+TABLES_DIR = PAPER_RESULTS_DIR / "tables"
 
 STAGES = [
     {
@@ -141,8 +142,8 @@ def print_banner(cfg, prov):
     print("=" * 80)
 
 
-def verify_results(json_dir: Path):
-    """Verify presence and validity of all canonical results."""
+def verify_results(json_dir: Path, fig_dir: Path = None, tables_dir: Path = None):
+    """Verify presence and validity of all canonical results (JSON, Figures, and CSV Tables)."""
     print("\n" + "=" * 80)
     print("  VERIFYING CANONICAL PAPER ARTIFACTS")
     print("=" * 80)
@@ -160,6 +161,7 @@ def verify_results(json_dir: Path):
     ]
 
     all_ok = True
+    print("\n[1/3] Machine-Readable JSON Datasets:")
     for fname in required_files:
         p = json_dir / fname
         if not p.exists():
@@ -176,6 +178,55 @@ def verify_results(json_dir: Path):
                 print(f"  [CORRUPT] {fname}: {e}")
                 all_ok = False
 
+    if fig_dir is None:
+        fig_dir = json_dir.parent / "figures"
+
+    required_figures = [
+        "confusion_matrix_cic.png",
+        "cross_model_comparison.png",
+        "ablation_comparison.png",
+        "quantization_benchmark.png",
+        "ood_baselines_comparison.png",
+        "semantic_engine_evaluation_plots.png",
+        "statistical_rigor_plots.png",
+        "training_time_comparison.png",
+        "realtime_vs_offline.png",
+    ]
+
+    print("\n[2/3] Manuscript Figures (PNG):")
+    for ffig in required_figures:
+        p = fig_dir / ffig
+        if not p.exists():
+            print(f"  [MISSING] {ffig}")
+            all_ok = False
+        else:
+            size_kb = p.stat().st_size / 1024
+            print(f"  [OK]      {ffig:<32} ({size_kb:>6.1f} KB)")
+
+    if tables_dir is None:
+        tables_dir = json_dir.parent / "tables"
+
+    required_tables = [
+        "table1_classification_performance.csv",
+        "table2_ood_baselines.csv",
+        "table3_statistical_rigor.csv",
+        "table4_quantization.csv",
+        "table5_training_scalability.csv",
+        "table6_ablation_study.csv",
+        "table7_cross_model_comparison.csv",
+        "table8_latency_breakdown.csv",
+    ]
+
+    print("\n[3/3] Canonical Manuscript Tables (CSV):")
+    for ftab in required_tables:
+        p = tables_dir / ftab
+        if not p.exists():
+            print(f"  [MISSING] {ftab}")
+            all_ok = False
+        else:
+            size_kb = p.stat().st_size / 1024
+            print(f"  [OK]      {ftab:<32} ({size_kb:>6.1f} KB)")
+
     return all_ok
 
 
@@ -190,6 +241,7 @@ def main():
     figures_dir = Path(args.figures_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     figures_dir.mkdir(parents=True, exist_ok=True)
+    TABLES_DIR.mkdir(parents=True, exist_ok=True)
 
     # Filter stages
     stages_to_run = STAGES
@@ -207,7 +259,11 @@ def main():
 
     if args.dry_run:
         print("\n[DRY RUN] Pipeline validated successfully. No commands executed.")
-        verify_results(output_dir)
+        verify_results(output_dir, figures_dir, TABLES_DIR)
+        return
+
+    if args.verify:
+        verify_results(output_dir, figures_dir, TABLES_DIR)
         return
 
     # Execute stages

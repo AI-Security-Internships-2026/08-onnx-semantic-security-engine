@@ -1,4 +1,13 @@
 {
+  "provenance": {
+    "config_version": "paper_v1",
+    "config_frozen_date": "2026-09-11",
+    "git_commit": "3532595b2f3d78397df64e35f6f9659e5a541223",
+    "git_branch": "sikandarhussain6858-issue-1",
+    "timestamp_utc": "2026-09-22T16:46:21.977826+00:00",
+    "python_version": "3.14.3",
+    "platform": "win32"
+  },
   "experiment": "Calibrated Semantic Security Engine Integration Evaluation",
   "model": "ThreatMLP NF-Standardized (13 features, 15 classes)",
   "onnx_model": "threat_mlp_nf_fp32.onnx",
@@ -221,16 +230,16 @@
   "latency": {
     "iterations": 1000,
     "plain_inference": {
-      "mean_ms": 0.0791,
-      "median_ms": 0.0775,
-      "p95_ms": 0.0882
+      "mean_ms": 0.0912,
+      "median_ms": 0.0794,
+      "p95_ms": 0.1443
     },
     "semantic_inference": {
-      "mean_ms": 0.6279,
-      "median_ms": 0.6211,
-      "p95_ms": 0.6776
+      "mean_ms": 0.7598,
+      "median_ms": 0.6428,
+      "p95_ms": 1.349
     },
-    "overhead_pct": 693.97,
-    "overhead_ms": 0.5488
+    "overhead_pct": 733.55,
+    "overhead_ms": 0.6687
   }
 }
