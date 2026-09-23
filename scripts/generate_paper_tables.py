@@ -297,6 +297,146 @@ def generate_table8_latency_breakdown(json_dir: Path, out_dir: Path):
     print(f"  [SAVED] {out_file.name}")
 
 
+def generate_table9_main_ood_benchmark(json_dir: Path, out_dir: Path):
+    """Table 9 (Issue 3): Main OOD Benchmark at Fixed FPR Operating Points."""
+    path = json_dir / "fixed_fpr_evaluation.json"
+    if not path.exists():
+        print(f"  [SKIP] Table 9: {path.name} not found")
+        return
+
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    # Extract E2 metrics and bootstrap CIs
+    e2 = data.get("metrics_per_failure_mode", {}).get("E2_real_ood", {}).get("detectors", {})
+    bootstrap = data.get("bootstrap_ci_e2", {})
+
+    out_file = out_dir / "table_main_ood_benchmark.csv"
+    with open(out_file, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            "Method",
+            "AUROC", "AUROC 95% CI",
+            "AUPRC", "AUPRC 95% CI",
+            "FPR@95TPR",
+            "TPR@0.1% FPR", "TPR@1% FPR", "TPR@5% FPR",
+        ])
+
+        det_labels = {
+            "msp": "MSP (1-Confidence)",
+            "cosine": "Cosine Distance",
+            "mahalanobis": "Mahalanobis Distance",
+            "composite": "Composite Drift Score",
+        }
+        for det_name, label in det_labels.items():
+            m = e2.get(det_name, {})
+            tpr = m.get("tpr_at_fpr", {})
+            bs = bootstrap.get(det_name, {})
+            auroc_ci = bs.get("auroc", {})
+            auprc_ci = bs.get("auprc", {})
+
+            auroc_ci_str = ""
+            if auroc_ci.get("ci95_lo") is not None:
+                auroc_ci_str = f"[{auroc_ci['ci95_lo']:.4f}, {auroc_ci['ci95_hi']:.4f}]"
+
+            auprc_ci_str = ""
+            if auprc_ci.get("ci95_lo") is not None:
+                auprc_ci_str = f"[{auprc_ci['ci95_lo']:.4f}, {auprc_ci['ci95_hi']:.4f}]"
+
+            writer.writerow([
+                label,
+                f"{m.get('auroc', 0):.4f}", auroc_ci_str,
+                f"{m.get('auprc', 0):.4f}", auprc_ci_str,
+                f"{m.get('fpr_at_95tpr', 0):.4f}",
+                f"{tpr.get('0.001', 0):.4f}",
+                f"{tpr.get('0.01', 0):.4f}",
+                f"{tpr.get('0.05', 0):.4f}",
+            ])
+
+        # Validator row
+        val_rej = data.get("metrics_per_failure_mode", {}).get("E2_real_ood", {}).get("validator_rejection_rate", 0)
+        writer.writerow([
+            "Input Validator (structural)",
+            "N/A (deterministic)", "",
+            "N/A (deterministic)", "",
+            "N/A",
+            "N/A", "N/A", f"rej={val_rej:.4f}",
+        ])
+
+    print(f"  [SAVED] {out_file.name}")
+
+
+def generate_table10_failure_mode_coverage(json_dir: Path, out_dir: Path):
+    """Table 10 (Issue 3): Failure-Mode Coverage / Ablation Matrix."""
+    path = json_dir / "failure_mode_coverage_matrix.json"
+    if not path.exists():
+        print(f"  [SKIP] Table 10: {path.name} not found")
+        return
+
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    matrix = data.get("matrix", {})
+
+    out_file = out_dir / "table_failure_mode_coverage.csv"
+    with open(out_file, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            "Failure Mode",
+            "MSP", "Cosine", "Mahalanobis",
+            "Validator (structural)", "Full System",
+        ])
+        for fm_key, row in matrix.items():
+            writer.writerow([
+                row.get("label", fm_key),
+                f"{(row.get('msp', 0) or 0)*100:.1f}%",
+                f"{(row.get('cosine', 0) or 0)*100:.1f}%",
+                f"{(row.get('mahalanobis', 0) or 0)*100:.1f}%",
+                f"{(row.get('validator', 0) or 0)*100:.1f}%",
+                f"{(row.get('full_system', 0) or 0)*100:.1f}%",
+            ])
+
+    print(f"  [SAVED] {out_file.name}")
+
+
+def generate_table11_ablation_fixed_fpr(json_dir: Path, out_dir: Path):
+    """Table 11 (Issue 3): Component Ablation with AUROC-level Metrics."""
+    path = json_dir / "ablation_fixed_fpr.json"
+    if not path.exists():
+        print(f"  [SKIP] Table 11: {path.name} not found")
+        return
+
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    results = data.get("ablation_results", {})
+
+    out_file = out_dir / "table_ablation_fixed_fpr.csv"
+    with open(out_file, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            "Configuration",
+            "MSP", "Cosine", "Mahalanobis", "Validator",
+            "E2 AUROC", "E2 AUPRC", "E2 FPR@95TPR",
+            "E2 Validator Rej.",
+        ])
+        for key, r in results.items():
+            comps = r.get("components", {})
+            writer.writerow([
+                r.get("label", key),
+                "YES" if comps.get("msp") else "NO",
+                "YES" if comps.get("cosine") else "NO",
+                "YES" if comps.get("mahalanobis") else "NO",
+                "YES" if comps.get("validator") else "NO",
+                f"{r.get('e2_auroc', 0):.4f}",
+                f"{r.get('e2_auprc', 0):.4f}",
+                f"{r.get('e2_fpr_at_95tpr', 0):.4f}",
+                f"{(r.get('e2_validator_rejection', 0) or 0)*100:.1f}%",
+            ])
+
+    print(f"  [SAVED] {out_file.name}")
+
+
 def main():
     print("=" * 70)
     print("  GENERATING CANONICAL PAPER CSV TABLES FROM JSON RESULTS")
@@ -311,9 +451,14 @@ def main():
     generate_table6_ablation_study(JSON_DIR, TABLES_DIR)
     generate_table7_cross_model(JSON_DIR, TABLES_DIR)
     generate_table8_latency_breakdown(JSON_DIR, TABLES_DIR)
+    # Issue 3: Fixed-FPR, Failure-Mode Coverage & Ablation tables
+    generate_table9_main_ood_benchmark(JSON_DIR, TABLES_DIR)
+    generate_table10_failure_mode_coverage(JSON_DIR, TABLES_DIR)
+    generate_table11_ablation_fixed_fpr(JSON_DIR, TABLES_DIR)
     print("=" * 70)
     print(f"All tables exported to {TABLES_DIR}")
 
 
 if __name__ == "__main__":
     main()
+

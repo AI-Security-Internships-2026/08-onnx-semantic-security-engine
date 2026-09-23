@@ -1,0 +1,250 @@
+{
+  "provenance": {
+    "config_version": "paper_v1",
+    "config_frozen_date": "2026-09-11",
+    "git_commit": "eaa1a1d1cb9cea7c520edcb821b9d78724cb1685",
+    "git_branch": "sikandarhussain6858-issue-1",
+    "timestamp_utc": "2026-09-23T18:43:39.379015+00:00",
+    "python_version": "3.14.3",
+    "platform": "win32"
+  },
+  "experiment": "Component Ablation with AUROC-level Metrics",
+  "primary_ood_dataset": "E2: Cross-Domain OOD (ToN-IoT)",
+  "ablation_results": {
+    "full": {
+      "label": "Full SEMANTICSHIELD",
+      "components": {
+        "msp": true,
+        "cosine": true,
+        "mahalanobis": true,
+        "validator": true
+      },
+      "e2_auroc": 0.8313,
+      "e2_auprc": 0.8807,
+      "e2_fpr_at_95tpr": 0.8036,
+      "e2_validator_rejection": 0.0,
+      "detection_rates_at_5pct_fpr": {
+        "E2_real_ood": 0.8154,
+        "E3_nan_inf_missing": 0.8764,
+        "E4_zero_10pct": 0.2104,
+        "E4_zero_25pct": 0.4048,
+        "E4_zero_50pct": 0.5634,
+        "E4_zero_75pct": 0.7796,
+        "E4_zero_100pct": 1.0,
+        "E5_permutation": 0.9792,
+        "E6_scale_mismatch": 0.7514,
+        "E7_extreme_plausible": 0.9426,
+        "E8_gaussian_noise": 1.0
+      }
+    },
+    "no_msp": {
+      "label": "-MSP",
+      "components": {
+        "msp": false,
+        "cosine": true,
+        "mahalanobis": true,
+        "validator": true
+      },
+      "e2_auroc": 0.9486,
+      "e2_auprc": 0.937,
+      "e2_fpr_at_95tpr": 0.1186,
+      "e2_validator_rejection": 0.0,
+      "detection_rates_at_5pct_fpr": {
+        "E2_real_ood": 0.796,
+        "E3_nan_inf_missing": 0.8736,
+        "E4_zero_10pct": 0.2066,
+        "E4_zero_25pct": 0.3946,
+        "E4_zero_50pct": 0.5442,
+        "E4_zero_75pct": 0.755,
+        "E4_zero_100pct": 1.0,
+        "E5_permutation": 0.9742,
+        "E6_scale_mismatch": 0.7468,
+        "E7_extreme_plausible": 0.9416,
+        "E8_gaussian_noise": 1.0
+      }
+    },
+    "no_cosine": {
+      "label": "-Cosine",
+      "components": {
+        "msp": true,
+        "cosine": false,
+        "mahalanobis": true,
+        "validator": true
+      },
+      "e2_auroc": 0.8544,
+      "e2_auprc": 0.9011,
+      "e2_fpr_at_95tpr": 0.7478,
+      "e2_validator_rejection": 0.0,
+      "detection_rates_at_5pct_fpr": {
+        "E2_real_ood": 0.8158,
+        "E3_nan_inf_missing": 0.8774,
+        "E4_zero_10pct": 0.2288,
+        "E4_zero_25pct": 0.497,
+        "E4_zero_50pct": 0.699,
+        "E4_zero_75pct": 0.8466,
+        "E4_zero_100pct": 1.0,
+        "E5_permutation": 0.9864,
+        "E6_scale_mismatch": 0.7682,
+        "E7_extreme_plausible": 0.9576,
+        "E8_gaussian_noise": 1.0
+      }
+    },
+    "no_mahal": {
+      "label": "-Mahalanobis",
+      "components": {
+        "msp": true,
+        "cosine": true,
+        "mahalanobis": false,
+        "validator": true
+      },
+      "e2_auroc": 0.8229,
+      "e2_auprc": 0.8781,
+      "e2_fpr_at_95tpr": 0.7876,
+      "e2_validator_rejection": 0.0,
+      "detection_rates_at_5pct_fpr": {
+        "E2_real_ood": 0.794,
+        "E3_nan_inf_missing": 0.8272,
+        "E4_zero_10pct": 0.0698,
+        "E4_zero_25pct": 0.1618,
+        "E4_zero_50pct": 0.3234,
+        "E4_zero_75pct": 0.7504,
+        "E4_zero_100pct": 1.0,
+        "E5_permutation": 0.1806,
+        "E6_scale_mismatch": 0.2172,
+        "E7_extreme_plausible": 0.4246,
+        "E8_gaussian_noise": 0.184
+      }
+    },
+    "no_validator": {
+      "label": "-Validator",
+      "components": {
+        "msp": true,
+        "cosine": true,
+        "mahalanobis": true,
+        "validator": false
+      },
+      "e2_auroc": 0.8313,
+      "e2_auprc": 0.8807,
+      "e2_fpr_at_95tpr": 0.8036,
+      "e2_validator_rejection": 0.0,
+      "detection_rates_at_5pct_fpr": {
+        "E2_real_ood": 0.8154,
+        "E3_nan_inf_missing": 0.5814,
+        "E4_zero_10pct": 0.2104,
+        "E4_zero_25pct": 0.398,
+        "E4_zero_50pct": 0.5302,
+        "E4_zero_75pct": 0.5122,
+        "E4_zero_100pct": 0.0,
+        "E5_permutation": 0.9784,
+        "E6_scale_mismatch": 0.7514,
+        "E7_extreme_plausible": 0.9426,
+        "E8_gaussian_noise": 1.0
+      }
+    },
+    "msp_only": {
+      "label": "MSP Only",
+      "components": {
+        "msp": true,
+        "cosine": false,
+        "mahalanobis": false,
+        "validator": false
+      },
+      "e2_auroc": 0.8501,
+      "e2_auprc": 0.9073,
+      "e2_fpr_at_95tpr": 0.7212,
+      "e2_validator_rejection": 0.0,
+      "detection_rates_at_5pct_fpr": {
+        "E2_real_ood": 0.7936,
+        "E3_nan_inf_missing": 0.079,
+        "E4_zero_10pct": 0.0416,
+        "E4_zero_25pct": 0.0816,
+        "E4_zero_50pct": 0.1406,
+        "E4_zero_75pct": 0.2508,
+        "E4_zero_100pct": 0.0,
+        "E5_permutation": 0.0248,
+        "E6_scale_mismatch": 0.0314,
+        "E7_extreme_plausible": 0.0422,
+        "E8_gaussian_noise": 0.0035
+      }
+    },
+    "cosine_only": {
+      "label": "Cosine Only",
+      "components": {
+        "msp": false,
+        "cosine": true,
+        "mahalanobis": false,
+        "validator": false
+      },
+      "e2_auroc": 0.9455,
+      "e2_auprc": 0.9447,
+      "e2_fpr_at_95tpr": 0.1452,
+      "e2_validator_rejection": 0.0,
+      "detection_rates_at_5pct_fpr": {
+        "E2_real_ood": 0.7954,
+        "E3_nan_inf_missing": 0.3624,
+        "E4_zero_10pct": 0.0706,
+        "E4_zero_25pct": 0.1268,
+        "E4_zero_50pct": 0.2178,
+        "E4_zero_75pct": 0.2384,
+        "E4_zero_100pct": 0.0,
+        "E5_permutation": 0.4876,
+        "E6_scale_mismatch": 0.3412,
+        "E7_extreme_plausible": 0.5022,
+        "E8_gaussian_noise": 0.2675
+      }
+    },
+    "mahal_only": {
+      "label": "Mahalanobis Only",
+      "components": {
+        "msp": false,
+        "cosine": false,
+        "mahalanobis": true,
+        "validator": false
+      },
+      "e2_auroc": 0.9713,
+      "e2_auprc": 0.9637,
+      "e2_fpr_at_95tpr": 0.0616,
+      "e2_validator_rejection": 0.0,
+      "detection_rates_at_5pct_fpr": {
+        "E2_real_ood": 0.7962,
+        "E3_nan_inf_missing": 0.5882,
+        "E4_zero_10pct": 0.2406,
+        "E4_zero_25pct": 0.4914,
+        "E4_zero_50pct": 0.6592,
+        "E4_zero_75pct": 0.5072,
+        "E4_zero_100pct": 0.0,
+        "E5_permutation": 0.9766,
+        "E6_scale_mismatch": 0.7648,
+        "E7_extreme_plausible": 0.9622,
+        "E8_gaussian_noise": 1.0
+      }
+    },
+    "validator_only": {
+      "label": "Validator Only",
+      "components": {
+        "msp": false,
+        "cosine": false,
+        "mahalanobis": false,
+        "validator": true
+      },
+      "e2_auroc": 0.5,
+      "e2_auprc": 0.5,
+      "e2_fpr_at_95tpr": 1.0,
+      "e2_validator_rejection": 0.0,
+      "detection_rates_at_5pct_fpr": {
+        "E2_real_ood": 0.0,
+        "E3_nan_inf_missing": 0.691,
+        "E4_zero_10pct": 0.0,
+        "E4_zero_25pct": 0.008,
+        "E4_zero_50pct": 0.0546,
+        "E4_zero_75pct": 0.5446,
+        "E4_zero_100pct": 1.0,
+        "E5_permutation": 0.01,
+        "E6_scale_mismatch": 0.0,
+        "E7_extreme_plausible": 0.0,
+        "E8_gaussian_noise": 0.0
+      }
+    }
+  },
+  "note": "AUROC/AUPRC computed on E2 (ToN-IoT). Detection rates at 5% FPR across all failure modes."
+}
