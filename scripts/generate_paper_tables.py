@@ -437,6 +437,112 @@ def generate_table11_ablation_fixed_fpr(json_dir: Path, out_dir: Path):
     print(f"  [SAVED] {out_file.name}")
 
 
+def generate_table12_cross_dataset(json_dir: Path, out_dir: Path):
+    """Table 12: Same-Schema Cross-Dataset Generalization (Track A)."""
+    path = json_dir / "cross_dataset_generalization.json"
+    if not path.exists():
+        print(f"  [SKIP] Table 12: {path.name} not found")
+        return
+
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    results = data.get("cross_dataset_results", [])
+    out_file = out_dir / "table_cross_dataset_generalization.csv"
+    with open(out_file, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            "Train Dataset", "Test Dataset", "Model",
+            "Accuracy", "Macro-F1", "MSP AUROC",
+            "Mahalanobis AUROC", "Full Assurance Metric"
+        ])
+        for r in results:
+            is_id = r.get("is_id", False)
+            writer.writerow([
+                "NF-CSE-CIC-IDS2018",
+                r.get("dataset", ""),
+                r.get("model", ""),
+                f"{r.get('binary_accuracy', 0):.4f}",
+                f"{r.get('binary_macro_f1', 0):.4f}",
+                "1.0000 (Ref)" if is_id else f"{r.get('assurance', {}).get('msp', {}).get('auroc', 0):.4f}",
+                "1.0000 (Ref)" if is_id else f"{r.get('assurance', {}).get('mahalanobis', {}).get('auroc', 0):.4f}",
+                "1.0000 (Ref)" if is_id else f"{r.get('full_assurance_auroc', 0):.4f}",
+            ])
+
+    print(f"  [SAVED] {out_file.name}")
+
+
+def generate_table13_semantic_mismatch(json_dir: Path, out_dir: Path):
+    """Table 13: Feature-Extractor & Semantic Mismatch Sensitivity (Track B)."""
+    path = json_dir / "semantic_mismatch_sensitivity.json"
+    if not path.exists():
+        print(f"  [SKIP] Table 13: {path.name} not found")
+        return
+
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    results = data.get("semantic_mismatch_results", [])
+    out_file = out_dir / "table_semantic_mismatch_sensitivity.csv"
+    with open(out_file, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            "Model", "Mapping Tier", "Features Active",
+            "Accuracy", "Macro-F1", "MSP AUROC", "Mean Mahalanobis Dist"
+        ])
+        for r in results:
+            tier_name = r.get("tier", "")
+            feat_active = "8 Exact" if "Tier 1" in tier_name else ("13 Standardized" if "Tier 2" in tier_name else "13 (3 Mismatched)")
+            writer.writerow([
+                r.get("model", ""),
+                tier_name,
+                feat_active,
+                f"{r.get('accuracy', 0):.4f}",
+                f"{r.get('macro_f1', 0):.4f}",
+                f"{r.get('msp_auroc', 0):.4f}",
+                f"{r.get('mean_mahalanobis', 0):.4f}",
+            ])
+
+    print(f"  [SAVED] {out_file.name}")
+
+
+def generate_table14_cross_model_replication(json_dir: Path, out_dir: Path):
+    """Table 14: Cross-Model Replication (Track C)."""
+    path = json_dir / "cross_model_replication.json"
+    if not path.exists():
+        print(f"  [SKIP] Table 14: {path.name} not found")
+        return
+
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    models = data.get("models", [])
+    out_file = out_dir / "table_cross_model_replication.csv"
+    with open(out_file, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            "Model", "Size/Params", "ID Macro-F1",
+            "OOD AUROC (ToN-IoT)", "OOD AUROC (BoT-IoT)",
+            "TPR@1% FPR (ToN)", "TPR@1% FPR (BoT)",
+            "Assurance Overhead"
+        ])
+        for m in models:
+            ton_m = m.get("toniot_metrics", {})
+            bot_m = m.get("botiot_metrics", {})
+            writer.writerow([
+                m.get("model", ""),
+                f"{m.get('params_label', '')} ({m.get('onnx_size_kb', 0)} KB)",
+                f"{m.get('id_macro_f1', 0):.4f}",
+                f"{ton_m.get('composite_auroc', 0):.4f}",
+                f"{bot_m.get('composite_auroc', 0):.4f}",
+                f"{ton_m.get('tpr_at_1pct_fpr', 0)*100:.2f}%",
+                f"{bot_m.get('tpr_at_1pct_fpr', 0)*100:.2f}%",
+                f"{m.get('assurance_overhead_ms', 0):.3f} ms",
+            ])
+
+    print(f"  [SAVED] {out_file.name}")
+
+
 def main():
     print("=" * 70)
     print("  GENERATING CANONICAL PAPER CSV TABLES FROM JSON RESULTS")
@@ -455,6 +561,10 @@ def main():
     generate_table9_main_ood_benchmark(JSON_DIR, TABLES_DIR)
     generate_table10_failure_mode_coverage(JSON_DIR, TABLES_DIR)
     generate_table11_ablation_fixed_fpr(JSON_DIR, TABLES_DIR)
+    # Issue 24: Cross-Dataset & Cross-Model Generalization tables
+    generate_table12_cross_dataset(JSON_DIR, TABLES_DIR)
+    generate_table13_semantic_mismatch(JSON_DIR, TABLES_DIR)
+    generate_table14_cross_model_replication(JSON_DIR, TABLES_DIR)
     print("=" * 70)
     print(f"All tables exported to {TABLES_DIR}")
 

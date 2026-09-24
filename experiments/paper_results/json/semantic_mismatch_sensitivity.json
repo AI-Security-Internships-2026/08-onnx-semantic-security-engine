@@ -1,0 +1,58 @@
+{
+  "semantic_mismatch_results": [
+    {
+      "model": "ThreatMLP",
+      "tier": "Tier 1: Exact Only",
+      "description": "8 genuinely equivalent features (missing 5 set to neutral mean)",
+      "accuracy": 0.7203,
+      "macro_f1": 0.8372,
+      "msp_auroc": 0.6235,
+      "mean_mahalanobis": 16.0791
+    },
+    {
+      "model": "ThreatMLP",
+      "tier": "Tier 2: Standardized",
+      "description": "13 features (8 exact + 5 approximate)",
+      "accuracy": 0.6309,
+      "macro_f1": 0.7696,
+      "msp_auroc": 0.5657,
+      "mean_mahalanobis": 2.194094293822128e+26
+    },
+    {
+      "model": "ThreatMLP",
+      "tier": "Tier 3: With Mismatches",
+      "description": "13 features with 3 replaced by semantically mismatched fields",
+      "accuracy": 0.6979,
+      "macro_f1": 0.8211,
+      "msp_auroc": 0.3423,
+      "mean_mahalanobis": 17.4818
+    },
+    {
+      "model": "ThreatCNN1D",
+      "tier": "Tier 1: Exact Only",
+      "description": "8 genuinely equivalent features (missing 5 set to neutral mean)",
+      "accuracy": 0.7202,
+      "macro_f1": 0.8374,
+      "msp_auroc": 0.0001,
+      "mean_mahalanobis": 87.3495
+    },
+    {
+      "model": "ThreatCNN1D",
+      "tier": "Tier 2: Standardized",
+      "description": "13 features (8 exact + 5 approximate)",
+      "accuracy": 0.4664,
+      "macro_f1": 0.5809,
+      "msp_auroc": 0.4019,
+      "mean_mahalanobis": 1.3521479639163886e+27
+    },
+    {
+      "model": "ThreatCNN1D",
+      "tier": "Tier 3: With Mismatches",
+      "description": "13 features with 3 replaced by semantically mismatched fields",
+      "accuracy": 0.4227,
+      "macro_f1": 0.5254,
+      "msp_auroc": 0.4038,
+      "mean_mahalanobis": 42.5031
+    }
+  ]
+}

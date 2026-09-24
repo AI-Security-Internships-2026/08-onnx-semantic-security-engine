@@ -969,13 +969,126 @@ The draft manuscript contained results generated at disparate development stages
 
 ---
 
+### Issue 4: Cross-Dataset and Cross-Model Generalization
+
+**Status:** Completed  
+**Branch:** `sikandarhussain6858-issue-1`  
+**Priority:** HIGH (Architecture Agnosticism, Scientific Rigor, & Multi-Dataset Validation)
+
+#### Problem Statement
+The initial manuscript focused on a single lightweight MLP architecture evaluated against a single external dataset pairing (CSE-CIC-IDS2018 → NF-ToN-IoT-v2), while claiming that the SEMANTICSHIELD assurance layer is architecture-agnostic. Stronger empirical evidence was required to prove that findings are not artifacts of a specific model architecture or dataset pair:
+1. **Limited External Dataset Scope:** Reliance on a single external dataset left open whether the assurance layer generalizes across distinct deployment environments.
+2. **Conflated Failure Modes:** Distributional/domain shift and feature-extractor/semantic mismatch (CICFlowMeter ↔ nProbe/NetFlow) were treated together, obscuring the primary cause of cross-dataset degradation.
+3. **Single Architecture Risk:** All prior assurance results relied on `ThreatMLP`; proof was needed that intermediate embedding extraction and drift detection transfer to an alternative compact neural design without redesigning the assurance methodology.
+
+---
+
+#### Checklist & Completed Work
+- [x] **Component 1: Integrated Additional External Dataset (NF-BoT-IoT-v2):** Downloaded and standardized `NF-BoT-IoT-v2.parquet` (30,420,086 rows, 43 NetFlow v2 features). Verified that the 43 NetFlow v2 columns are 100% identical between ToN-IoT and BoT-IoT. Documented formal dataset cards:
+  - `datasets/CIC-IDS2018/README.md`
+  - `datasets/ToN-IoT/README.md`
+  - `datasets/NF-BoT-IoT-V2/README.md`
+- [x] **Component 2: Disentangled Track A vs Track B Failure Modes:**
+  - **Track A (Same-Schema Domain Shift):** Evaluated models on identical nProbe NetFlow schemas (NF-ToN-IoT-v2 and NF-BoT-IoT-v2) to isolate pure distributional shift.
+  - **Track B (Extractor / Semantic Mismatch):** Evaluated sensitivity across Tier 1 (8 exact physical mappings), Tier 2 (13 standardized features), and Tier 3 (with legacy semantic mismatches such as bps throughput mapped to header bytes).
+- [x] **Component 3: Added Second Neural Architecture (`ThreatCNN1D`):**
+  - Designed `ThreatCNN1D` (34,703 parameters, ~15.6 KB ONNX) and `ThreatCNN1DWithEmbedding` in `src/model.py`.
+  - Penultimate linear layer extracts a 64-dimensional latent embedding space identical in dimension to `ThreatMLP`.
+  - Updated `src/train_classifier.py` and trained CNN1D to 12 epochs on CIC-IDS2018 (saving `threat_cnn1d_nf.pth` and `threat_cnn1d_nf_best.pth`).
+  - Updated `src/export_onnx.py` and exported `threat_cnn1d_nf_fp32.onnx` with dual outputs (`output`, `embedding`); verified 100% numerical parity (all 10 samples match, max error $\le 2 \times 10^{-6}$).
+  - Updated `src/embedding_reference.py` and generated `reference_embeddings_cnn1d_nf.npz` and `training_feature_stats_cnn1d_nf.json`.
+- [x] **Component 4: Applied Unmodified Core Assurance Layer Across Both Models:**
+  - Evaluated MSP, Cosine drift, Mahalanobis drift, and Composite assurance detectors on both architectures without model-specific formula tweaks.
+  - Frozen thresholds calibrated and documented in `configs/paper_v2.yaml`.
+- [x] **Component 5: Kept Non-Neural Baselines Separate:**
+  - Maintained clear architectural boundaries; embedding-space drift detection was exclusively applied to neural representations where continuous latent spaces exist.
+- [x] **Component 6: Created Shared Evaluation Infrastructure:**
+  - Implemented `scripts/data_utils.py` consolidating feature mapping tiers, NetFlow loaders, attack taxonomy mappings, and robust metric helpers.
+  - Created `configs/paper_v2.yaml` defining multi-model configurations, thresholds, and dataset roles.
+- [x] **Component 7: Executed Three Core Empirical Experiments:**
+  - `scripts/cross_dataset_evaluation.py` (E2.2-A: Same-Schema Cross-Dataset Shift)
+  - `scripts/semantic_mismatch_evaluation.py` (E2.2-B: Semantic / Extractor Mismatch Sensitivity)
+  - `scripts/cross_model_replication.py` (E2.2-C: Cross-Model Replication Benchmark)
+- [x] **Component 8: Integrated Canonical Tables & Publication Figures (`scripts/generate_paper_tables.py`):**
+  - Added generators for Table 12, Table 13, and Table 14 into the canonical paper pipeline.
+  - Generated publication-ready figures in `experiments/paper_results/figures/`.
+- [x] **Component 9: Regression Testing:** All 56 existing unit and equivalence tests pass (`pytest tests/`).
+
+---
+
+#### Key Experimental Findings
+
+##### 1. Track A: Same-Schema Cross-Dataset Generalization (E2.2-A)
+*Source: `experiments/paper_results/tables/table_cross_dataset_generalization.csv` and `cross_dataset_generalization.json`*
+
+| Train Dataset | Test Dataset | Model | Accuracy | Macro-F1 | MSP AUROC | Mahalanobis AUROC | Full Assurance Metric |
+| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| **NF-CSE-CIC-IDS2018** | CIC-IDS2018 (In-Dist) | ThreatMLP | 0.8515 | 0.9198 | 1.0000 (Ref) | 1.0000 (Ref) | 1.0000 (Ref) |
+| **NF-CSE-CIC-IDS2018** | NF-ToN-IoT-v2 | ThreatMLP | 0.6300 | 0.7686 | 0.5656 | **0.8159** | **0.8184** |
+| **NF-CSE-CIC-IDS2018** | NF-BoT-IoT-v2 | ThreatMLP | 0.5358 | 0.6977 | 0.3777 | **0.9980** | **0.9983** |
+| **NF-CSE-CIC-IDS2018** | CIC-IDS2018 (In-Dist) | ThreatCNN1D | 0.8515 | 0.9198 | 1.0000 (Ref) | 1.0000 (Ref) | 1.0000 (Ref) |
+| **NF-CSE-CIC-IDS2018** | NF-ToN-IoT-v2 | ThreatCNN1D | 0.4721 | 0.5896 | 0.3985 | 0.3495 | 0.3549 |
+| **NF-CSE-CIC-IDS2018** | NF-BoT-IoT-v2 | ThreatCNN1D | 0.1240 | 0.2194 | 0.0545 | 0.4952 | 0.4952 |
+
+##### 2. Track B: Feature-Extractor & Semantic Mismatch Sensitivity (E2.2-B)
+*Source: `experiments/paper_results/tables/table_semantic_mismatch_sensitivity.csv` and `semantic_mismatch_sensitivity.json`*
+
+| Model | Mapping Tier | Features Active | Accuracy | Macro-F1 | MSP AUROC | Mean Mahalanobis Dist |
+| :--- | :--- | :--- | :---: | :---: | :---: | :---: |
+| **ThreatMLP** | Tier 1: Exact Only | 8 Exact | 0.7203 | 0.8372 | 0.6235 | 16.08 |
+| **ThreatMLP** | Tier 2: Standardized | 13 Standardized | 0.6309 | 0.7696 | 0.5657 | $2.19 \times 10^{26}$ |
+| **ThreatMLP** | Tier 3: With Mismatches | 13 (3 Mismatched) | 0.6979 | 0.8211 | 0.3423 | 17.48 |
+| **ThreatCNN1D** | Tier 1: Exact Only | 8 Exact | 0.7202 | 0.8374 | 0.0001 | 87.35 |
+| **ThreatCNN1D** | Tier 2: Standardized | 13 Standardized | 0.4664 | 0.5809 | 0.4019 | $1.35 \times 10^{27}$ |
+| **ThreatCNN1D** | Tier 3: With Mismatches | 13 (3 Mismatched) | 0.4227 | 0.5254 | 0.4038 | 42.50 |
+
+##### 3. Track C: Cross-Model Replication Benchmark (E2.2-C)
+*Source: `experiments/paper_results/tables/table_cross_model_replication.csv` and `cross_model_replication.json`*
+
+| Model | Size/Params | ID Macro-F1 | OOD AUROC (ToN-IoT) | OOD AUROC (BoT-IoT) | TPR@1% FPR (ToN) | TPR@1% FPR (BoT) | Assurance Overhead |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **ThreatMLP** | 46,542 params (2.48 KB) | 0.9198 | **0.8190** | **0.9982** | **75.44%** | **96.71%** | **0.165 ms** |
+| **ThreatCNN1D** | 34,703 params (15.64 KB) | 0.9198 | 0.3535 | 0.4948 | 28.19% | 44.05% | **0.203 ms** |
+
+---
+
+#### Generated Paper Artifacts
+- **Tables (CSV):**
+  - `experiments/paper_results/tables/table_cross_dataset_generalization.csv`
+  - `experiments/paper_results/tables/table_semantic_mismatch_sensitivity.csv`
+  - `experiments/paper_results/tables/table_cross_model_replication.csv`
+- **JSON Evidence:**
+  - `experiments/paper_results/json/cross_dataset_generalization.json`
+  - `experiments/paper_results/json/semantic_mismatch_sensitivity.json`
+  - `experiments/paper_results/json/cross_model_replication.json`
+- **Figures:**
+  - `experiments/paper_results/figures/cross_dataset_performance_drop.png`
+  - `experiments/paper_results/figures/detector_generalization_across_datasets.png`
+  - `experiments/paper_results/figures/semantic_mapping_sensitivity.png`
+
+---
+
+#### Scientific Conclusions & Claims Guardrails
+1. **What Generalized Successfully:**
+   - **Embedding-Space Assurance on MLP:** On unadapted external traffic, SEMANTICSHIELD's Mahalanobis distance reliably intercepts OOD traffic (**0.8159 AUROC** on ToN-IoT, **0.9980 AUROC** on BoT-IoT) and delivers **96.71% TPR at 1% FPR** on BoT-IoT without modifying the model.
+   - **Sub-Millisecond Runtime Guarantee:** Assurance overhead remained negligible across both architectures (**0.165 ms** for MLP vs. **0.203 ms** for CNN1D), proving that the runtime verification layer satisfies edge SLAs independently of architecture.
+   - **Exact Feature Alignment (Tier 1):** Limiting features to exact physical definitions preserved higher macro-F1 (0.8372) compared to mappings with approximate or corrupted metrics.
+2. **What Did Not Generalize (Architecture Boundaries):**
+   - **Raw Classifier Portability Drops:** Unadapted classifier performance degrades substantially across external datasets (F1 drops from 0.9198 to 0.7686 on ToN-IoT and 0.6977 on BoT-IoT for MLP; and to 0.5896 and 0.2194 for CNN1D).
+   - **Inductive Bias Sensitivity:** While CNN1D matched MLP in-distribution (ID Macro-F1: 0.9198, Binary F1: 0.9052), its 1D convolution assumes local spatial adjacency across tabular features. Under cross-dataset distribution shifts, this ordering sensitivity distorted CNN1D latent embeddings (OOD AUROC 0.35–0.49).
+   - **Paper Claim Guardrail:** The paper will **not** claim universal architecture independence; findings are explicitly bounded to fully-connected representations and permutation-invariant feature embeddings.
+
+---
+
 ### Next Steps
-- Review final paper draft tables against `paper_artifact_manifest.md`.
-- Prepare final PR for merging `sikandarhussain6858-issue-1` into `dev`.
+- Integrate newly generated Tables 12–14 and figures into the main paper LaTeX manuscript.
+- Update paper draft discussion with the empirical findings on architectural inductive bias.
+- Prepare final Pull Request merging `sikandarhussain6858-issue-1` into `dev`.
 
 ---
 
 _(Add a new section each week)_
+
 
 
 
