@@ -543,6 +543,116 @@ def generate_table14_cross_model_replication(json_dir: Path, out_dir: Path):
     print(f"  [SAVED] {out_file.name}")
 
 
+def generate_table15_resource_profiles(json_dir: Path, out_dir: Path):
+    """Table: Resource Profiles (Issue 5: Simulated Edge Resource Constraints)."""
+    path = json_dir / "resource_simulation_benchmark.json"
+    if not path.exists():
+        print(f"  [SKIP] Table 15: {path.name} not found")
+        return
+
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    profiles = data.get("resource_profiles", {})
+    env = data.get("environment", {})
+
+    out_file = out_dir / "table_resource_profiles.csv"
+    with open(out_file, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Profile", "CPU Limit", "Memory Limit", "Runtime", "Workload"])
+        for pid in ["R0", "R1", "R2", "R3"]:
+            p = profiles.get(pid, {})
+            cpu_lim = f"{p.get('vcpu_limit')} vCPU" if p.get("vcpu_limit") else "Unconstrained (Host)"
+            mem_lim = f"{p.get('memory_limit_mb')} MB" if p.get("memory_limit_mb") else "Unconstrained (Host)"
+            runtime = f"Docker cgroups v2 / Linux (Python {env.get('python_version', '3.11')}, ORT {env.get('onnxruntime_version', '1.28')})"
+            workload = "5,000 flows/run (5 repetitions, warm-up=500)"
+            writer.writerow([
+                f"{pid} ({p.get('name')})",
+                cpu_lim,
+                mem_lim,
+                runtime,
+                workload,
+            ])
+
+    print(f"  [SAVED] {out_file.name}")
+
+
+def generate_table16_runtime_overhead(json_dir: Path, out_dir: Path):
+    """Table: Runtime Overhead across Resource Profiles (Issue 5)."""
+    path = json_dir / "resource_simulation_benchmark.json"
+    if not path.exists():
+        print(f"  [SKIP] Table 16: {path.name} not found")
+        return
+
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    bench = data.get("profiles_benchmark", {})
+    out_file = out_dir / "table_runtime_overhead.csv"
+    with open(out_file, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Profile", "Mode", "Mean (ms)", "p50 (ms)", "p95 (ms)", "p99 (ms)", "Flows/s", "Peak RSS (MB)", "CPU %"])
+        for pid in ["R0", "R1", "R2", "R3"]:
+            p_data = bench.get(pid, {})
+            plain = p_data.get("plain_onnx", {}).get("aggregated", {})
+            sec = p_data.get("semantic_shield", {}).get("aggregated", {})
+            writer.writerow([
+                pid,
+                "Plain ONNX",
+                f"{plain.get('mean_ms', 0):.4f}",
+                f"{plain.get('p50_ms', 0):.4f}",
+                f"{plain.get('p95_ms', 0):.4f}",
+                f"{plain.get('p99_ms', 0):.4f}",
+                f"{plain.get('throughput_flows_sec', 0):.1f}",
+                f"{plain.get('peak_rss_mb', 0):.1f}",
+                f"{plain.get('cpu_util_pct', 0):.1f}%",
+            ])
+            writer.writerow([
+                pid,
+                "SEMANTICSHIELD",
+                f"{sec.get('mean_ms', 0):.4f}",
+                f"{sec.get('p50_ms', 0):.4f}",
+                f"{sec.get('p95_ms', 0):.4f}",
+                f"{sec.get('p99_ms', 0):.4f}",
+                f"{sec.get('throughput_flows_sec', 0):.1f}",
+                f"{sec.get('peak_rss_mb', 0):.1f}",
+                f"{sec.get('cpu_util_pct', 0):.1f}%",
+            ])
+
+    print(f"  [SAVED] {out_file.name}")
+
+
+def generate_table17_quantization_tradeoff(json_dir: Path, out_dir: Path):
+    """Table: Quantization Trade-offs under Constrained Profile R1 (Issue 5)."""
+    path = json_dir / "resource_simulation_benchmark.json"
+    if not path.exists():
+        print(f"  [SKIP] Table 17: {path.name} not found")
+        return
+
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    # Use R1 (strongly constrained) as canonical quantization benchmark profile
+    r1_quant = data.get("profiles_benchmark", {}).get("R1", {}).get("quantization_tradeoffs", {})
+    out_file = out_dir / "table_quantization_tradeoff.csv"
+    with open(out_file, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Precision", "Size (MB)", "Accuracy", "Macro-F1", "p95 Latency (ms)", "Throughput (flows/s)", "Peak RSS (MB)"])
+        for q_name in ["FP32", "FP16", "INT8", "INT4"]:
+            q = r1_quant.get(q_name, {})
+            writer.writerow([
+                q_name,
+                f"{q.get('size_mb', 0):.4f}",
+                f"{q.get('accuracy', 0):.4f}",
+                f"{q.get('macro_f1', 0):.4f}",
+                f"{q.get('p95_latency_ms', 0):.4f}",
+                f"{q.get('throughput_b1_flows_sec', 0):.1f}",
+                f"{q.get('peak_rss_mb', 0):.1f}",
+            ])
+
+    print(f"  [SAVED] {out_file.name}")
+
+
 def main():
     print("=" * 70)
     print("  GENERATING CANONICAL PAPER CSV TABLES FROM JSON RESULTS")
@@ -565,6 +675,10 @@ def main():
     generate_table12_cross_dataset(JSON_DIR, TABLES_DIR)
     generate_table13_semantic_mismatch(JSON_DIR, TABLES_DIR)
     generate_table14_cross_model_replication(JSON_DIR, TABLES_DIR)
+    # Issue 5: Simulated Edge Resource Constraints tables
+    generate_table15_resource_profiles(JSON_DIR, TABLES_DIR)
+    generate_table16_runtime_overhead(JSON_DIR, TABLES_DIR)
+    generate_table17_quantization_tradeoff(JSON_DIR, TABLES_DIR)
     print("=" * 70)
     print(f"All tables exported to {TABLES_DIR}")
 

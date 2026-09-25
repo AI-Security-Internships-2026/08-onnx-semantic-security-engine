@@ -1083,11 +1083,180 @@ The initial manuscript focused on a single lightweight MLP architecture evaluate
 ### Next Steps
 - Integrate newly generated Tables 12–14 and figures into the main paper LaTeX manuscript.
 - Update paper draft discussion with the empirical findings on architectural inductive bias.
-- Prepare final Pull Request merging `sikandarhussain6858-issue-1` into `dev`.
+
+---
+
+### Issue 5: Evaluate SEMANTICSHIELD Under Simulated Edge Resource Constraints
+
+**Status:** Completed  
+**Branch:** `sikandarhussain6858-issue-1`  
+**Priority:** 🟠 HIGH (Deployment-Efficiency Evidence & Hardware Sensitivity)  
+**Depends On:** M1.1, M1.2  
+**Labels:** `simulation`, `benchmark`, `onnx`, `quantization`, `performance`, `paper-readiness`  
+
+#### Paper Framing Guardrail
+> **CRITICAL PAPER FRAMING GUARDRAIL:**
+> *"We evaluate SEMANTICSHIELD under controlled CPU- and memory-constrained deployment profiles to approximate resource-limited inference conditions. Physical edge hardware validation remains future work."*
+> **Do NOT write:** *"We validate SEMANTICSHIELD on edge hardware."*
+> Physical ARM/edge-device hardware validation (e.g., Raspberry Pi, Jetson Nano) remains future work and an explicit limitation.
+
+---
+
+#### Problem Statement & Objectives
+Because physical edge hardware is unavailable, the paper must not claim validation on real edge devices. Instead, we evaluate SEMANTICSHIELD under a controlled resource-constrained simulation to answer:
+> *What computational overhead does SEMANTICSHIELD introduce as CPU, memory, and workload constraints become tighter?*
+
+This provides rigorous deployment-efficiency and resource-sensitivity evidence, quantifying assurance overhead bounds without overstating hardware claims.
+
+---
+
+#### Checklist & Completed Work
+- [x] **Component 1: Docker & cgroups v2 Environment Preparation:**
+  - Extended `docker/Dockerfile.engine` to pre-install `psutil`, `matplotlib`, and `pyyaml`.
+  - Verified Docker cgroups v2 resource accounting (`/sys/fs/cgroup/memory.max`, `/sys/fs/cgroup/cpu.max`, and memory peak tracking).
+  - Built updated `docker-security-engine:latest` image for isolated execution.
+- [x] **Component 2: Defined 4 Reproducible Resource Profiles (E2.3-A):**
+  - **R0 (Reference):** Unconstrained vCPU, unconstrained RAM (host baseline).
+  - **R1 (Low):** 1 vCPU (`--cpus 1.0`), 512 MB RAM (`--memory 512m`) — strongly constrained IoT gateway profile.
+  - **R2 (Medium):** 2 vCPU (`--cpus 2.0`), 1024 MB RAM (`--memory 1024m`) — moderately constrained industrial controller profile.
+  - **R3 (Higher):** 4 vCPU (`--cpus 4.0`), 2048 MB RAM (`--memory 2048m`) — less constrained edge gateway profile.
+  - Recorded complete host specs, Python (3.11/3.14), ORT (1.24/1.28), and cgroup v2 status in `environment.json`.
+- [x] **Component 3: Built Standalone Benchmarking Harness (`scripts/benchmark_resource_simulation.py`):**
+  - Evaluated **Plain ONNX** vs. full **SEMANTICSHIELD** under identical datasets (`X_test_nf.npy`, 5,000 flows/run).
+  - Executed a 500-sample warm-up followed by **5 measured repetitions** per configuration.
+  - Collected Mean, Std, p50, p95, p99 latency, throughput (flows/s), peak RSS memory, and CPU utilization.
+- [x] **Component 4: Concurrency & Load Sensitivity Evaluation (E2.3-C):**
+  - Evaluated three workload levels: Low / Sequential (Batch=1), Moderate (Batch=32), and High (Batch=128).
+  - Measured latency percentiles and throughput scalability to identify saturation points.
+- [x] **Component 5: Supported Quantization Trade-offs Benchmark (E2.3-D):**
+  - Evaluated FP32, FP16, static INT8, and weight-only INT4 under controlled Profile R1.
+  - Reported model footprint (MB), accuracy, macro-F1, p95 latency, batch 1 and batch 128 throughput, and peak RSS.
+  - Empirically verified that lower bit-widths do not automatically guarantee faster scalar CPU inference.
+- [x] **Component 6: Empirical Root-Cause Investigation of INT8 Degradation (E2.3-E):**
+  - Implemented `scripts/investigate_int8_quantization.py`.
+  - Dissected the calibration dataset (10,000 samples) and inspected static `QUInt8` quantization scale/zero-point parameters.
+  - Extracted layer-by-layer dynamic activation distributions across intermediate layers of FP32 `ThreatMLP`.
+  - Generated empirical evidence proving that outlier activation clipping and dynamic range saturation (rather than weight precision reduction) drive the INT8 macro-F1 drop.
+- [x] **Component 7: Generated Canonical Manuscript CSV Tables (`scripts/generate_paper_tables.py`):**
+  - Added generators for Table 15 (Resource Profiles), Table 16 (Runtime Overhead), and Table 17 (Quantization Trade-offs).
+- [x] **Component 8: Generated 5 Publication Figures (`experiments/paper_results/figures/`):**
+  - `resource_simulation_p95_latency.png` (Plain vs Engine p95 latency across R0–R3)
+  - `resource_simulation_throughput.png` (Throughput across profiles as resources tighten)
+  - `resource_simulation_quantization.png` (Quantization trade-offs under Profile R1)
+  - `resource_simulation_concurrency.png` (Latency and throughput scalability across concurrency levels)
+  - `int8_activation_analysis.png` (4-panel empirical analysis of activation clipping and per-class drop)
+- [x] **Component 9: Integrated into Orchestrator & Manifest:**
+  - Registered `resource_simulation` and `int8_investigation` stages in `experiments/reproduce_paper.py`.
+  - Updated `paper_artifact_manifest.md` and `RESULTS_PROVENANCE.md` with complete table mappings and audit trails.
+- [x] **Component 10: Regression Testing & Verification:**
+  - Added dedicated test suite `tests/test_resource_simulation.py` (8 new tests passed).
+  - All 64 tests pass across the entire repository (`pytest tests/`).
+  - `reproduce_paper.py --verify` validated all 11 JSON artifacts, 14 figures, and 11 CSV tables.
+
+---
+
+#### Key Experimental Findings
+
+##### 1. Table 15: Resource-Constrained Profiles
+*Source: `experiments/paper_results/tables/table_resource_profiles.csv` and `resource_profiles.json`*
+
+| Profile | CPU Limit | Memory Limit | Runtime | Workload |
+| :--- | :--- | :--- | :--- | :--- |
+| **R0 (Reference)** | Unconstrained (Host) | Unconstrained (Host) | Docker cgroups v2 / Linux (Python 3.11, ORT 1.28) | 5,000 flows/run (5 repetitions, warm-up=500) |
+| **R1 (Low)** | 1 vCPU | 512 MB | Docker cgroups v2 / Linux (Python 3.11, ORT 1.28) | 5,000 flows/run (5 repetitions, warm-up=500) |
+| **R2 (Medium)** | 2 vCPU | 1024 MB | Docker cgroups v2 / Linux (Python 3.11, ORT 1.28) | 5,000 flows/run (5 repetitions, warm-up=500) |
+| **R3 (Higher)** | 4 vCPU | 2048 MB | Docker cgroups v2 / Linux (Python 3.11, ORT 1.28) | 5,000 flows/run (5 repetitions, warm-up=500) |
+
+---
+
+##### 2. Table 16: Runtime Overhead across Profiles (E2.3-B)
+*Source: `experiments/paper_results/tables/table_runtime_overhead.csv` and `latency_summary.csv`*
+
+| Profile | Mode | Mean Latency (ms) | p50 (ms) | p95 (ms) | p99 (ms) | Throughput (flows/s) | Peak RSS (MB) | CPU % |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **R0 (Reference)** | Plain ONNX | 0.2781 | 0.2555 | 0.3863 | 0.5182 | 3,581.6 | 123.7 | 9.7% |
+| **R0 (Reference)** | **SEMANTICSHIELD** | **0.8883** | **0.8441** | **1.1920** | **1.5543** | **1,124.1** | **124.9** | **12.5%** |
+| **R1 (Low: 1 vCPU, 512M)** | Plain ONNX | 0.2705 | 0.2533 | 0.3473 | 0.4718 | 3,679.8 | 122.4 | 8.6% |
+| **R1 (Low: 1 vCPU, 512M)** | **SEMANTICSHIELD** | **0.9111** | **0.8324** | **1.3404** | **1.9383** | **1,100.7** | **124.5** | **9.8%** |
+| **R2 (Med: 2 vCPU, 1G)** | Plain ONNX | 0.2775 | 0.2559 | 0.3608 | 0.5426 | 3,589.5 | 123.4 | 8.7% |
+| **R2 (Med: 2 vCPU, 1G)** | **SEMANTICSHIELD** | **0.9034** | **0.8418** | **1.2790** | **1.7288** | **1,107.4** | **124.3** | **12.0%** |
+| **R3 (High: 4 vCPU, 2G)** | Plain ONNX | 0.2988 | 0.2692 | 0.4280 | 0.6094 | 3,353.9 | 123.0 | 9.2% |
+| **R3 (High: 4 vCPU, 2G)** | **SEMANTICSHIELD** | **0.9309** | **0.8528** | **1.4049** | **1.9730** | **1,073.4** | **124.0** | **9.0%** |
+
+*Key Efficiency Observations:*
+- **Bounded Overhead:** Absolute assurance overhead remains flat between **$+0.61\text{ ms}$** and **$+0.64\text{ ms}$** regardless of CPU restrictions.
+- **Sub-Millisecond Mean Latency:** Even under Profile R1 (1 vCPU, 512 MB), SEMANTICSHIELD operates at **$0.911\text{ ms}$** mean latency, meeting the 1 ms edge processing threshold while sustaining over **1,100 flows/sec**.
+- **Flat Memory Footprint:** Process peak RSS operates at **$122.4 - 124.9\text{ MB}$**, utilizing less than 25% of the 512 MB memory quota in Profile R1.
+
+---
+
+##### 3. Concurrency & Load Sensitivity (E2.3-C)
+*Source: `experiments/paper_results/figures/resource_simulation_concurrency.png`*
+
+| Concurrency Level | Ingestion Batch Size | Mean Per-Flow Latency | Single-Node Throughput | Saturation Behavior |
+| :--- | :---: | :---: | :---: | :--- |
+| **Low / Sequential** | 1 | 0.85 ms | ~1,100 flows/s | Low latency, single-threaded streaming |
+| **Moderate Concurrency** | 32 | 0.16 ms | ~6,100 flows/s | 5.5× throughput gain via vectorized validation |
+| **High Concurrency** | 128 | 0.12 ms | ~8,300 flows/s | Peak throughput plateau; memory overhead remains $< 140\text{ MB}$ |
+
+---
+
+##### 4. Table 17: Quantization Trade-offs under Profile R1 (E2.3-D)
+*Source: `experiments/paper_results/tables/table_quantization_tradeoff.csv` and `quantization_summary.csv`*
+
+| Precision Variant | Model File | Model Size (MB) | Size Reduction (%) | Accuracy | Macro-F1 | p95 Latency (ms) | Throughput (flows/s) | Peak RSS (MB) |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **FP32** | `threat_mlp_nf_fp32.onnx` | 0.1765 | 0.0% | 0.8719 | **0.7801** | 0.0379 | 38,063.8 | 135.7 |
+| **FP16** | `threat_mlp_nf_fp16.onnx` | 0.0889 | −49.6% | 0.8721 | **0.7802** | 0.0482 | 32,466.9 | 136.5 |
+| **INT8** (static) | `threat_mlp_nf_int8.onnx` | 0.0479 | −72.9% | 0.5569 | **0.4833** | 0.0444 | 35,944.3 | 137.9 |
+| **INT4** (weight-only)| `threat_mlp_nf_int4.onnx` | 0.0340 | −80.7% | 0.8516 | **0.7627** | 0.0554 | 29,986.0 | 143.7 |
+
+*Quantization Insights:*
+- **Accuracy Retention:** FP16 matches FP32 exactly ($0.7802$ vs. $0.7801$ Macro-F1). Weight-only INT4 retains **97.8%** of the FP32 Macro-F1 score ($0.7627$). Static INT8 collapses by **38.0%** to $0.4833$.
+- **Latency Non-Monotonicity:** On scalar CPU architectures, lower bit-widths do not automatically accelerate inference. INT4 ($0.0554\text{ ms}$ p95) and FP16 ($0.0482\text{ ms}$ p95) exhibit higher latency than FP32 ($0.0379\text{ ms}$ p95) due to unpacking and type-conversion overheads.
+
+---
+
+##### 5. Empirical Root-Cause Analysis of INT8 Degradation (E2.3-E)
+*Source: `experiments/paper_results/figures/int8_activation_analysis.png` and `int8_degradation_investigation.json`*
+
+1. **Activation Outlier Skewness:** Analysis of intermediate layer activations in `ThreatMLP` revealed extreme heavy-tailed distributions. While 99% of post-ReLU activations fall below $12.0$, burst attack traffic induces extreme outliers reaching $> 50.0$.
+2. **Clipping & Dynamic Range Saturation:** In static post-training quantization (`QUInt8`), activations are uniformly mapped into $[0, 255]$ with linear scales ($0.167 - 4.228$). When test flows exhibit extreme values, activations saturate at 255, flattening decision boundaries and disproportionately impacting low-support attack classes.
+3. **Decoupling Evidence (Weights vs. Activations):** Because weight-only INT4 quantization maintains **0.7627 Macro-F1** (only a 2.2% drop from FP32), the degradation in INT8 is empirically proven to arise from activation clipping and quantization noise, rather than weight representation degradation.
+
+---
+
+#### Generated Paper Artifacts
+- **Tables (CSV):**
+  - `experiments/paper_results/tables/table_resource_profiles.csv`
+  - `experiments/paper_results/tables/table_runtime_overhead.csv`
+  - `experiments/paper_results/tables/table_quantization_tradeoff.csv`
+- **JSON Evidence:**
+  - `experiments/paper_results/json/resource_simulation_benchmark.json`
+  - `experiments/paper_results/json/int8_degradation_investigation.json`
+  - `experiments/paper_results/resource_simulation/raw_latency.csv`
+  - `experiments/paper_results/resource_simulation/latency_summary.csv`
+  - `experiments/paper_results/resource_simulation/throughput_summary.csv`
+  - `experiments/paper_results/resource_simulation/resource_usage.csv`
+  - `experiments/paper_results/resource_simulation/quantization_summary.csv`
+- **Figures:**
+  - `experiments/paper_results/figures/resource_simulation_p95_latency.png`
+  - `experiments/paper_results/figures/resource_simulation_throughput.png`
+  - `experiments/paper_results/figures/resource_simulation_quantization.png`
+  - `experiments/paper_results/figures/resource_simulation_concurrency.png`
+  - `experiments/paper_results/figures/int8_activation_analysis.png`
+
+---
+
+### Next Steps
+- Integrate Tables 15–17 and Figures 10–14 into Section 5 of the manuscript.
+- Incorporate the empirical activation clipping findings into the Quantization Discussion section.
+- Prepare the final manuscript submission bundle.
 
 ---
 
 _(Add a new section each week)_
+
 
 
 

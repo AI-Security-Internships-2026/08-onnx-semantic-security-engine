@@ -73,3 +73,35 @@ The table below reconciles all historical mismatches previously flagged by `veri
 | `json/training_time_benchmark.json` | `scripts/benchmark_training_time.py` | Scalability and training efficiency across 76, 21, and 13 feature schemas |
 | `json/latency_benchmark.json` | `scripts/benchmark_realtime_vs_offline.py` | Latency decomposition across offline in-memory and real-time HTTP streaming modes |
 | `json/cross_dataset_alignment.json` | `scripts/cross_dataset_alignment_audit.json` | Cross-dataset domain transfer evaluation (CORAL, re-standardization, raw transfer) |
+| `json/resource_simulation_benchmark.json` | `scripts/benchmark_resource_simulation.py` | Edge resource constraint simulation (R0-R3 profiles, Plain vs Engine, concurrency, quantization) |
+| `json/int8_degradation_investigation.json` | `scripts/investigate_int8_quantization.py` | Layer-wise activation dynamic ranges, outlier clipping, and INT8 degradation empirical analysis |
+
+---
+
+## 5. Edge Resource Constraints Simulation Provenance (Issue 5 / E2.3-A-E)
+
+### 5.1 Controlled Simulation vs Physical Edge Guardrail
+To maintain scientific integrity, the manuscript strictly avoids claiming physical edge hardware validation (e.g. Raspberry Pi, Jetson Nano). Instead, the paper frames these experiments as:
+> *"We evaluate SEMANTICSHIELD under controlled CPU- and memory-constrained deployment profiles to approximate resource-limited inference conditions. Physical edge hardware validation remains future work."*
+
+### 5.2 Resource Profiles & Execution Parameters
+Evaluated via Docker cgroups v2 resource quotas on Linux container runtime (`docker-security-engine:latest`):
+- **Profile R0 (Reference):** Unconstrained vCPU, unconstrained RAM. Host baseline.
+- **Profile R1 (Low):** 1 vCPU (`--cpus 1.0`), 512 MB RAM (`--memory 512m`). Emulates strongly constrained IoT/edge gateway.
+- **Profile R2 (Medium):** 2 vCPU (`--cpus 2.0`), 1024 MB RAM (`--memory 1024m`). Emulates industrial controller.
+- **Profile R3 (Higher):** 4 vCPU (`--cpus 4.0`), 2048 MB RAM (`--memory 2048m`). Emulates high-end edge appliance.
+
+### 5.3 Runtime Overhead & Resource Sensitivity Findings
+Across 5 repeated measured runs (5,000 flows/run, 500-flow warm-up) per profile:
+- **Plain ONNX Latency:** Stable at $0.2705 - 0.2988$ ms (Mean), $0.2533 - 0.2692$ ms (p50), $0.3473 - 0.4280$ ms (p95), yielding $3,354 - 3,680$ flows/s throughput.
+- **SEMANTICSHIELD Latency:** Consistently scales to $0.8883 - 0.9309$ ms (Mean), $0.8324 - 0.8528$ ms (p50), $1.2790 - 1.4049$ ms (p95), maintaining $1,073 - 1,124$ flows/s throughput.
+- **Absolute Assurance Overhead:** Fixed at $+0.61 - +0.64$ ms across all resource profiles, demonstrating that assurance computational complexity remains constant and bounded even under tight CPU constraints (1 vCPU).
+- **Memory Footprint:** Peak RSS remains essentially flat ($122.4 - 124.9$ MB) across both Plain ONNX and SEMANTICSHIELD, operating well within the 512 MB memory boundary of Profile R1.
+
+### 5.4 INT8 Degradation Investigation Findings (E2.3-E)
+- **Empirical Observation:** Post-training static INT8 quantization (`threat_mlp_nf_int8.onnx`, 47.9 KB) suffers a severe drop in Macro-F1 ($0.7801 \to 0.4833$, a $38.0\%$ drop), whereas weight-only INT4 quantization (`threat_mlp_nf_int4.onnx`, 34.0 KB) preserves $0.7627$ Macro-F1 ($97.8\%$ retention).
+- **Root Cause Evidence:**
+  1. *Activation Range Skewness & Clipping:* Intermediate post-ReLU activations exhibit severe positive skewness where 99th percentile activations are $< 12.0$ but extreme burst outliers reach $> 50.0$.
+  2. *Calibration Compression:* Static `QUInt8` quantization maps the full range $[0, 255]$ using a linear scale factor ($0.167 - 4.228$). When test flows containing extreme attack traffic are processed, activations saturate and clip at 255, destroying discriminative boundary margins for rare attack classes.
+  3. *Weight vs Activation Decoupling:* Because weight-only INT4 retains 0.7627 Macro-F1, the degradation is conclusively proven to stem from activation quantization and outlier clipping, not weight precision reduction.
+

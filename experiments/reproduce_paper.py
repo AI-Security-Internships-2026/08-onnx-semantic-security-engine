@@ -115,6 +115,26 @@ STAGES = [
         "slow": True,
         "description": "Trains models from scratch across 76, 21, and 13-feature schemas",
     },
+    {
+        "id": "int8_investigation",
+        "name": "INT8 Quantization Degradation Investigation (E2.3-E)",
+        "script": "scripts/investigate_int8_quantization.py",
+        "args": [],
+        "output_json": "int8_degradation_investigation.json",
+        "output_fig": "int8_activation_analysis.png",
+        "slow": False,
+        "description": "Inspects activation dynamic ranges, outlier clipping, and calibration distribution",
+    },
+    {
+        "id": "resource_simulation",
+        "name": "Edge Resource Constraints Simulation Benchmark (E2.3-A-D)",
+        "script": "scripts/benchmark_resource_simulation.py",
+        "args": ["--n-flows", "5000", "--repetitions", "5"],
+        "output_json": "resource_simulation_benchmark.json",
+        "output_fig": "resource_simulation_p95_latency.png",
+        "slow": True,
+        "description": "Evaluates Plain ONNX vs SEMANTICSHIELD under 4 constrained profiles with 5 repetitions",
+    },
 ]
 
 
@@ -158,6 +178,8 @@ def verify_results(json_dir: Path, fig_dir: Path = None, tables_dir: Path = None
         "statistical_rigor_benchmark.json",
         "training_time_benchmark.json",
         "latency_benchmark.json",
+        "resource_simulation_benchmark.json",
+        "int8_degradation_investigation.json",
     ]
 
     all_ok = True
@@ -173,7 +195,7 @@ def verify_results(json_dir: Path, fig_dir: Path = None, tables_dir: Path = None
                     data = json.load(f)
                 size_kb = p.stat().st_size / 1024
                 keys = list(data.keys())[:3]
-                print(f"  [OK]      {fname:<32} ({size_kb:>6.1f} KB, keys: {keys})")
+                print(f"  [OK]      {fname:<36} ({size_kb:>6.1f} KB, keys: {keys})")
             except Exception as e:
                 print(f"  [CORRUPT] {fname}: {e}")
                 all_ok = False
@@ -191,6 +213,11 @@ def verify_results(json_dir: Path, fig_dir: Path = None, tables_dir: Path = None
         "statistical_rigor_plots.png",
         "training_time_comparison.png",
         "realtime_vs_offline.png",
+        "resource_simulation_p95_latency.png",
+        "resource_simulation_throughput.png",
+        "resource_simulation_quantization.png",
+        "resource_simulation_concurrency.png",
+        "int8_activation_analysis.png",
     ]
 
     print("\n[2/3] Manuscript Figures (PNG):")
@@ -201,7 +228,7 @@ def verify_results(json_dir: Path, fig_dir: Path = None, tables_dir: Path = None
             all_ok = False
         else:
             size_kb = p.stat().st_size / 1024
-            print(f"  [OK]      {ffig:<32} ({size_kb:>6.1f} KB)")
+            print(f"  [OK]      {ffig:<36} ({size_kb:>6.1f} KB)")
 
     if tables_dir is None:
         tables_dir = json_dir.parent / "tables"
@@ -215,6 +242,9 @@ def verify_results(json_dir: Path, fig_dir: Path = None, tables_dir: Path = None
         "table6_ablation_study.csv",
         "table7_cross_model_comparison.csv",
         "table8_latency_breakdown.csv",
+        "table_resource_profiles.csv",
+        "table_runtime_overhead.csv",
+        "table_quantization_tradeoff.csv",
     ]
 
     print("\n[3/3] Canonical Manuscript Tables (CSV):")
@@ -225,7 +255,7 @@ def verify_results(json_dir: Path, fig_dir: Path = None, tables_dir: Path = None
             all_ok = False
         else:
             size_kb = p.stat().st_size / 1024
-            print(f"  [OK]      {ftab:<32} ({size_kb:>6.1f} KB)")
+            print(f"  [OK]      {ftab:<36} ({size_kb:>6.1f} KB)")
 
     return all_ok
 
