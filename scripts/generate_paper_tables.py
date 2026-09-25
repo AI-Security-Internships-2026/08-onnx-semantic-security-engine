@@ -653,6 +653,38 @@ def generate_table17_quantization_tradeoff(json_dir: Path, out_dir: Path):
     print(f"  [SAVED] {out_file.name}")
 
 
+def generate_table18_semantic_feature_audit(base_dir: Path, out_dir: Path):
+    """Table: Semantic Feature Audit Matrix (Issue 6)."""
+    src_path = base_dir / "docs" / "semantic_feature_audit.csv"
+    out_file = out_dir / "table_semantic_feature_audit.csv"
+    if src_path.exists():
+        with open(src_path, "r", encoding="utf-8") as f_in, open(out_file, "w", newline="", encoding="utf-8") as f_out:
+            f_out.write(f_in.read())
+        print(f"  [SAVED] {out_file.name}")
+    else:
+        print(f"  [SKIP] Table 18: {src_path.name} not found")
+
+
+def generate_table19_prior_work_comparison(base_dir: Path, out_dir: Path):
+    """Table: Systematic Prior-Work Comparison Matrix (Issue 6)."""
+    out_file = out_dir / "table_prior_work_comparison.csv"
+    rows = [
+        ["Paper / System", "Deployment Domain", "Flow Ingestion Format", "Feature Reconciliation Method", "Fixed-FPR Evaluation", "Quantization Investigated", "Edge Simulation / Hardware", "Root-Cause Error Analysis"],
+        ["Kitsune (Mirsky et al. 2018)", "Edge / IoT Gateway", "Raw Packet / Incremental Stats", "None (single packet stream)", "No", "No", "Physical Hardware (RPi 3B)", "No (anomaly score only)"],
+        ["McLaughlin et al. (2023)", "Datacenter / Server", "Tabular Flow (CIC/NetFlow)", "None (uniform dataset schemas)", "Partial (FPR@95 only)", "No", "None (GPU Server)", "Partial (OOD method sensitivity)"],
+        ["NetSight (Handigol / Pratt et al.)", "SDN / Switch Telemetry", "Packet History Digests", "None (homogeneous switch logs)", "No", "No", "Hardware Testbed (Switches)", "No (path reconstruction only)"],
+        ["Sarhan et al. (2022)", "Offline Benchmark", "NetFlow v9 (nProbe)", "Schema Projection (12/43 NF)", "No", "No", "None (Offline Server)", "No (macro dataset metrics)"],
+        ["Cantone et al. (2024)", "Offline Benchmark", "CICFlowMeter (CIC/LycoS)", "Manual Column Name Subset", "No", "No", "None (Offline Server)", "Partial (artifact memorization)"],
+        ["Jajal et al. (2024)", "General DL Deployment", "N/A (General DNN Graphs)", "None (operator translation)", "No", "Partial (quantization node bugs)", "None (Host Workstation)", "Yes (graph/operator defects)"],
+        ["Yang et al. (2022)", "IoV / Vehicle Edge", "CICFlowMeter / UNSW", "Per-Dataset Feature Selection", "No", "No", "Edge Node Emulation", "No (feature importance only)"],
+        ["SEMANTICSHIELD (This Work)", "Edge Gateway / Embedded NIDS", "Hybrid (NetFlow v9 <-> CICFlowMeter)", "Physical Semantic Audit (4 Tiers; kappa=1.0)", "Yes (Fixed-FPR <= 0.1% / 1.0%)", "Yes (FP32/FP16/INT8/INT4)", "Yes (Simulated R0-R3 Profiles)", "Yes (Per-Field & Tensor Outliers)"],
+    ]
+    with open(out_file, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerows(rows)
+    print(f"  [SAVED] {out_file.name}")
+
+
 def main():
     print("=" * 70)
     print("  GENERATING CANONICAL PAPER CSV TABLES FROM JSON RESULTS")
@@ -679,10 +711,14 @@ def main():
     generate_table15_resource_profiles(JSON_DIR, TABLES_DIR)
     generate_table16_runtime_overhead(JSON_DIR, TABLES_DIR)
     generate_table17_quantization_tradeoff(JSON_DIR, TABLES_DIR)
+    # Issue 6: Semantic Feature Audit & Prior-Work Comparison tables
+    generate_table18_semantic_feature_audit(BASE_DIR, TABLES_DIR)
+    generate_table19_prior_work_comparison(BASE_DIR, TABLES_DIR)
     print("=" * 70)
     print(f"All tables exported to {TABLES_DIR}")
 
 
 if __name__ == "__main__":
     main()
+
 

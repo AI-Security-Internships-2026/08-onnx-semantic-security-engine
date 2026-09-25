@@ -67,7 +67,7 @@ Use Google Scholar, IEEE Xplore, ACM DL, arXiv, or USENIX Security.
 | Field | Content |
 |---|---|
 | **Full title** | Performance Characterization of using Quantization for DNN Inference on Edge Devices: Extended Version |
-| **Authors** | Arxiv 2303.05016 |
+| **Authors** | Hyunho Ahn, Tian Chen, Nawras Alnaasan, Aamir Shafi, Mustafa Abduljabbar, Hari Subramoni, Dhabaleswar K. Panda |
 | **Year** | 2023 |
 | **Venue** | arXiv (extended version) |
 | **URL / DOI** | https://arxiv.org/pdf/2303.05016 |
@@ -90,9 +90,9 @@ Use Google Scholar, IEEE Xplore, ACM DL, arXiv, or USENIX Security.
 | Field | Content |
 |---|---|
 | **Full title** | EdgeMLOps: Operationalizing ML Models with Cumulocity IoT and thin-edge.io for Visual Quality Inspection |
-| **Authors** | arXiv 2501.17062 |
+| **Authors** | Kanishk Chaturvedi, Johannes Gasthuber, Mohamed Abdelaal |
 | **Year** | 2025 |
-| **Venue** | arXiv |
+| **Venue** | arXiv / BTW 2025 |
 | **URL / DOI** | https://arxiv.org/pdf/2501.17062 |
 | **Method** | Deploys ONNX-quantized models on Raspberry Pi 4 (4GB); compares FP32 vs Signed-INT8-Static vs Signed-INT8-Dynamic inference time |
 | **Dataset** | Visual quality inspection dataset (IoT edge deployment) |
@@ -114,9 +114,9 @@ Use Google Scholar, IEEE Xplore, ACM DL, arXiv, or USENIX Security.
 | Field | Content |
 |---|---|
 | **Full title** | Edge AI in Practice: A Survey and Deployment Framework for Neural Networks on Embedded Systems |
-| **Authors** | MDPI Electronics |
+| **Authors** | Ruth Cordova-Cardenas, Daniel Amor, Álvaro Gutiérrez |
 | **Year** | 2025 |
-| **Venue** | MDPI Electronics, Vol. 14, No. 24 |
+| **Venue** | MDPI Electronics, Vol. 14, No. 24, Art. 4877 |
 | **URL / DOI** | https://www.mdpi.com/2079-9292/14/24/4877 |
 | **Method** | Systematic literature review (PRISMA) of deep learning deployment on embedded hardware; covers pruning, quantization, lightweight architectures, hardware platforms, and software frameworks |
 | **Dataset** | Survey of existing literature — no single dataset |
@@ -183,11 +183,11 @@ Use Google Scholar, IEEE Xplore, ACM DL, arXiv, or USENIX Security.
 
 | Field | Content |
 |---|---|
-| **Full title** | Improved Deep Learning Model for Network Intrusion Detection Based on the CSE-CIC-IDS2018 Dataset |
-| **Authors** | M. H. Al-Ambusaidi et al. |
-| **Year** | 2023 |
-| **Venue** | Engineering, Technology & Applied Science Research (ETASR), Vol. 13, No. 5 |
-| **URL / DOI** | https://etasr.com/index.php/ETASR/article/view/6210 |
+| **Full title** | Deep Learning-Based Anomaly and Intrusion Detection Using the CSE-CIC-IDS2018 Dataset |
+| **Authors** | Al Baraa Bouidaine, Djilali Moussaoui, Mourad Hadjila, Wafaa Ferhi, Mohammed Hicham Hachemi |
+| **Year** | 2025 |
+| **Venue** | Engineering, Technology & Applied Science Research (ETASR), Vol. 15, No. 4 |
+| **URL / DOI** | https://doi.org/10.48084/etasr.9760 |
 | **Method** | DNN with L2 regularization for multi-class classification on CSE-CIC-IDS2018; aggregates rare attack types into broader categories to reduce misclassification |
 | **Dataset** | CSE-CIC-IDS2018 |
 | **Key result** | Achieves 99.91% accuracy and 94.78% F1-score after attack-category aggregation; demonstrates that class grouping significantly improves minority-class detection |
@@ -255,12 +255,12 @@ Use Google Scholar, IEEE Xplore, ACM DL, arXiv, or USENIX Security.
 |---|---|---|---|---|---|---|
 | 1 | Kitsune | Mirsky et al. | 2018 | Autoencoder ensemble | Live network captures | Closest prior work; design baseline |
 | 2 | ONNX Converter Failures | Jajal et al. | 2024 | Issue analysis + survey | 200 GitHub issues | Export pipeline risk awareness |
-| 3 | Quantization on Edge Devices | arXiv 2303.05016 | 2023 | INT8/FP16 benchmarks | MobileNetV2, VGG-19 | Quantization strategy validation |
-| 4 | EdgeMLOps / Raspberry Pi | arXiv 2501.17062 | 2025 | ONNX on RPi 4 | IoT edge deployment | Concrete edge benchmark numbers |
-| 5 | Edge AI Survey | MDPI Electronics | 2025 | PRISMA literature review | Survey | Full edge deployment landscape |
+| 3 | Quantization on Edge Devices | Ahn et al. | 2023 | INT8/FP16 benchmarks | MobileNetV2, VGG-19 | Quantization strategy validation |
+| 4 | EdgeMLOps / Raspberry Pi | Chaturvedi et al. | 2025 | ONNX on RPi 4 | IoT edge deployment | Concrete edge benchmark numbers |
+| 5 | Edge AI Survey | Cordova-Cardenas et al. | 2025 | PRISMA literature review | Survey | Full edge deployment landscape |
 | 6 | Cross-Dataset ML IDS | Cantone et al. | 2024 | Cross-dataset testing | Multiple IDS datasets | Highlights generalization gaps |
 | 7 | Standard NIDS Feature Set | Sarhan et al. | 2021 | NetFlow standard | UNSW, BoT, ToN, CSE-CIC | Feature alignment methodology |
-| 8 | DNN on CSE-CIC-IDS2018 | Al-Ambusaidi et al. | 2023 | DNN + L2 multi-class | CSE-CIC-IDS2018 | MLP baseline metrics |
+| 8 | DNN on CSE-CIC-IDS2018 | Bouidaine et al. | 2025 | DNN + L2 multi-class | CSE-CIC-IDS2018 | MLP baseline metrics |
 | 9 | Edge-IIoTset | Ferrag et al. | 2022 | Testbed creation | Edge-IIoTset | Edge/IoT attack relevance |
 | 10 | ML/DL NIDS Survey | Ahmad et al. | 2021 | Systematic review | Various datasets | Academic context for DL use |
 

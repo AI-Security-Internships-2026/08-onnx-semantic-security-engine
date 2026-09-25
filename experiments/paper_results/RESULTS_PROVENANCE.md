@@ -105,3 +105,29 @@ Across 5 repeated measured runs (5,000 flows/run, 500-flow warm-up) per profile:
   2. *Calibration Compression:* Static `QUInt8` quantization maps the full range $[0, 255]$ using a linear scale factor ($0.167 - 4.228$). When test flows containing extreme attack traffic are processed, activations saturate and clip at 255, destroying discriminative boundary margins for rare attack classes.
   3. *Weight vs Activation Decoupling:* Because weight-only INT4 retains 0.7627 Macro-F1, the degradation is conclusively proven to stem from activation quantization and outlier clipping, not weight precision reduction.
 
+---
+
+## 6. Semantic Feature Audit & Literature Gap Analysis Provenance (Issue 6)
+
+### 6.1 Semantic Feature Audit & Four-Tier Taxonomy
+- **Scope:** Complete per-field physical and mathematical audit across all 21 candidate flow feature pairs between NetFlow v9 / IPFIX (nProbe v9) and CICFlowMeter v4 (CSE-CIC-IDS2018).
+- **Four-Tier Classification:**
+  - **Equivalent (7 pairs, 33.3%):** Identical physical quantity, unit, directionality, and computation logic. Governed by explicit RFC 7012 Information Elements (e.g. IE 86, IE 87, IE 85, IE 23, IE 4).
+  - **Convertible (1 pair, 4.8%):** Identical physical duration differing solely by a known constant linear scaling factor (ms vs $\mu\text{s}$, convertible via $10^{-3}$ scaling).
+  - **Approximate (5 pairs, 23.8%):** Compatible physical dimensions with documented directional scope or aggregation window variations.
+  - **Incompatible (8 pairs, 38.1%):** Severe dimensional, state-representation, or semantic phenomenon mismatches (e.g. bitrate in bps mapped to header bytes, or cumulative 8-bit TCP control bitmask mapped to discrete forward PSH packet counter).
+- **Inter-Rater Reliability:** Dual-review protocol between Reviewer 1 (Network Protocols / RFC specialist) and Reviewer 2 (ML / Data Engineering specialist) yielded $P_o = 1.00$, $P_e = 0.3152$, and Cohen's Kappa $\kappa = 1.00$, grounded in RFC 7012, RFC 793, nProbe manuals, and CICFlowMeter source code (`FlowFeature.java`).
+- **Canonical Files:** `docs/semantic_feature_audit.csv`, `docs/semantic_feature_audit.md`, and `experiments/paper_results/tables/table_semantic_feature_audit.csv`.
+
+### 6.2 Prior-Work Comparison Matrix & Eight Thematic Pillars
+- **Comparison Scope:** 8 systems (Kitsune, McLaughlin, NetSight, Sarhan, Cantone, Jajal, Yang, and SEMANTICSHIELD) evaluated across 8 operational and methodology columns.
+- **Thematic Structuring:** 8 pillars covering OOD foundations, Deep NIDS & base-rate constraints, telemetry standards, cross-dataset collapse, edge ML & quantization, ONNX interoperability, adversarial robustness, and SEMANTICSHIELD positioning.
+- **Canonical Files:** `docs/prior_work_comparison.md` and `experiments/paper_results/tables/table_prior_work_comparison.csv`.
+
+### 6.3 Reference Audit & Bibliography Hardening
+- **Author Corrections:** Fixed placeholder `{Various Authors}` in `quantedge2023` with verified author team (Hyunho Ahn et al., arXiv:2303.05016). Updated all author placeholders in `docs/literature-review.md`.
+- **BibTeX Syntax:** Converted `mitre2024` from incomplete `@inproceedings` to `@misc`.
+- **Foundational Additions:** Added Axelsson (ACM CCS 1999, base-rate fallacy), Sommer & Paxson (IEEE S&P 2010, closed world), Hofstede et al. (IEEE Surveys 2014, flow monitoring), RFC 7012, RFC 793, Handigol et al. (NSDI 2014), and Sastry & Oore (ICML 2020).
+- **Documentation:** `docs/reference_audit_report.md` and `docs/paper/references.bib`.
+
+

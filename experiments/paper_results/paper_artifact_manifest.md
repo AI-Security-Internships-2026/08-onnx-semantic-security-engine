@@ -20,6 +20,8 @@ This document maps every table, figure, and empirical claim in the research manu
 | **Table 15: Resource Profiles** | Simulated edge profiles R0, R1, R2, R3 (CPU, memory, runtime, workload) | `scripts/benchmark_resource_simulation.py` | `experiments/paper_results/json/resource_simulation_benchmark.json` | `resource_profiles.*` |
 | **Table 16: Runtime Overhead** | Plain ONNX vs SEMANTICSHIELD mean/p50/p95/p99 latency, throughput, peak RSS, CPU % across profiles | `scripts/benchmark_resource_simulation.py` | `experiments/paper_results/json/resource_simulation_benchmark.json` | `profiles_benchmark.*.plain_onnx.*`, `profiles_benchmark.*.semantic_shield.*`, `profiles_benchmark.*.overhead.*` |
 | **Table 17: Quantization Trade-offs** | Precision (FP32/FP16/INT8/INT4), size (MB), accuracy, macro-F1, p95 latency, throughput, peak RSS under R1 | `scripts/benchmark_resource_simulation.py` | `experiments/paper_results/json/resource_simulation_benchmark.json` | `profiles_benchmark.R1.quantization_tradeoffs.*` |
+| **Table 18: Semantic Feature Audit Matrix** | Field-by-field physical audit of 21 NetFlow vs CICFlowMeter feature pairs across 4 tiers | `scripts/generate_paper_tables.py` | `docs/semantic_feature_audit.csv` | `Pair_ID`, `Compatibility_Verdict`, `Primary_Authoritative_Source` |
+| **Table 19: Prior-Work Comparison Matrix** | Systematic comparison against 7 systems across 8 operational and evaluation dimensions | `scripts/generate_paper_tables.py` | `experiments/paper_results/tables/table_prior_work_comparison.csv` | `Deployment Domain`, `Flow Ingestion Format`, `Fixed-FPR Evaluation`, `Quantization Investigated` |
 
 ---
 

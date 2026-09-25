@@ -1255,7 +1255,88 @@ This provides rigorous deployment-efficiency and resource-sensitivity evidence, 
 
 ---
 
-_(Add a new section each week)_
+## Issue 6: Validate Semantic Feature Audit & Rebuild Literature Gap Analysis
+
+**Branch:** `sikandarhussain6858-issue-1`  
+**Status:** Completed  
+**Priority:** High (Novelty & Scientific Evidence)  
+**Dependencies:** M2.1, M2.2  
+
+---
+
+### What I Did
+
+#### 1. Source-Verified Reproducible Semantic Feature Audit
+- Conducted an exhaustive, field-by-field physical and mathematical audit across all 21 candidate flow feature pairs between NetFlow v9 / IPFIX (via nProbe v9) and CICFlowMeter v4 (CSE-CIC-IDS2018).
+- Categorized all 21 pairs into four deterministic compatibility tiers:
+  - **Equivalent (7 pairs, 33.3%):** Identical physical quantity, unit, directionality, and computation logic (`IN_PKTS`, `OUT_PKTS`, `IN_BYTES`, `OUT_BYTES`, `LONGEST_FLOW_PKT`, `SHORTEST_FLOW_PKT`, `PROTOCOL`). Standardized directly.
+  - **Convertible (1 pair, 4.8%):** Identical physical duration differing solely by a known constant linear scaling factor (`FLOW_DURATION_MILLISECONDS` ms $\times 10^3 = \mu\text{s}$ in `Flow Duration`).
+  - **Approximate (5 pairs, 23.8%):** Compatible physical dimensions with documented directional scope or aggregation window variations (`MAX_IP_PKT_LEN`, `MIN_IP_PKT_LEN`, `SRC_TO_DST_SECOND_BYTES`, `TCP_WIN_MAX_IN`, `TCP_WIN_MAX_OUT`).
+  - **Incompatible (8 pairs, 38.1%):** Severe dimensional, state-representation, or semantic phenomenon mismatches (`SRC_TO_DST_AVG_THROUGHPUT`, `DST_TO_SRC_AVG_THROUGHPUT`, `TCP_FLAGS`, `RETRANSMITTED_IN_PKTS`, `RETRANSMITTED_OUT_PKTS`, `RETRANSMITTED_IN_BYTES`, `RETRANSMITTED_OUT_BYTES`, `NUM_PKTS_UP_TO_128_BYTES`). Discarded in SEMANTICSHIELD to prevent negative transfer.
+- Grounded every field in primary standards: **IETF RFC 7012** (IPFIX Information Elements), **RFC 793** (Transmission Control Protocol), nProbe v9 documentation, and CICFlowMeter Java source code (`FlowFeature.java`).
+- Documented dual-review inter-rater reliability protocol between Reviewer 1 (Network Protocols / RFC specialist) and Reviewer 2 (ML / Data Engineering specialist), achieving observed agreement $P_o = 1.00$, chance agreement $P_e = 0.3152$, and **Cohen's Kappa $\kappa = 1.00$** with explicit methodological qualifications.
+- Produced publication-ready artifacts: [`docs/semantic_feature_audit.csv`](file:///d:/Internship/08-onnx-semantic-security-engine/docs/semantic_feature_audit.csv), [`docs/semantic_feature_audit.md`](file:///d:/Internship/08-onnx-semantic-security-engine/docs/semantic_feature_audit.md), and canonical table [`experiments/paper_results/tables/table_semantic_feature_audit.csv`](file:///d:/Internship/08-onnx-semantic-security-engine/experiments/paper_results/tables/table_semantic_feature_audit.csv).
+
+#### 2. Prior-Work Comparison Matrix & Gap Analysis
+- Built a systematic prior-work comparison matrix evaluating SEMANTICSHIELD against 7 prominent systems/studies across 8 operational and methodology columns:
+  - **Systems Evaluated:** Kitsune (Mirsky et al. 2018), McLaughlin et al. (2023), NetSight (Handigol / Pratt et al.), Sarhan et al. (2022), Cantone et al. (2024), Jajal et al. (2024), Yang et al. (2022), and SEMANTICSHIELD.
+  - **Evaluation Dimensions:** Deployment Domain, Flow Ingestion Format, Feature Reconciliation Method, Fixed-FPR Evaluation, Quantization Investigated, Edge Simulation / Hardware, and Root-Cause Error Analysis.
+- Structured the literature gap analysis into **Eight Thematic Pillars**:
+  1. *Out-of-Distribution & Anomaly Detection Foundations in ML* (Hendrycks, Lee, Liu, Liang, Sun, Sastry & Oore).
+  2. *Deep Learning for NIDS & Operational Base-Rate Constraints* (Ahmad, Bouidaine, Ferrag, Yang, Axelsson, Sommer & Paxson).
+  3. *Flow Telemetry Standards & Packet Aggregation* (Hofstede, Claise & Trammell / RFC 7012, Postel / RFC 793, Handigol).
+  4. *Cross-Dataset Generalization Collapse & Semantic Discrepancy* (Pontes, Sarhan, Cantone).
+  5. *Edge Machine Learning & Precision Quantization* (Ahn, Liang, Chaturvedi, Nagel, Lin).
+  6. *Interoperability & Runtime Failure Analysis in ONNX Deployments* (Jajal, Microsoft ONNX Runtime).
+  7. *Realistic Adversarial Robustness & Concept Drift in Network Telemetry* (Apruzzese, Aceto, Depren, MITRE).
+  8. *Distinct Positioning of SEMANTICSHIELD*.
+- Exported artifacts: [`docs/prior_work_comparison.md`](file:///d:/Internship/08-onnx-semantic-security-engine/docs/prior_work_comparison.md) and canonical table [`experiments/paper_results/tables/table_prior_work_comparison.csv`](file:///d:/Internship/08-onnx-semantic-security-engine/experiments/paper_results/tables/table_prior_work_comparison.csv).
+
+#### 3. Complete Reference Audit & Bibliography Correction
+- Resolved placeholder author strings:
+  - `quantedge2023`: Replaced `{Various Authors}` with verified author team: Hyunho Ahn, Tian Chen, Nawras Alnaasan, Aamir Shafi, Mustafa Abduljabbar, Hari Subramoni, Dhabaleswar K. Panda (arXiv:2303.05016).
+  - Updated all author placeholders in `docs/literature-review.md` (Chaturvedi et al., Cordova-Cardenas et al., Bouidaine et al.).
+- Corrected BibTeX entry types: converted `mitre2024` from incomplete `@inproceedings` to `@misc`.
+- Added foundational literature essential for NIDS operational rigor:
+  - **Axelsson (ACM CCS 1999):** The base-rate fallacy in intrusion detection.
+  - **Sommer & Paxson (IEEE S&P 2010):** Outside the closed world of machine learning in network intrusion detection.
+  - **Hofstede et al. (IEEE Surveys 2014):** Flow monitoring explained: from packet capture to data analysis.
+  - **RFC 7012 & RFC 793:** Formal standards for IPFIX Information Elements and TCP Control Bits.
+  - **Handigol et al. (USENIX NSDI 2014):** NetSight packet history tracking.
+  - **Sastry & Oore (ICML 2020):** Out-of-distribution detection with Gram matrices.
+- Documented full audit in [`docs/reference_audit_report.md`](file:///d:/Internship/08-onnx-semantic-security-engine/docs/reference_audit_report.md).
+
+#### 4. Manuscript Refinement & Novelty Qualification
+- In [`docs/paper/paper-draft.tex`](file:///d:/Internship/08-onnx-semantic-security-engine/docs/paper/paper-draft.tex):
+  - Qualified absolute novelty language: replaced "the first per-field physical-quantity reconciliation" and "first concrete explanation" with precise, source-verified empirical statements.
+  - Rebuilt Section II (Related Work) across all 8 thematic pillars and embedded `Table~\ref{tab:prior_work}`.
+  - Rebuilt Section IV (Semantic Schema Audit) with the four-tier taxonomy, dual-review inter-rater reliability ($\kappa = 1.00$), and the exact 8 incompatible pairs table.
+  - Confirmed edge hardware evaluation framing strictly as containerized resource-constrained simulation rather than physical device validation.
+
+#### 5. Pipeline Integration & Comprehensive Unit Testing
+- Updated [`scripts/generate_paper_tables.py`](file:///d:/Internship/08-onnx-semantic-security-engine/scripts/generate_paper_tables.py) to automatically emit Tables 18 and 19.
+- Created [`tests/test_semantic_audit.py`](file:///d:/Internship/08-onnx-semantic-security-engine/tests/test_semantic_audit.py) verifying audit CSV consistency, column completeness, four-tier counts, RFC references, Cohen's Kappa calculation, prior-work comparison table, and BibTeX integrity.
+- Verified test suite: **71/71 tests passing (100% pass rate)**.
+
+---
+
+### Artifact Summary for Issue 6
+
+| Artifact | File Location | Purpose |
+|:---|:---|:---|
+| **Semantic Audit CSV** | [`docs/semantic_feature_audit.csv`](file:///d:/Internship/08-onnx-semantic-security-engine/docs/semantic_feature_audit.csv) | Full 21-feature audit data with RFC references |
+| **Canonical Audit Table** | [`experiments/paper_results/tables/table_semantic_feature_audit.csv`](file:///d:/Internship/08-onnx-semantic-security-engine/experiments/paper_results/tables/table_semantic_feature_audit.csv) | Manuscript Table 18 for reproducible reporting |
+| **Audit Narrative & Reliability** | [`docs/semantic_feature_audit.md`](file:///d:/Internship/08-onnx-semantic-security-engine/docs/semantic_feature_audit.md) | Four-tier analysis and Cohen's Kappa ($\kappa = 1.00$) report |
+| **Prior-Work Matrix CSV** | [`experiments/paper_results/tables/table_prior_work_comparison.csv`](file:///d:/Internship/08-onnx-semantic-security-engine/experiments/paper_results/tables/table_prior_work_comparison.csv) | Manuscript Table 19 comparing 8 systems across 8 dimensions |
+| **Literature Gap Analysis** | [`docs/prior_work_comparison.md`](file:///d:/Internship/08-onnx-semantic-security-engine/docs/prior_work_comparison.md) | Narrative covering the 8 thematic pillars |
+| **Reference Audit Report** | [`docs/reference_audit_report.md`](file:///d:/Internship/08-onnx-semantic-security-engine/docs/reference_audit_report.md) | Documentation of corrected authors, DOIs, and new RFC citations |
+| **Audited BibTeX File** | [`docs/paper/references.bib`](file:///d:/Internship/08-onnx-semantic-security-engine/docs/paper/references.bib) | Verified bibliography for publication submission |
+| **Updated Manuscript Draft** | [`docs/paper/paper-draft.tex`](file:///d:/Internship/08-onnx-semantic-security-engine/docs/paper/paper-draft.tex) | Sections I, II, and IV updated with qualified claims and tables |
+| **Automated Table Script** | [`scripts/generate_paper_tables.py`](file:///d:/Internship/08-onnx-semantic-security-engine/scripts/generate_paper_tables.py) | Canonical table generator updated for Tables 18 & 19 |
+| **Unit Test Suite** | [`tests/test_semantic_audit.py`](file:///d:/Internship/08-onnx-semantic-security-engine/tests/test_semantic_audit.py) | 7 unit tests covering schema, Kappa, and BibTeX |
+
+---
+
 
 
 

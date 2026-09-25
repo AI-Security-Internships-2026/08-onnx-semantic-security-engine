@@ -1,0 +1,9 @@
+Paper / System,Deployment Domain,Flow Ingestion Format,Feature Reconciliation Method,Fixed-FPR Evaluation,Quantization Investigated,Edge Simulation / Hardware,Root-Cause Error Analysis
+Kitsune (Mirsky et al. 2018),Edge / IoT Gateway,Raw Packet / Incremental Stats,None (single packet stream),No,No,Physical Hardware (RPi 3B),No (anomaly score only)
+McLaughlin et al. (2023),Datacenter / Server,Tabular Flow (CIC/NetFlow),None (uniform dataset schemas),Partial (FPR@95 only),No,None (GPU Server),Partial (OOD method sensitivity)
+NetSight (Handigol / Pratt et al.),SDN / Switch Telemetry,Packet History Digests,None (homogeneous switch logs),No,No,Hardware Testbed (Switches),No (path reconstruction only)
+Sarhan et al. (2022),Offline Benchmark,NetFlow v9 (nProbe),Schema Projection (12/43 NF),No,No,None (Offline Server),No (macro dataset metrics)
+Cantone et al. (2024),Offline Benchmark,CICFlowMeter (CIC/LycoS),Manual Column Name Subset,No,No,None (Offline Server),Partial (artifact memorization)
+Jajal et al. (2024),General DL Deployment,N/A (General DNN Graphs),None (operator translation),No,Partial (quantization node bugs),None (Host Workstation),Yes (graph/operator defects)
+Yang et al. (2022),IoV / Vehicle Edge,CICFlowMeter / UNSW,Per-Dataset Feature Selection,No,No,Edge Node Emulation,No (feature importance only)
+SEMANTICSHIELD (This Work),Edge Gateway / Embedded NIDS,Hybrid (NetFlow v9 <-> CICFlowMeter),Physical Semantic Audit (4 Tiers; kappa=1.0),Yes (Fixed-FPR <= 0.1% / 1.0%),Yes (FP32/FP16/INT8/INT4),Yes (Simulated R0-R3 Profiles),Yes (Per-Field & Tensor Outliers)

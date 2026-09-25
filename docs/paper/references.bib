@@ -5,6 +5,58 @@
 % ============================================================
 
 % -----------------------------------------------------------
+% Foundational NIDS Methodology & Base-Rate Rigor
+% -----------------------------------------------------------
+
+@inproceedings{axelsson1999baserate,
+  author    = {Stefan Axelsson},
+  title     = {The Base-Rate Fallacy and the Difficulty of Intrusion Detection},
+  booktitle = {Proc. 6th ACM Conference on Computer and Communications Security (CCS)},
+  pages     = {99--105},
+  year      = {1999},
+}
+
+@inproceedings{sommer2010outside,
+  author    = {Robin Sommer and Vern Paxson},
+  title     = {Outside the Closed World: On Using Machine Learning for Network Intrusion Detection},
+  booktitle = {Proc. IEEE Symposium on Security and Privacy (S\&P)},
+  pages     = {305--316},
+  year      = {2010},
+}
+
+@article{hofstede2014flowmonitoring,
+  author    = {Rick Hofstede and Pavel {\v{C}}eleda and Brian Trammell and Idilio Drago and Ramin Sadre and Anna Sperotto and Aiko Pras},
+  title     = {Flow Monitoring Explained: From Packet Capture to Data Analysis},
+  journal   = {IEEE Communications Surveys \& Tutorials},
+  volume    = {16},
+  number    = {4},
+  pages     = {2037--2064},
+  year      = {2014},
+}
+
+% -----------------------------------------------------------
+% Network Protocol Standards & Telemetry Specifications
+% -----------------------------------------------------------
+
+@techreport{rfc7012,
+  author       = {Benoit Claise and Brian Trammell},
+  title        = {Information Model for {IP} Flow Information Export ({IPFIX})},
+  institution  = {RFC Editor},
+  type         = {RFC},
+  number       = {7012},
+  year         = {2013},
+}
+
+@techreport{rfc793,
+  author       = {Jon Postel},
+  title        = {Transmission Control Protocol},
+  institution  = {RFC Editor},
+  type         = {RFC},
+  number       = {793},
+  year         = {1981},
+}
+
+% -----------------------------------------------------------
 % OOD / Anomaly Detection Foundations
 % -----------------------------------------------------------
 
@@ -41,6 +93,14 @@
   title     = {{ReAct}: Out-of-Distribution Detection with Rectified Activations},
   booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
   year      = {2021},
+}
+
+@inproceedings{sastry2020gram,
+  author    = {Chaitanya Sastry and Sageev Oore},
+  title     = {Detecting Out-of-Distribution Examples with Gram Matrices},
+  booktitle = {Proc. 37th International Conference on Machine Learning (ICML)},
+  pages     = {8491--8501},
+  year      = {2020},
 }
 
 % -----------------------------------------------------------
@@ -117,6 +177,14 @@
   year      = {2025},
 }
 
+@inproceedings{handigol2014netsight,
+  author    = {Nikhil Handigol and Brandon Heller and Vimalkumar Jeyakumar and David Mazi{\`e}res and Nick McKeown},
+  title     = {I Know What Your Packet Did Last Hop: Using Packet Histories to Troubleshoot Networks},
+  booktitle = {Proc. 11th USENIX Symposium on Networked Systems Design and Implementation (NSDI)},
+  pages     = {71--85},
+  year      = {2014},
+}
+
 % -----------------------------------------------------------
 % ONNX Security & Deployment
 % -----------------------------------------------------------
@@ -140,8 +208,8 @@
 % -----------------------------------------------------------
 
 @article{quantedge2023,
-  author    = {Various Authors},
-  title     = {Performance Characterization of using Quantization for {DNN} Inference on Edge Devices},
+  author    = {Hyunho Ahn and Tian Chen and Nawras Alnaasan and Aamir Shafi and Mustafa Abduljabbar and Hari Subramoni and Dhabaleswar K. Panda},
+  title     = {Performance Characterization of using Quantization for {DNN} Inference on Edge Devices: Extended Version},
   journal   = {arXiv preprint arXiv:2303.05016},
   year      = {2023},
 }
@@ -156,6 +224,13 @@
   publisher = {Elsevier},
 }
 
+@article{chaturvedi2025edgemlops,
+  author    = {Kanishk Chaturvedi and Johannes Gasthuber and Mohamed Abdelaal},
+  title     = {{EdgeMLOps}: Operationalizing {ML} Models with Cumulocity {IoT} and thin-edge.io for Visual Quality Inspection},
+  journal   = {arXiv preprint arXiv:2501.17062},
+  year      = {2025},
+}
+
 @inproceedings{nagel2021whitepaper,
   author    = {Markus Nagel and Marios Fournarakis and Rana Ali Amjad and Yelysei Bondarenko and Mart van Baalen and Tijmen Blankevoort},
   title     = {A White Paper on Neural Network Quantization},
@@ -166,6 +241,27 @@
 % -----------------------------------------------------------
 % NIDS with ML — Recent (2023–2026)
 % -----------------------------------------------------------
+
+@article{ahmad2021survey,
+  author    = {Zeeshan Ahmad and Adnan Shahid Khan and Cheah Wai Shiang and Johari Abdullah and Farhan Ahmad},
+  title     = {Network Intrusion Detection System: A Systematic Study of Machine Learning and Deep Learning Approaches},
+  journal   = {Transactions on Emerging Telecommunications Technologies},
+  volume    = {32},
+  number    = {1},
+  pages     = {e4150},
+  year      = {2021},
+  publisher = {Wiley},
+}
+
+@article{bouidaine2025etasr,
+  author    = {Al Baraa Bouidaine and Djilali Moussaoui and Mourad Hadjila and Wafaa Ferhi and Mohammed Hicham Hachemi},
+  title     = {Deep Learning-Based Anomaly and Intrusion Detection Using the {CSE-CIC-IDS2018} Dataset},
+  journal   = {Engineering, Technology \& Applied Science Research},
+  volume    = {15},
+  number    = {4},
+  pages     = {24782--24787},
+  year      = {2025},
+}
 
 @inproceedings{mirsky2018kitsune,
   author    = {Yisroel Mirsky and Tomer Doitshman and Yuval Elovici and Asaf Shabtai},
@@ -231,9 +327,9 @@
   year      = {2024},
 }
 
-@inproceedings{mitre2024,
-  author    = {{MITRE Corporation}},
-  title     = {{MITRE ATT\&CK}$^{\textregistered}$: A Globally Accessible Knowledge Base of Adversary Tactics and Techniques},
-  year      = {2024},
+@misc{mitre2024,
+  author       = {{MITRE Corporation}},
+  title        = {{MITRE ATT\&CK}$^{\textregistered}$: A Globally Accessible Knowledge Base of Adversary Tactics and Techniques},
+  year         = {2024},
   howpublished = {\url{https://attack.mitre.org/}},
 }
