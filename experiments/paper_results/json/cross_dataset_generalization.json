@@ -1,0 +1,186 @@
+{
+  "cross_dataset_results": [
+    {
+      "model": "ThreatMLP",
+      "dataset": "CIC-IDS2018 (In-Dist)",
+      "is_id": true,
+      "sample_count": 20000,
+      "sample_latency_ms": 0.0101,
+      "binary_accuracy": 0.8515,
+      "binary_macro_f1": 0.9198
+    },
+    {
+      "model": "ThreatMLP",
+      "dataset": "NF-ToN-IoT-v2",
+      "is_id": false,
+      "sample_count": 30000,
+      "sample_latency_ms": 0.0015,
+      "binary_accuracy": 0.63,
+      "binary_macro_f1": 0.7686,
+      "observed_id_fpr": 0.9014,
+      "assurance": {
+        "msp": {
+          "auroc": 0.5656,
+          "auprc": 0.7886,
+          "tpr@0.1%": 0.4659,
+          "tpr@1.0%": 0.5289,
+          "tpr@5.0%": 0.5291
+        },
+        "cosine": {
+          "auroc": 0.7386,
+          "auprc": 0.8815,
+          "tpr@0.1%": 0.6153,
+          "tpr@1.0%": 0.6163,
+          "tpr@5.0%": 0.6164
+        },
+        "mahalanobis": {
+          "auroc": 0.8159,
+          "auprc": 0.921,
+          "tpr@0.1%": 0.6612,
+          "tpr@1.0%": 0.746,
+          "tpr@5.0%": 0.8152
+        },
+        "composite": {
+          "auroc": 0.8184,
+          "auprc": 0.9224,
+          "tpr@0.1%": 0.666,
+          "tpr@1.0%": 0.7533,
+          "tpr@5.0%": 0.8183
+        }
+      },
+      "full_assurance_auroc": 0.8184
+    },
+    {
+      "model": "ThreatMLP",
+      "dataset": "NF-BoT-IoT-v2",
+      "is_id": false,
+      "sample_count": 30000,
+      "sample_latency_ms": 0.0012,
+      "binary_accuracy": 0.5358,
+      "binary_macro_f1": 0.6977,
+      "observed_id_fpr": 0.9014,
+      "assurance": {
+        "msp": {
+          "auroc": 0.3777,
+          "auprc": 0.6739,
+          "tpr@0.1%": 0.0058,
+          "tpr@1.0%": 0.3708,
+          "tpr@5.0%": 0.3708
+        },
+        "cosine": {
+          "auroc": 0.9437,
+          "auprc": 0.9506,
+          "tpr@0.1%": 0.444,
+          "tpr@1.0%": 0.444,
+          "tpr@5.0%": 0.444
+        },
+        "mahalanobis": {
+          "auroc": 0.998,
+          "auprc": 0.9987,
+          "tpr@0.1%": 0.8799,
+          "tpr@1.0%": 0.967,
+          "tpr@5.0%": 0.9991
+        },
+        "composite": {
+          "auroc": 0.9983,
+          "auprc": 0.9988,
+          "tpr@0.1%": 0.8802,
+          "tpr@1.0%": 0.9673,
+          "tpr@5.0%": 0.9995
+        }
+      },
+      "full_assurance_auroc": 0.9983
+    },
+    {
+      "model": "ThreatCNN1D",
+      "dataset": "CIC-IDS2018 (In-Dist)",
+      "is_id": true,
+      "sample_count": 20000,
+      "sample_latency_ms": 0.0197,
+      "binary_accuracy": 0.8515,
+      "binary_macro_f1": 0.9198
+    },
+    {
+      "model": "ThreatCNN1D",
+      "dataset": "NF-ToN-IoT-v2",
+      "is_id": false,
+      "sample_count": 30000,
+      "sample_latency_ms": 0.0128,
+      "binary_accuracy": 0.4721,
+      "binary_macro_f1": 0.5896,
+      "observed_id_fpr": 0.9,
+      "assurance": {
+        "msp": {
+          "auroc": 0.3985,
+          "auprc": 0.6944,
+          "tpr@0.1%": 0.0564,
+          "tpr@1.0%": 0.2592,
+          "tpr@5.0%": 0.4006
+        },
+        "cosine": {
+          "auroc": 0.2962,
+          "auprc": 0.6258,
+          "tpr@0.1%": 0.1327,
+          "tpr@1.0%": 0.2693,
+          "tpr@5.0%": 0.2693
+        },
+        "mahalanobis": {
+          "auroc": 0.3495,
+          "auprc": 0.6481,
+          "tpr@0.1%": 0.2336,
+          "tpr@1.0%": 0.2807,
+          "tpr@5.0%": 0.2807
+        },
+        "composite": {
+          "auroc": 0.3549,
+          "auprc": 0.6498,
+          "tpr@0.1%": 0.2342,
+          "tpr@1.0%": 0.2834,
+          "tpr@5.0%": 0.2834
+        }
+      },
+      "full_assurance_auroc": 0.3549
+    },
+    {
+      "model": "ThreatCNN1D",
+      "dataset": "NF-BoT-IoT-v2",
+      "is_id": false,
+      "sample_count": 30000,
+      "sample_latency_ms": 0.0183,
+      "binary_accuracy": 0.124,
+      "binary_macro_f1": 0.2194,
+      "observed_id_fpr": 0.9,
+      "assurance": {
+        "msp": {
+          "auroc": 0.0545,
+          "auprc": 0.4391,
+          "tpr@0.1%": 0.0,
+          "tpr@1.0%": 0.054,
+          "tpr@5.0%": 0.0546
+        },
+        "cosine": {
+          "auroc": 0.0509,
+          "auprc": 0.4354,
+          "tpr@0.1%": 0.046,
+          "tpr@1.0%": 0.0466,
+          "tpr@5.0%": 0.0466
+        },
+        "mahalanobis": {
+          "auroc": 0.4952,
+          "auprc": 0.7352,
+          "tpr@0.1%": 0.0482,
+          "tpr@1.0%": 0.4409,
+          "tpr@5.0%": 0.4409
+        },
+        "composite": {
+          "auroc": 0.4952,
+          "auprc": 0.7352,
+          "tpr@0.1%": 0.0482,
+          "tpr@1.0%": 0.4409,
+          "tpr@5.0%": 0.4409
+        }
+      },
+      "full_assurance_auroc": 0.4952
+    }
+  ]
+}

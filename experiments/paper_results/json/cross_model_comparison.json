@@ -1,0 +1,83 @@
+{
+  "provenance": {
+    "config_version": "paper_v1",
+    "config_frozen_date": "2026-09-11",
+    "git_commit": "3532595b2f3d78397df64e35f6f9659e5a541223",
+    "git_branch": "sikandarhussain6858-issue-1",
+    "timestamp_utc": "2026-09-22T16:45:37.883808+00:00",
+    "python_version": "3.14.3",
+    "platform": "win32"
+  },
+  "experiment": "Cross-Model Benchmark: 76-Feature CICFlowMeter vs 13-Feature NF-Standardized",
+  "models": {
+    "baseline_76": {
+      "name": "ThreatMLP Baseline (76 CICFlowMeter features)",
+      "features_count": 76,
+      "parameters_count": 62735,
+      "storage": {
+        "fp32_size_mb": 0.25,
+        "fp16_size_mb": 0.125,
+        "int8_size_mb": 0.062
+      },
+      "performance": {
+        "dataset": "CSE-CIC-IDS2018",
+        "accuracy": 0.92,
+        "in_dist_macro_f1": 0.8134,
+        "test_samples": 155073
+      },
+      "cross_dataset": {
+        "dataset": "ToN-IoT",
+        "macro_f1": 0.0427,
+        "features_matched": 21,
+        "features_zero_filled": 55,
+        "failure_mode": "Model collapsed due to 55 zero-filled missing features"
+      },
+      "latency": {
+        "mean_ms": 0.3757,
+        "std_ms": 0.0823,
+        "median_ms": 0.3251,
+        "p95_ms": 0.5058,
+        "p99_ms": 0.6211,
+        "throughput_flows_per_sec": 2661.6
+      }
+    },
+    "standardized_13": {
+      "name": "ThreatMLP NF-Standardized (13 NetFlow features)",
+      "features_count": 13,
+      "parameters_count": 46542,
+      "storage": {
+        "fp32_size_mb": 0.177,
+        "fp16_size_mb": 0.089,
+        "int8_size_mb": 0.048,
+        "int4_size_mb": 0.034
+      },
+      "performance": {
+        "dataset": "CSE-CIC-IDS2018",
+        "accuracy": 0.8719,
+        "in_dist_macro_f1": 0.7801,
+        "test_samples": 138069
+      },
+      "cross_dataset": {
+        "dataset": "ToN-IoT",
+        "macro_f1": 0.0571,
+        "features_matched": 13,
+        "features_zero_filled": 0,
+        "failure_mode": "Zero-fill collapse eliminated (100% feature coverage); residual drop driven by distributional shift"
+      },
+      "latency": {
+        "mean_ms": 0.0413,
+        "std_ms": 0.0096,
+        "median_ms": 0.0388,
+        "p95_ms": 0.0586,
+        "p99_ms": 0.0696,
+        "throughput_flows_per_sec": 24213.8
+      }
+    }
+  },
+  "efficiency_gains": {
+    "feature_reduction_pct": 82.89,
+    "parameter_reduction_pct": 25.81,
+    "storage_reduction_fp32_pct": 29.2,
+    "cross_dataset_relative_improvement_pct": 33.72
+  }
+}

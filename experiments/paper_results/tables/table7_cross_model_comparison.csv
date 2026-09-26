@@ -1,0 +1,9 @@
+Metric Dimension,76-Feature Baseline,13-Feature Standardized,Comparison / Gain
+Feature Count,76,13,-82.9%
+Parameter Count,62735,46542,-25.8%
+FP32 Model Size (MB),0.25,0.177,-29.2%
+INT8 Model Size (MB),0.062,0.048,-22.6%
+In-Dist Macro F1,0.8134,0.7801,-0.0333
+Cross-Dataset Macro F1,0.0427,0.0571,+0.0163
+Single-Flow Mean Latency (ms),0.3757,0.0413,9.10x faster
+Throughput (flows/s),2661.6,24213.8,+

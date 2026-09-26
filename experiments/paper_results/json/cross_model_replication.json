@@ -1,0 +1,56 @@
+{
+  "models": [
+    {
+      "model": "ThreatMLP",
+      "onnx_size_kb": 2.48,
+      "id_accuracy": 0.8515,
+      "id_macro_f1": 0.9198,
+      "raw_latency_ms": 0.0404,
+      "full_latency_ms": 0.2059,
+      "assurance_overhead_ms": 0.1654,
+      "toniot_metrics": {
+        "msp_auroc": 0.568,
+        "mahalanobis_auroc": 0.8166,
+        "composite_auroc": 0.819,
+        "tpr_at_1pct_fpr": 0.7544,
+        "tpr_at_0.1pct_fpr": 0.6667,
+        "tpr_at_5pct_fpr": 0.819
+      },
+      "botiot_metrics": {
+        "msp_auroc": 0.377,
+        "mahalanobis_auroc": 0.9979,
+        "composite_auroc": 0.9982,
+        "tpr_at_1pct_fpr": 0.9671,
+        "tpr_at_0.1pct_fpr": 0.8797,
+        "tpr_at_5pct_fpr": 0.9994
+      },
+      "params_label": "46,542 params"
+    },
+    {
+      "model": "ThreatCNN1D",
+      "onnx_size_kb": 15.64,
+      "id_accuracy": 0.8515,
+      "id_macro_f1": 0.9198,
+      "raw_latency_ms": 0.0621,
+      "full_latency_ms": 0.2646,
+      "assurance_overhead_ms": 0.2025,
+      "toniot_metrics": {
+        "msp_auroc": 0.3993,
+        "mahalanobis_auroc": 0.3481,
+        "composite_auroc": 0.3535,
+        "tpr_at_1pct_fpr": 0.2819,
+        "tpr_at_0.1pct_fpr": 0.2331,
+        "tpr_at_5pct_fpr": 0.2819
+      },
+      "botiot_metrics": {
+        "msp_auroc": 0.0553,
+        "mahalanobis_auroc": 0.4948,
+        "composite_auroc": 0.4948,
+        "tpr_at_1pct_fpr": 0.4405,
+        "tpr_at_0.1pct_fpr": 0.048,
+        "tpr_at_5pct_fpr": 0.4405
+      },
+      "params_label": "34,703 params"
+    }
+  ]
+}

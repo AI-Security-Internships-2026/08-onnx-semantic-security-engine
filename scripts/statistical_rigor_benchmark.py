@@ -13,6 +13,7 @@ Outputs:
 import json
 import time
 import sys
+import argparse
 import numpy as np
 import pandas as pd
 import joblib
@@ -31,6 +32,7 @@ from src.semantic_analyzer import (
     ConfidenceAnalyzer, DriftDetector, InputValidator,
     SemanticSecurityEngine,
 )
+from scripts.config_loader import load_paper_config, get_provenance_metadata
 
 # ── Paths ──
 BASE_DIR = Path(__file__).parent.parent
@@ -46,12 +48,19 @@ FEATURE_STATS_PATH  = EXPERIMENTS / "training_feature_stats_nf.json"
 CIC_DIR     = DATASETS / "CIC-IDS2018"
 TONIOT_PATH = DATASETS / "ToN-IoT" / "NF-ToN-IoT-V2.parquet"
 
-# ── 5 Evaluation Seeds ──
-EVAL_SEEDS = [42, 123, 456, 789, 1024]
-N_SAMPLES_PER_SCENARIO = 10000
-N_NOISE_SAMPLES = 1000
-N_ZERO_SAMPLES = 500
-N_LATENCY_ITERS = 1000
+# ── Load frozen paper configuration (single source of truth) ──
+PAPER_CFG = load_paper_config()
+PAPER_THRESHOLDS = PAPER_CFG['thresholds']
+PAPER_EVAL = PAPER_CFG['evaluation']
+
+# ── Evaluation parameters (from paper_v1.yaml) ──
+EVAL_SEEDS         = PAPER_EVAL['seeds']
+N_CALIB_SAMPLES    = PAPER_EVAL['n_calibration']
+N_IN_DIST_SAMPLES  = PAPER_EVAL['n_in_dist']
+N_OOD_SAMPLES      = PAPER_EVAL['n_ood']
+N_NOISE_SAMPLES    = PAPER_EVAL['n_noise']
+N_ZERO_SAMPLES     = PAPER_EVAL['n_zero']
+N_LATENCY_ITERS    = PAPER_EVAL['n_latency_iters']
 
 FEATURE_MAP = {
     "FLOW_DURATION_MILLISECONDS":    "Flow Duration",
@@ -71,7 +80,34 @@ FEATURE_MAP = {
 NF_FEATURES = list(FEATURE_MAP.values())
 
 
+def compute_fpr95(y_true, scores):
+    """Compute False Positive Rate at 95% True Positive Rate (standard OOD metric)."""
+    fpr, tpr, _ = roc_curve(y_true, scores)
+    idx = np.where(tpr >= 0.95)[0]
+    return float(fpr[idx[0]]) * 100.0 if len(idx) > 0 else 100.0
+
+
 def main():
+    parser = argparse.ArgumentParser(description="Statistical rigor and multi-seed evaluation benchmark.")
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=str(EXPERIMENTS / "paper_results" / "json"),
+        help="Directory to save statistical_rigor_benchmark.json",
+    )
+    parser.add_argument(
+        "--figures-dir",
+        type=str,
+        default=str(EXPERIMENTS / "paper_results" / "figures"),
+        help="Directory to save statistical rigor plots",
+    )
+    args = parser.parse_args()
+
+    output_dir = Path(args.output_dir)
+    figures_dir = Path(args.figures_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    figures_dir.mkdir(parents=True, exist_ok=True)
+
     print("=" * 85)
     print("  STATISTICAL RIGOR & MULTI-SEED EVALUATION (5 RUNS, MEAN +/- STD, 95% CI)")
     print("=" * 85)
@@ -138,12 +174,12 @@ def main():
         np.random.seed(seed)
 
         # 1. Sample Calibration and Test splits from CIC-IDS2018
-        df_cic_sampled = df_cic_all.sample(n=N_SAMPLES_PER_SCENARIO * 2, random_state=seed)
+        df_cic_sampled = df_cic_all.sample(n=N_CALIB_SAMPLES + N_IN_DIST_SAMPLES, random_state=seed)
         available_nf = [f for f in NF_FEATURES if f in df_cic_sampled.columns]
         if len(available_nf) < len(NF_FEATURES):
             print(f"  [WARN] Missing {len(NF_FEATURES) - len(available_nf)} NF features in CIC data")
-        X_calib_raw = df_cic_sampled[available_nf].values[:N_SAMPLES_PER_SCENARIO]
-        X_test_raw  = df_cic_sampled[available_nf].values[N_SAMPLES_PER_SCENARIO:]
+        X_calib_raw = df_cic_sampled[available_nf].values[:N_CALIB_SAMPLES]
+        X_test_raw  = df_cic_sampled[available_nf].values[N_CALIB_SAMPLES:]
 
         X_calib_scaled = scaler.transform(X_calib_raw).astype(np.float32)
         X_test_scaled  = scaler.transform(X_test_raw).astype(np.float32)
@@ -165,8 +201,8 @@ def main():
         conf_thresh  = float(np.percentile(calib_conf, 5))
 
         # 3. Sample ToN-IoT OOD data
-        df_ton_sampled = df_ton_all.sample(n=N_SAMPLES_PER_SCENARIO, random_state=seed)
-        X_ton_raw = np.zeros((N_SAMPLES_PER_SCENARIO, len(NF_FEATURES)), dtype=np.float64)
+        df_ton_sampled = df_ton_all.sample(n=N_OOD_SAMPLES, random_state=seed)
+        X_ton_raw = np.zeros((N_OOD_SAMPLES, len(NF_FEATURES)), dtype=np.float64)
         for i, (ton_col, cic_col) in enumerate(FEATURE_MAP.items()):
             if ton_col in df_ton_sampled.columns:
                 X_ton_raw[:, i] = df_ton_sampled[ton_col].values
@@ -230,13 +266,18 @@ def main():
         ton_mahal = ton_drift['mahalanobis_distances']
         ton_comp = ton_drift['drift_scores']
 
-        # OOD AUROC metrics
+        # OOD AUROC and FPR@95TPR metrics
         y_eval = np.concatenate([np.zeros(len(test_cos)), np.ones(len(ton_cos))])
         auroc_mahal = float(roc_auc_score(y_eval, np.concatenate([test_mahal, ton_mahal])))
         auroc_comp  = float(roc_auc_score(y_eval, np.concatenate([test_comp, ton_comp])))
         auroc_cos   = float(roc_auc_score(y_eval, np.concatenate([test_cos, ton_cos])))
         auroc_msp   = float(roc_auc_score(y_eval, np.concatenate([-test_conf, -ton_conf])))
         ap_mahal    = float(average_precision_score(y_eval, np.concatenate([test_mahal, ton_mahal])))
+
+        fpr95_mahal = compute_fpr95(y_eval, np.concatenate([test_mahal, ton_mahal]))
+        fpr95_comp  = compute_fpr95(y_eval, np.concatenate([test_comp, ton_comp]))
+        fpr95_cos   = compute_fpr95(y_eval, np.concatenate([test_cos, ton_cos]))
+        fpr95_msp   = compute_fpr95(y_eval, np.concatenate([-test_conf, -ton_conf]))
 
         # Intercept rates on threats
         ood_intercept = float(np.mean((ton_cos > cos_thresh) | (ton_mahal > mahal_thresh) | (ton_conf < conf_thresh))) * 100.0
@@ -270,6 +311,10 @@ def main():
             "auroc_comp": auroc_comp,
             "auroc_cos": auroc_cos,
             "auroc_msp": auroc_msp,
+            "fpr95_mahal": fpr95_mahal,
+            "fpr95_comp": fpr95_comp,
+            "fpr95_cos": fpr95_cos,
+            "fpr95_msp": fpr95_msp,
             "ap_mahal": ap_mahal,
             "ood_intercept_pct": ood_intercept,
             "noise_intercept_pct": noise_intercept,
@@ -305,6 +350,10 @@ def main():
         "composite_engine_auroc":    get_stats("auroc_comp"),
         "cosine_distance_auroc":     get_stats("auroc_cos"),
         "msp_confidence_auroc":      get_stats("auroc_msp"),
+        "mahalanobis_fpr95":         get_stats("fpr95_mahal"),
+        "composite_engine_fpr95":    get_stats("fpr95_comp"),
+        "cosine_distance_fpr95":     get_stats("fpr95_cos"),
+        "msp_confidence_fpr95":      get_stats("fpr95_msp"),
         "mahalanobis_avg_precision": get_stats("ap_mahal"),
         "ood_toniot_intercept_pct":  get_stats("ood_intercept_pct"),
         "noise_intercept_pct":       get_stats("noise_intercept_pct"),
@@ -324,8 +373,8 @@ def main():
     plain_latencies = []
     semantic_latencies = []
 
-    # Production engine instance for latency benchmarking (Issue #21)
-    prod_engine = SemanticSecurityEngine(use_nf=True)
+    # Production engine instance for latency benchmarking — loaded from paper_v1.yaml
+    prod_engine = SemanticSecurityEngine.from_config("configs/paper_v1.yaml")
 
     for run_i in range(5):
         run_plain = []
@@ -389,6 +438,7 @@ def main():
 
     # ── Save Results JSON ──
     output_json_data = {
+        "provenance": get_provenance_metadata(),
         "experiment": "Statistical Rigor 5-Seed Evaluation Benchmark",
         "num_seeds": len(EVAL_SEEDS),
         "seeds": EVAL_SEEDS,
@@ -400,10 +450,18 @@ def main():
         }
     }
 
-    out_file = EXPERIMENTS / "results" / "statistical_rigor_benchmark.json"
+    # Save to canonical output directory
+    out_file = output_dir / "statistical_rigor_benchmark.json"
     with open(out_file, "w") as f:
         json.dump(output_json_data, f, indent=2)
     print(f"\n[SAVED] {out_file}")
+
+    # Mirror to legacy results directory
+    legacy_file = EXPERIMENTS / "results" / "statistical_rigor_benchmark.json"
+    if legacy_file.parent.exists() and out_file != legacy_file:
+        with open(legacy_file, "w") as f:
+            json.dump(output_json_data, f, indent=2)
+        print(f"[MIRRORED] {legacy_file}")
 
     # ── Generate 4-Panel Statistical Rigor Figures ──
     print("\nGenerating 4-panel statistical rigor figures...")
@@ -476,10 +534,15 @@ def main():
     ax.grid(True, alpha=0.25)
 
     plt.tight_layout()
-    plot_file = EXPERIMENTS / "images" / "statistical_rigor_plots.png"
-    plt.savefig(str(plot_file), dpi=300, bbox_inches="tight")
+    canonical_plot = figures_dir / "statistical_rigor_plots.png"
+    plt.savefig(str(canonical_plot), dpi=300, bbox_inches="tight")
+    print(f"[SAVED] {canonical_plot}")
+
+    legacy_plot = EXPERIMENTS / "images" / "statistical_rigor_plots.png"
+    if legacy_plot.parent.exists() and canonical_plot != legacy_plot:
+        plt.savefig(str(legacy_plot), dpi=300, bbox_inches="tight")
+        print(f"[MIRRORED] {legacy_plot}")
     plt.close()
-    print(f"[SAVED] {plot_file}")
     print("\nStatistical rigor benchmark complete!")
 
 

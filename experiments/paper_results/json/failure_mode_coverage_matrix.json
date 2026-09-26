@@ -1,0 +1,115 @@
+{
+  "provenance": {
+    "config_version": "paper_v1",
+    "config_frozen_date": "2026-09-11",
+    "git_commit": "eaa1a1d1cb9cea7c520edcb821b9d78724cb1685",
+    "git_branch": "sikandarhussain6858-issue-1",
+    "timestamp_utc": "2026-09-23T18:43:39.379015+00:00",
+    "python_version": "3.14.3",
+    "platform": "win32"
+  },
+  "experiment": "Failure-Mode Coverage Matrix",
+  "operating_point": "1% FPR (calibrated on D_cal)",
+  "matrix": {
+    "E2_real_ood": {
+      "label": "E2: Cross-Domain OOD (ToN-IoT)",
+      "msp": 0.7922,
+      "cosine": 0.0,
+      "mahalanobis": 0.0118,
+      "composite": 0.0114,
+      "validator": 0.0,
+      "full_system": 0.0114
+    },
+    "E3_nan_inf_missing": {
+      "label": "E3: NaN/Inf/Missing Dims",
+      "msp": 0.0552,
+      "cosine": 0.1124,
+      "mahalanobis": 0.4636,
+      "composite": 0.4546,
+      "validator": 0.691,
+      "full_system": 0.7928
+    },
+    "E4_zero_10pct": {
+      "label": "E4: 10% Zero-Fill",
+      "msp": 0.014,
+      "cosine": 0.004,
+      "mahalanobis": 0.0856,
+      "composite": 0.0616,
+      "validator": 0.0,
+      "full_system": 0.0616
+    },
+    "E4_zero_25pct": {
+      "label": "E4: 25% Zero-Fill",
+      "msp": 0.042,
+      "cosine": 0.0062,
+      "mahalanobis": 0.1988,
+      "composite": 0.1778,
+      "validator": 0.008,
+      "full_system": 0.1858
+    },
+    "E4_zero_50pct": {
+      "label": "E4: 50% Zero-Fill",
+      "msp": 0.079,
+      "cosine": 0.0344,
+      "mahalanobis": 0.2246,
+      "composite": 0.2118,
+      "validator": 0.0546,
+      "full_system": 0.26
+    },
+    "E4_zero_75pct": {
+      "label": "E4: 75% Zero-Fill",
+      "msp": 0.1524,
+      "cosine": 0.046,
+      "mahalanobis": 0.0598,
+      "composite": 0.0568,
+      "validator": 0.5446,
+      "full_system": 0.5772
+    },
+    "E4_zero_100pct": {
+      "label": "E4: 100% Zero-Fill",
+      "msp": 0.0,
+      "cosine": 0.0,
+      "mahalanobis": 0.0,
+      "composite": 0.0,
+      "validator": 1.0,
+      "full_system": 1.0
+    },
+    "E5_permutation": {
+      "label": "E5: Feature Permutation",
+      "msp": 0.016,
+      "cosine": 0.1002,
+      "mahalanobis": 0.964,
+      "composite": 0.9636,
+      "validator": 0.01,
+      "full_system": 0.965
+    },
+    "E6_scale_mismatch": {
+      "label": "E6: Unit/Scale Mismatch",
+      "msp": 0.0156,
+      "cosine": 0.147,
+      "mahalanobis": 0.6874,
+      "composite": 0.682,
+      "validator": 0.0,
+      "full_system": 0.682
+    },
+    "E7_extreme_plausible": {
+      "label": "E7: Extreme-but-Plausible",
+      "msp": 0.0252,
+      "cosine": 0.2868,
+      "mahalanobis": 0.9046,
+      "composite": 0.9032,
+      "validator": 0.0,
+      "full_system": 0.9032
+    },
+    "E8_gaussian_noise": {
+      "label": "E8 (Suppl.): Gaussian Noise",
+      "msp": 0.0025,
+      "cosine": 0.1315,
+      "mahalanobis": 0.9995,
+      "composite": 1.0,
+      "validator": 0.0,
+      "full_system": 1.0
+    }
+  },
+  "note": "Validator column shows structural rejection rate (deterministic). Other columns show detection rate at 1% FPR threshold. Full System combines statistical detection OR validator rejection."
+}

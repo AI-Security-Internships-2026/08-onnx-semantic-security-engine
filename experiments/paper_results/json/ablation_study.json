@@ -1,0 +1,118 @@
+{
+  "provenance": {
+    "config_version": "paper_v1",
+    "config_frozen_date": "2026-09-11",
+    "git_commit": "3532595b2f3d78397df64e35f6f9659e5a541223",
+    "git_branch": "sikandarhussain6858-issue-1",
+    "timestamp_utc": "2026-09-22T16:45:42.593585+00:00",
+    "python_version": "3.14.3",
+    "platform": "win32"
+  },
+  "experiment": "SEMANTICSHIELD Architectural Component Ablation Study",
+  "sample_sizes": {
+    "in_distribution": 5000,
+    "out_of_distribution": 5000,
+    "random_noise": 1000,
+    "zero_filled": 500
+  },
+  "configurations": {
+    "full_system": {
+      "description": "Full System (InputValidator + Confidence + Drift)",
+      "components": {
+        "input_validator": true,
+        "confidence_analyzer": true,
+        "drift_detector": true
+      },
+      "in_dist_clean_pct": 64.94,
+      "in_dist_fpr_pct": 35.06,
+      "ood_detection_pct": 77.52,
+      "ood_total_flagged_pct": 81.56,
+      "noise_rejection_pct": 5.3,
+      "zero_rejection_pct": 100.0
+    },
+    "no_confidence": {
+      "description": "Without ConfidenceAnalyzer (-confidence)",
+      "components": {
+        "input_validator": true,
+        "confidence_analyzer": false,
+        "drift_detector": true
+      },
+      "in_dist_clean_pct": 66.16,
+      "in_dist_fpr_pct": 33.84,
+      "ood_detection_pct": 0.16,
+      "ood_total_flagged_pct": 79.62,
+      "noise_rejection_pct": 0.0,
+      "zero_rejection_pct": 100.0
+    },
+    "no_drift": {
+      "description": "Without DriftDetector (-drift)",
+      "components": {
+        "input_validator": true,
+        "confidence_analyzer": true,
+        "drift_detector": false
+      },
+      "in_dist_clean_pct": 98.44,
+      "in_dist_fpr_pct": 1.56,
+      "ood_detection_pct": 0.0,
+      "ood_total_flagged_pct": 79.46,
+      "noise_rejection_pct": 0.0,
+      "zero_rejection_pct": 100.0
+    },
+    "no_validator": {
+      "description": "Without InputValidator (-validator)",
+      "components": {
+        "input_validator": false,
+        "confidence_analyzer": true,
+        "drift_detector": true
+      },
+      "in_dist_clean_pct": 64.94,
+      "in_dist_fpr_pct": 35.06,
+      "ood_detection_pct": 77.36,
+      "ood_total_flagged_pct": 81.56,
+      "noise_rejection_pct": 5.3,
+      "zero_rejection_pct": 0.0
+    },
+    "validator_only": {
+      "description": "InputValidator Only (-confidence, -drift)",
+      "components": {
+        "input_validator": true,
+        "confidence_analyzer": false,
+        "drift_detector": false
+      },
+      "in_dist_clean_pct": 100.0,
+      "in_dist_fpr_pct": 0.0,
+      "ood_detection_pct": 0.0,
+      "ood_total_flagged_pct": 0.16,
+      "noise_rejection_pct": 0.0,
+      "zero_rejection_pct": 100.0
+    },
+    "drift_only": {
+      "description": "DriftDetector Only (-validator, -confidence)",
+      "components": {
+        "input_validator": false,
+        "confidence_analyzer": false,
+        "drift_detector": true
+      },
+      "in_dist_clean_pct": 66.16,
+      "in_dist_fpr_pct": 33.84,
+      "ood_detection_pct": 0.0,
+      "ood_total_flagged_pct": 79.62,
+      "noise_rejection_pct": 0.0,
+      "zero_rejection_pct": 0.0
+    },
+    "confidence_only": {
+      "description": "ConfidenceAnalyzer Only (-validator, -drift)",
+      "components": {
+        "input_validator": false,
+        "confidence_analyzer": true,
+        "drift_detector": false
+      },
+      "in_dist_clean_pct": 98.44,
+      "in_dist_fpr_pct": 1.56,
+      "ood_detection_pct": 0.0,
+      "ood_total_flagged_pct": 79.3,
+      "noise_rejection_pct": 0.0,
+      "zero_rejection_pct": 0.0
+    }
+  }
+}

@@ -62,3 +62,67 @@ class ThreatMLPWithEmbedding(nn.Module):
         x = self.base.dropout3(embedding)
         logits = self.base.fc4(x)
         return logits, embedding
+
+
+class ThreatCNN1D(nn.Module):
+    """Compact 1D-CNN for network traffic threat classification.
+
+    Architecture: Input (batch, input_dim) -> unsqueeze(1) ->
+                  Conv1D(1->64, k=3, p=1) -> BN -> ReLU -> Dropout ->
+                  Conv1D(64->128, k=3, p=1) -> BN -> ReLU -> Dropout ->
+                  AdaptiveAvgPool1d(1) -> Squeeze ->
+                  Linear(128->64) -> BN -> ReLU -> Dropout ->
+                  Linear(64->num_classes)
+    """
+
+    def __init__(self, input_dim, num_classes):
+        super(ThreatCNN1D, self).__init__()
+        self.conv1 = nn.Conv1d(1, 64, kernel_size=3, padding=1)
+        self.bn1 = nn.BatchNorm1d(64)
+        self.relu1 = nn.ReLU()
+        self.dropout1 = nn.Dropout(0.3)
+
+        self.conv2 = nn.Conv1d(64, 128, kernel_size=3, padding=1)
+        self.bn2 = nn.BatchNorm1d(128)
+        self.relu2 = nn.ReLU()
+        self.dropout2 = nn.Dropout(0.3)
+
+        self.pool = nn.AdaptiveAvgPool1d(1)
+
+        self.fc1 = nn.Linear(128, 64)
+        self.bn3 = nn.BatchNorm1d(64)
+        self.relu3 = nn.ReLU()
+        self.dropout3 = nn.Dropout(0.3)
+
+        self.fc2 = nn.Linear(64, num_classes)
+
+    def forward(self, x):
+        x = x.unsqueeze(1)
+        x = self.dropout1(self.relu1(self.bn1(self.conv1(x))))
+        x = self.dropout2(self.relu2(self.bn2(self.conv2(x))))
+        x = self.pool(x).squeeze(-1)
+        x = self.dropout3(self.relu3(self.bn3(self.fc1(x))))
+        return self.fc2(x)
+
+
+class ThreatCNN1DWithEmbedding(nn.Module):
+    """Wrapper that returns both logits and 64-dim embeddings from ThreatCNN1D fc1.
+
+    Used for ONNX export with dual outputs for architecture-agnostic
+    assurance layer evaluation.
+    """
+
+    def __init__(self, base_model: ThreatCNN1D):
+        super().__init__()
+        self.base = base_model
+
+    def forward(self, x):
+        x = x.unsqueeze(1)
+        x = self.base.dropout1(self.base.relu1(self.base.bn1(self.base.conv1(x))))
+        x = self.base.dropout2(self.base.relu2(self.base.bn2(self.base.conv2(x))))
+        x = self.base.pool(x).squeeze(-1)
+        embedding = self.base.relu3(self.base.bn3(self.base.fc1(x)))
+        x = self.base.dropout3(embedding)
+        logits = self.base.fc2(x)
+        return logits, embedding
+

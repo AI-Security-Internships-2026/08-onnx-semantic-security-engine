@@ -1,0 +1,8 @@
+Configuration,InputValidator,ConfidenceAnalyzer,DriftDetector,In-Dist Clean %,In-Dist FPR %,OOD ToN-IoT Flagged %,Noise Rejected %,Zero-Fill Rejected %
+Full System (InputValidator + Confidence + Drift),YES,YES,YES,64.94%,35.06%,81.56%,5.30%,100.00%
+Without ConfidenceAnalyzer (-confidence),YES,NO,YES,66.16%,33.84%,79.62%,0.00%,100.00%
+Without DriftDetector (-drift),YES,YES,NO,98.44%,1.56%,79.46%,0.00%,100.00%
+Without InputValidator (-validator),NO,YES,YES,64.94%,35.06%,81.56%,5.30%,0.00%
+"InputValidator Only (-confidence, -drift)",YES,NO,NO,100.00%,0.00%,0.16%,0.00%,100.00%
+"DriftDetector Only (-validator, -confidence)",NO,NO,YES,66.16%,33.84%,79.62%,0.00%,0.00%
+"ConfidenceAnalyzer Only (-validator, -drift)",NO,YES,NO,98.44%,1.56%,79.30%,0.00%,0.00%
