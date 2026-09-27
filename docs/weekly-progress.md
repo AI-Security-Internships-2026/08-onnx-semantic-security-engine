@@ -1398,8 +1398,88 @@ This provides rigorous deployment-efficiency and resource-sensitivity evidence, 
 
 ---
 
+## Issue 8: Create Reproducible Paper Artifact and Tagged Release
 
+**Branch:** `sikandarhussain6858-issue-1`  
+**Status:** Completed  
+**Priority:** 🟠 High (Final Research Artifact & Release Readiness)  
+**Dependencies:** M4.1, Issue 7  
+**Release Tag:** `paper-v1.0`  
 
+---
 
+### What I Did
 
+#### 1. Complete Reproduction Workflow Documentation (`REPRODUCE.md`)
+- Authored the master reproduction guide [`REPRODUCE.md`](file:///d:/Internship/08-onnx-semantic-security-engine/REPRODUCE.md) detailing the end-to-end research lifecycle from scratch:
+  1. **Dataset Acquisition:** Instructions for CSE-CIC-IDS2018, NF-ToN-IoT-v2, and NF-BoT-IoT-v2.
+  2. **Preprocessing & Standardization:** 13-feature NetFlow mapping, StandardScaler fitting strictly on training split (seed 42).
+  3. **Classifier Training:** PyTorch training for ThreatMLP (~46K params) and ThreatCNN1D (~34K params).
+  4. **ONNX Dual-Output Graph Export:** Dual output export with intermediate 64-dim embedding extraction.
+  5. **Quantization Benchmarks:** Multi-precision conversion (FP32, FP16, INT8, INT4).
+  6. **Reference Manifolds & Feature Stats:** Centroid, covariance matrix ($\boldsymbol{\Sigma}$), and empirical distribution statistics generation.
+  7. **Empirical Threshold Calibration:** Held-out validation calibration targeting 5% FPR operating point.
+  8. **Benchmark Execution:** Running all 15 experiment stages via `experiments/reproduce_paper.py`.
+  9. **Table & Figure Export:** Automated generation of 19 CSV tables and 22 publication figures.
+  10. **Manuscript PDF Compilation:** Direct compilation to 12-page IEEE-style PDF via standalone Tectonic.
 
+#### 2. Comprehensive Dataset Documentation & Acquisition Protocol
+- Completely overhauled [`datasets/README.md`](file:///d:/Internship/08-onnx-semantic-security-engine/datasets/README.md) and created dedicated dataset specification sheets:
+  - [`datasets/CSE-CIC-IDS2018.md`](file:///d:/Internship/08-onnx-semantic-security-engine/datasets/CSE-CIC-IDS2018.md) (In-distribution baseline, 10 daily captures, 138,069 test flows).
+  - [`datasets/NF-ToN-IoT-v2.md`](file:///d:/Internship/08-onnx-semantic-security-engine/datasets/NF-ToN-IoT-v2.md) (Out-of-distribution real covariate shift, 13,135,881 records, nProbe IPFIX).
+  - [`datasets/NF-BoT-IoT-v2.md`](file:///d:/Internship/08-onnx-semantic-security-engine/datasets/NF-BoT-IoT-v2.md) (Same-schema cross-dataset shift and cross-model replication, 30,420,086 records).
+- Documented the strict Git governance policy: large multi-gigabyte raw files are kept out of Git via [`.gitignore`](file:///d:/Internship/08-onnx-semantic-security-engine/.gitignore) while schema definitions and preprocessed test matrices are reproducible.
+
+#### 3. Cryptographic Checksum Manifest & Integrity Verification
+- Generated [`experiments/checksums.sha256`](file:///d:/Internship/08-onnx-semantic-security-engine/experiments/checksums.sha256) tracking exact SHA-256 hashes and byte lengths for all 23 core model binaries (`.onnx`, `.pth`), reference embeddings (`.npz`), scalers (`.joblib`), encoders, test partitions (`.npy`), config files, and the compiled paper PDF (`docs/paper/paper-draft.pdf`).
+- Upgraded [`scripts/download_artifacts.py`](file:///d:/Internship/08-onnx-semantic-security-engine/scripts/download_artifacts.py) with `--check`, `--verify-checksums`, and `--instructions` modes to provide automated cryptographic verification and clear artifact acquisition guidance.
+
+#### 4. Canonical Release Provenance & Experiment Metadata
+- Created [`experiments/paper_results/RELEASE_METADATA.json`](file:///d:/Internship/08-onnx-semantic-security-engine/experiments/paper_results/RELEASE_METADATA.json) systematically recording:
+  - Git commit hash (`3c57ada2df9f6855f8495fadbc638642f7b49128`), branch (`sikandarhussain6858-issue-1`), release tag (`paper-v1.0`).
+  - Frozen config version (`paper_v1`, frozen date 2026-09-11).
+  - Random evaluation seeds: `[42, 123, 456, 789, 1024]`.
+  - Host execution environment (Windows 11 AMD64, 6 physical / 12 logical cores, 16 GB RAM).
+  - Simulated edge container profiles: R0 (Unconstrained), R1 (Moderate Edge: 2.0 vCPU / 2048 MB), R2 (Constrained Edge: 1.0 vCPU / 1024 MB), R3 (Extreme Gateway: 0.5 vCPU / 512 MB).
+  - Exact library dependencies: Python 3.14.3, PyTorch 2.11.0, ONNX 1.21.0, ONNX Runtime 1.24.4, Scikit-Learn 1.8.0, SciPy 1.17.1, Pandas 3.0.2, NumPy 2.4.4.
+  - Complete dictionary of all 23 artifact SHA-256 hashes and byte sizes.
+
+#### 5. Enhanced Reproduction Orchestrator (`experiments/reproduce_paper.py`)
+- Expanded [`experiments/reproduce_paper.py`](file:///d:/Internship/08-onnx-semantic-security-engine/experiments/reproduce_paper.py) to cover all 15 canonical benchmark stages (including `fixed_fpr`, `cross_dataset`, `semantic_mismatch`, `cross_model_replication`, and `paper_tables`).
+- Implemented a 5-tier automated validation pipeline in `verify_results()`:
+  - Tier 1: 18 machine-readable JSON datasets + `RELEASE_METADATA.json`.
+  - Tier 2: 22 publication figures (PNG).
+  - Tier 3: 19 canonical CSV tables in `experiments/paper_results/tables/`.
+  - Tier 4: Cryptographic SHA-256 integrity verification across 23 core artifacts.
+  - Tier 5: Automated 89-point numeric claim verification via `docs/paper/verify_numbers.py`.
+
+#### 6. Repository Hygiene & Cleaning
+- Audited the workspace and removed stray untracked binaries from `experiments/images/` and `experiments/notebooks/`.
+- Confirmed that `.gitignore` prevents inadvertent commits of secrets, API keys, caches, or large datasets.
+- Rewrote the top-level [`README.md`](file:///d:/Internship/08-onnx-semantic-security-engine/README.md) to serve as a clean, publication-ready landing page with badges, quick-start verification commands, system architecture diagrams, mathematical equations, and links to the paper and reproduction guide.
+
+#### 7. Verification & Release Signoff
+- Executed the full test suite: **71/71 tests passing (100% pass rate)**.
+- Executed paper claim verification: **89/89 automated assertion checks pass (100% agreement, 0 mismatches)**.
+- Executed artifact checksum verification: **23/23 artifacts verified with 100% cryptographic integrity**.
+- Executed reproduction orchestrator verification: `python experiments/reproduce_paper.py --verify` completed with all 5 verification tiers passing.
+- Tagged release: `paper-v1.0`.
+
+---
+
+### Release Artifact Checklist for Issue 8
+
+| Component | Status | Details |
+|:---|:---:|:---|
+| **Clean Installation Instructions** | [PASS] | Documented in `README.md` and `REPRODUCE.md` |
+| **Dataset Acquisition Guide** | [PASS] | Documented in `datasets/README.md` and dataset markdown sheets |
+| **Reproducible Training / Export / Calibration** | [PASS] | Documented in `REPRODUCE.md` and implemented in `src/` & `scripts/` |
+| **Runtime Artifacts Integrity & Checksums** | [PASS] | `experiments/checksums.sha256` and `scripts/download_artifacts.py` |
+| **Rerunnable Paper Experiments** | [PASS] | Unified orchestrator `experiments/reproduce_paper.py` (15 stages) |
+| **Figures & Tables Auto-Generation** | [PASS] | `scripts/generate_paper_tables.py` exports all 19 CSV tables |
+| **Stale Artifact Removal & Repo Hygiene** | [PASS] | Cleaned `experiments/images/` and `experiments/notebooks/`, `.gitignore` validated |
+| **Release Metadata Recording** | [PASS] | `experiments/paper_results/RELEASE_METADATA.json` |
+| **Clean Reproduction Checked** | [PASS] | `reproduce_paper.py --verify` and `--dry-run` pass 100% |
+| **Paper Claims Agreement** | [PASS] | `verify_numbers.py` (89/89 checks pass) |
+| **Full PyTest Suite** | [PASS] | `pytest tests/` (71/71 tests pass) |
+| **Tagged Release State** | [PASS] | Tagged `paper-v1.0` |

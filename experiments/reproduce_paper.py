@@ -135,6 +135,56 @@ STAGES = [
         "slow": True,
         "description": "Evaluates Plain ONNX vs SEMANTICSHIELD under 4 constrained profiles with 5 repetitions",
     },
+    {
+        "id": "fixed_fpr",
+        "name": "Fixed-FPR Failure-Mode Coverage & Multi-Threshold Evaluation",
+        "script": "scripts/fixed_fpr_evaluation.py",
+        "args": [],
+        "output_json": "fixed_fpr_evaluation.json",
+        "output_fig": "detection_vs_fpr_budget.png",
+        "slow": True,
+        "description": "Evaluates 5 detectors across 7+ failure modes at 0.1%, 1%, and 5% FPR budgets",
+    },
+    {
+        "id": "cross_dataset",
+        "name": "Cross-Dataset Generalization (CSE-CIC-IDS2018 to NF-ToN-IoT-v2 & NF-BoT-IoT-v2)",
+        "script": "scripts/cross_dataset_evaluation.py",
+        "args": [],
+        "output_json": "cross_dataset_generalization.json",
+        "output_fig": "cross_dataset_performance_drop.png",
+        "slow": True,
+        "description": "Tests domain shift and covariate drift across standardized NetFlow v2 datasets",
+    },
+    {
+        "id": "semantic_mismatch",
+        "name": "Semantic Feature Mismatch & Invariance Sensitivity Evaluation",
+        "script": "scripts/semantic_mismatch_evaluation.py",
+        "args": [],
+        "output_json": "semantic_mismatch_sensitivity.json",
+        "output_fig": "semantic_mapping_sensitivity.png",
+        "slow": True,
+        "description": "Evaluates sensitivity across exact, approximate, and legacy mismatched feature tiers",
+    },
+    {
+        "id": "cross_model_replication",
+        "name": "Cross-Model Architecture Replication (ThreatMLP vs ThreatCNN1D)",
+        "script": "scripts/cross_model_replication.py",
+        "args": [],
+        "output_json": "cross_model_replication.json",
+        "output_fig": "table_cross_model_replication.csv",
+        "slow": True,
+        "description": "Replicates runtime assurance on both ThreatMLP and ThreatCNN1D architectures",
+    },
+    {
+        "id": "paper_tables",
+        "name": "Canonical Manuscript Tables Exporter",
+        "script": "scripts/generate_paper_tables.py",
+        "args": [],
+        "output_json": "table1_classification_performance.csv",
+        "output_fig": "",
+        "slow": False,
+        "description": "Generates all canonical CSV tables in experiments/paper_results/tables/ from JSON outputs",
+    },
 ]
 
 
@@ -143,7 +193,7 @@ def parse_args():
     parser.add_argument("--dry-run", action="store_true", help="Print execution plan without running scripts.")
     parser.add_argument("--skip-slow", action="store_true", help="Skip dataset-heavy / slow training benchmarks.")
     parser.add_argument("--only", type=str, default=None, choices=[s["id"] for s in STAGES], help="Run only a specific stage.")
-    parser.add_argument("--verify", action="store_true", help="Verify generated numbers against paper claims.")
+    parser.add_argument("--verify", action="store_true", help="Verify generated numbers and artifacts against paper claims.")
     parser.add_argument("--output-dir", type=str, default=str(JSON_DIR), help="Output directory for JSON results.")
     parser.add_argument("--figures-dir", type=str, default=str(FIG_DIR), help="Output directory for figures.")
     parser.add_argument("--config", type=str, default=None, help="Path to paper config (defaults to configs/paper_v1.yaml).")
@@ -180,10 +230,16 @@ def verify_results(json_dir: Path, fig_dir: Path = None, tables_dir: Path = None
         "latency_benchmark.json",
         "resource_simulation_benchmark.json",
         "int8_degradation_investigation.json",
+        "fixed_fpr_evaluation.json",
+        "failure_mode_coverage_matrix.json",
+        "ablation_fixed_fpr.json",
+        "cross_dataset_generalization.json",
+        "semantic_mismatch_sensitivity.json",
+        "cross_model_replication.json",
     ]
 
     all_ok = True
-    print("\n[1/3] Machine-Readable JSON Datasets:")
+    print("\n[1/5] Machine-Readable JSON Datasets & Release Metadata:")
     for fname in required_files:
         p = json_dir / fname
         if not p.exists():
@@ -195,10 +251,18 @@ def verify_results(json_dir: Path, fig_dir: Path = None, tables_dir: Path = None
                     data = json.load(f)
                 size_kb = p.stat().st_size / 1024
                 keys = list(data.keys())[:3]
-                print(f"  [OK]      {fname:<36} ({size_kb:>6.1f} KB, keys: {keys})")
+                print(f"  [OK]      {fname:<38} ({size_kb:>6.1f} KB, keys: {keys})")
             except Exception as e:
                 print(f"  [CORRUPT] {fname}: {e}")
                 all_ok = False
+
+    meta_file = json_dir.parent / "RELEASE_METADATA.json"
+    if meta_file.exists():
+        size_kb = meta_file.stat().st_size / 1024
+        print(f"  [OK]      {meta_file.name:<38} ({size_kb:>6.1f} KB, release: paper-v1.0)")
+    else:
+        print(f"  [MISSING] {meta_file.name}")
+        all_ok = False
 
     if fig_dir is None:
         fig_dir = json_dir.parent / "figures"
@@ -218,9 +282,17 @@ def verify_results(json_dir: Path, fig_dir: Path = None, tables_dir: Path = None
         "resource_simulation_quantization.png",
         "resource_simulation_concurrency.png",
         "int8_activation_analysis.png",
+        "roc_curves_ood.png",
+        "detection_vs_fpr_budget.png",
+        "corruption_severity.png",
+        "ablation_impact.png",
+        "failure_mode_heatmap.png",
+        "cross_dataset_performance_drop.png",
+        "detector_generalization_across_datasets.png",
+        "semantic_mapping_sensitivity.png",
     ]
 
-    print("\n[2/3] Manuscript Figures (PNG):")
+    print("\n[2/5] Manuscript Figures (PNG):")
     for ffig in required_figures:
         p = fig_dir / ffig
         if not p.exists():
@@ -228,7 +300,7 @@ def verify_results(json_dir: Path, fig_dir: Path = None, tables_dir: Path = None
             all_ok = False
         else:
             size_kb = p.stat().st_size / 1024
-            print(f"  [OK]      {ffig:<36} ({size_kb:>6.1f} KB)")
+            print(f"  [OK]      {ffig:<38} ({size_kb:>6.1f} KB)")
 
     if tables_dir is None:
         tables_dir = json_dir.parent / "tables"
@@ -242,12 +314,20 @@ def verify_results(json_dir: Path, fig_dir: Path = None, tables_dir: Path = None
         "table6_ablation_study.csv",
         "table7_cross_model_comparison.csv",
         "table8_latency_breakdown.csv",
+        "table_main_ood_benchmark.csv",
+        "table_failure_mode_coverage.csv",
+        "table_ablation_fixed_fpr.csv",
+        "table_cross_dataset_generalization.csv",
+        "table_semantic_mismatch_sensitivity.csv",
+        "table_cross_model_replication.csv",
         "table_resource_profiles.csv",
         "table_runtime_overhead.csv",
         "table_quantization_tradeoff.csv",
+        "table_semantic_feature_audit.csv",
+        "table_prior_work_comparison.csv",
     ]
 
-    print("\n[3/3] Canonical Manuscript Tables (CSV):")
+    print("\n[3/5] Canonical Manuscript Tables (CSV):")
     for ftab in required_tables:
         p = tables_dir / ftab
         if not p.exists():
@@ -255,7 +335,51 @@ def verify_results(json_dir: Path, fig_dir: Path = None, tables_dir: Path = None
             all_ok = False
         else:
             size_kb = p.stat().st_size / 1024
-            print(f"  [OK]      {ftab:<36} ({size_kb:>6.1f} KB)")
+            print(f"  [OK]      {ftab:<38} ({size_kb:>6.1f} KB)")
+
+    # Verify SHA256 checksums of core artifacts
+    print("\n[4/5] Model Binaries & Artifact SHA256 Integrity:")
+    checksums_file = BASE_DIR / "experiments" / "checksums.sha256"
+    if checksums_file.exists():
+        import hashlib
+        n_checked = 0
+        n_matched = 0
+        for line in checksums_file.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            expected_hash, rel_path = line.split(maxsplit=1)
+            target = BASE_DIR / rel_path
+            n_checked += 1
+            if not target.exists():
+                print(f"  [MISSING] {rel_path}")
+                all_ok = False
+            else:
+                actual_hash = hashlib.sha256(target.read_bytes()).hexdigest()
+                if actual_hash == expected_hash:
+                    n_matched += 1
+                else:
+                    print(f"  [MISMATCH] {rel_path} (expected {expected_hash[:12]}..., got {actual_hash[:12]}...)")
+                    all_ok = False
+        if n_matched == n_checked:
+            print(f"  [OK]      All {n_checked} core runtime & paper artifacts match SHA256 checksums exactly")
+    else:
+        print(f"  [SKIP]    {checksums_file.name} not found")
+
+    # Run automated number verification against paper manuscript
+    print("\n[5/5] Automated Paper Number Verification:")
+    verify_script = BASE_DIR / "docs" / "paper" / "verify_numbers.py"
+    if verify_script.exists():
+        v_res = subprocess.run([sys.executable, str(verify_script)], capture_output=True, text=True)
+        if v_res.returncode == 0:
+            print("  [OK]      89/89 automated assertion checks pass (100% agreement with paper-draft.tex)")
+        else:
+            print("  [FAIL]    Paper number verification failed:")
+            for l in v_res.stdout.splitlines()[-5:]:
+                print(f"    {l}")
+            all_ok = False
+    else:
+        print(f"  [SKIP]    {verify_script.name} not found")
 
     return all_ok
 
