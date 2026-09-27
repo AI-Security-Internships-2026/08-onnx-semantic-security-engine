@@ -583,13 +583,44 @@ memorization of dataset-specific patterns.
 - Relatively new — fewer published baselines for direct comparison
 - 47 features (different schema from CSE-CIC-IDS2018 and ToN-IoT)
 
-**Why this is the final evaluation dataset:**
-This dataset was generated from real IoT hardware in a topology that
-directly mirrors the environment where our edge security engine will be
-deployed. Cameras, sensors, microcontrollers, Zigbee devices — these
-are exactly the devices our engine protects. Evaluating on CIC-IoT2023
-gives the most realistic measure of how our engine performs in production.
+---
 
+## Section 4: Rebuilt Literature-Gap Analysis, Prior-Work Comparison Table & Novelty Statement
+
+### 4.1 Prior-Work Comparison Matrix
+
+The table below contrasts SEMANTICSHIELD against 7 prominent prior systems across 8 critical operational and evaluation dimensions:
+
+| Prior System / Literature Baseline | Venue & Year | Primary Detection Technique | Deployment Domain | Flow Ingestion Format | Fixed-FPR Evaluation (≤1%) | Multi-Failure Mode Coverage | ONNX Runtime Graph Integration | Resource-Constrained Evaluation |
+|---|---|---|---|---|:---:|:---:|:---:|:---:|
+| **Kitsune** (Mirsky et al.) | NDSS 2018 | Ensemble of Autoencoders | Edge / Gateway | Raw PCAP (packet-level) | ❌ (Unbounded threshold) | Partial (Adversarial only) | ❌ (Custom C++) | Physical Pi evaluation |
+| **Lucid** (Doriguzzi-Corin et al.) | IEEE TNSM 2020 | Compact 1D-CNN | Edge / SDN Switch | Fixed-window flow statistics | ❌ (Global threshold) | ❌ (No OOD/corruption checks) | ❌ (Keras / PyTorch) | Resource-limited server |
+| **Standardized NetFlow** (Sarhan et al.) | IEEE TNSM 2023 | Random Forest / MLP | Central Server | Standardized NetFlow v2 / IPFIX | ❌ (Classification metrics only) | ❌ (Domain shift only) | ❌ (Scikit-Learn / PyTorch) | ❌ (Unconstrained server) |
+| **OOD-NIDS** (Yang et al.) | IEEE TDSC 2022 | Generalized ODIN / Energy score | High-End Server | Flow statistics | Partial (AUROC focus) | Partial (Synthesized attacks) | ❌ (PyTorch offline) | ❌ (Desktop workstation) |
+| **ONNX-EdgeNIDS** (Zhang et al.) | IEEE Access 2021 | Standard MLP / Decision Tree | Edge Appliance | Proprietary CSV features | ❌ (Standard accuracy) | ❌ (No validation / drift layer) | Partial (Single-output ONNX) | Raspberry Pi 4 |
+| **Baseline MSP** (Hendrycks & Gimpel) | ICLR 2017 | Maximum Softmax Probability | General ML Benchmark | Arbitrary vector | Partial (AUROC / FPR@95) | ❌ (Fails on zero-fill/NaN) | ❌ (Raw model output) | ❌ (GPU benchmark) |
+| **Mahalanobis Feature OOD** (Lee et al.) | NeurIPS 2018 | Layer-wise Mahalanobis distance | Computer Vision | High-dimensional tensors | Partial (AUROC / FPR@95) | ❌ (Fails on zero-fill/NaN) | ❌ (Requires heavy covariance) | ❌ (GPU benchmark) |
+| **SEMANTICSHIELD** (This Work) | 2026 | **Invariant Validation + Dual Manifold Drift (Cosine/Mahal) + Calibrated MSP** | **Simulated Edge Gateway (R0–R3)** | **13-Feature NetFlow v2 Standard** | **✅ (0.1%, 1.0%, 5.0% FPR operating points)** | **✅ (8 failure modes: E1–E8)** | **✅ (Dual-output ONNX graph extraction)** | **✅ (Simulated cgroups profiles R0–R3)** |
 
 ---
 
+### 4.2 Systematic Literature Gap Analysis
+
+From the comparative analysis above, three structural gaps in the literature on ML-based edge intrusion detection are identified:
+
+1. **Gap 1: Absence of Fixed False-Alarm Budget Evaluation in Edge NIDS**  
+   Most prior OOD detection evaluations report threshold-free aggregate metrics (AUROC, AUPRC) across full score distributions. In operational network security, however, false alarm rates above 1.0% cause alert fatigue and paralyze security operations. Prior works rarely characterize true positive rates at strict, realistic operating points (FPR $\le 0.1\%$ or $1.0\%$). Under these strict budgets, our experiments reveal that single statistical detectors (such as Mahalanobis distance alone) experience catastrophic sensitivity degradation (TPR drops from 79.6% at 5% FPR to 1.18% at 1% FPR and 0.34% at 0.1% FPR).
+
+2. **Gap 2: Complete Vulnerability to Upstream Telemetry Invariant Violations**  
+   Prior OOD research assumes inputs are valid numerical vectors that have experienced natural covariate drift. In edge deployments, however, telemetry pipelines frequently suffer silent truncation (zero-fill), floating-point parsing failures (`NaN`/`Inf`), unit conversion errors (byte-to-kilobyte), or schema mismatches. Statistical distance detectors (MSP, Mahalanobis) fail entirely against structured truncations (e.g. 0.0% detection on 100% zero-filled flows) because all-zero inputs project near training centroids or produce confident default classifications.
+
+3. **Gap 3: Decoupling of Runtime Assurance from Deployment Graph Execution**  
+   Existing assurance and anomaly detection frameworks operate as external post-processing pipelines (often in Python/PyTorch) that require significant additional runtime overhead, complex dependencies, and separate memory buffers. Prior edge NIDS research exports classification models to ONNX but omits inline runtime assurance, leaving deployed models unguarded against out-of-distribution inputs and corrupted telemetry.
+
+---
+
+### 4.3 Proposed Final Novelty Statement
+
+To ensure strict scientific integrity, the project’s novelty statement is formulated without unsupported claims (such as "first," "universally superior," or "universally architecture-agnostic"):
+
+> **SEMANTICSHIELD contributes an ONNX-native runtime assurance architecture designed for resource-constrained edge intrusion detection. Rather than asserting universal detector superiority, SEMANTICSHIELD demonstrates that combining deterministic pre-inference invariant validation with dual-output hidden representation manifold drift (Cosine and Mahalanobis) achieves complementary failure-mode coverage across 8 distinct deployment failure modes under strict operational false-alarm budgets (FPR $\le 1.0\%$), while operating within bounded simulated edge container constraints (1.19 ms p95 latency under Profile R0, maintaining over 1,100 flows/second).**
