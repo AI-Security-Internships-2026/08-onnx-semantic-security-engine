@@ -75,3 +75,4 @@ experiments/training_feature_stats*.json
 sikandar-plans/
 scratch/
 scratch_test_api.py
+tools/

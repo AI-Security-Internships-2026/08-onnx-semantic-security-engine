@@ -1337,6 +1337,67 @@ This provides rigorous deployment-efficiency and resource-sensitivity evidence, 
 
 ---
 
+## Issue 7: Rewrite Paper Around Final Runtime-Assurance Contribution
+
+**Branch:** `sikandarhussain6858-issue-1`  
+**Status:** Completed  
+**Priority:** 🔴 Critical (Publication Readiness)  
+**Dependencies:** M1.1, M1.2, M2.1, M2.2, M2.3, M3.1  
+
+---
+
+### What I Did
+
+#### 1. Central Research Question & Theoretical Framing Transformation
+- Reframed the paper's core contribution around **ONNX-native runtime assurance for deployed NIDS** rather than claimed superiority of an OOD ensemble:
+  - **Central RQ:** *Can an ONNX-native runtime assurance layer detect multiple deployment-time failure modes in ML-based NIDS while satisfying explicit false-alarm and edge-resource budgets?*
+  - **RQ1 (Effectiveness & Operational Feasibility):** Effectiveness against real cross-domain shift and structural corruptions under fixed operational budgets ($\text{FPR} \le 0.1\%$ and $1.0\%$).
+  - **RQ2 (Monitor Complementarity & Coverage):** Distinct contribution and complementarity of deterministic validation, statistical embedding drift, and prediction uncertainty across 9 failure modes.
+  - **RQ3 (Edge Resource Constraints & Quantization):** Latency, memory footprint, and classification fidelity under containerized edge simulation (R0–R3 profiles) and multi-precision quantization (FP16, static INT8, weight-only INT4).
+- Tempered all universal and absolute claims: honestly reported that on clean continuous covariate shift (E2 ToN-IoT), Mahalanobis distance alone achieves AUROC = 0.9713, whereas the composite drift score achieves AUROC = 0.9486. The full assurance layer trades narrow benchmark AUROC for comprehensive coverage across failure modes where single statistical detectors fail completely.
+
+#### 2. Exact Code-Math Alignment with M1.1 Implementation
+- Rewrote Section III (Method) equations and Algorithm 1 to match the production implementation in `src/semantic_analyzer.py` and `configs/paper_v1.yaml`:
+  - Confidence scoring: $\text{Conf}(\mathbf{z}) = \max_i p_i$, thresholded at calibrated $\tau_{\text{conf}} = 0.4743$.
+  - Class-conditional Mahalanobis distance ($D_M(\mathbf{e})$, $\tau_M = 18.1593$) with regularized pooled precision matrix $(\hat{\boldsymbol{\Sigma}} + 0.01\mathbf{I})^{-1}$.
+  - Class-conditional Cosine distance ($D_{\cos}(\mathbf{e})$, $\tau_{\cos} = 0.4341$).
+  - Composite normalized drift score: $S_{\text{drift}} = \min(\max(D_{\cos}/\tau_{\cos}, D_M/\tau_M), 2.0)$.
+  - Deterministic Input Validator: 5 checks ($\dim=13$, non-finite values, $\ge 80\%$ zero-fill or core 4 fields zeroed, range $\mu \pm 15\sigma$, z-score $|z| > 15$).
+  - 4-level Verdict State Machine (`REJECTED`, `HIGH_RISK`, `SUSPICIOUS`, `CLEAN`).
+
+#### 3. Canonical 5-Table & 6-Figure Main-Paper Architecture
+- Structured the manuscript evaluation around 5 canonical tables and 6 figures directly tied to `experiments/paper_results/`:
+  - **Table I:** Datasets, Models, and Protocols + In-Distribution Baseline (Accuracy 85.15\%, Macro-F1 78.01\%, Weighted-F1 86.55\% across 138,069 test flows).
+  - **Table II:** Main Fixed-FPR OOD Benchmark (AUROC, AUPRC, FPR@95, and TPR at $\text{FPR} \in \{0.1\%, 1.0\%, 5.0\%\}$).
+  - **Table III:** Failure-Mode Coverage Matrix across 9 deployment failure modes (E2–E8) and component ablation. Proved that statistical detectors achieve 0.0\% on 100\% zero-fill tampering where the validator achieves 100\%, while the full system achieves 100\% zero-fill, 100\% noise, 96.5\% permutation, 90.3\% outliers, and 79.3\% non-finite interception at 1\% FPR.
+  - **Table IV:** Cross-Dataset & Cross-Model Generalization (ThreatMLP vs ThreatCNN1D on ToN-IoT and BoT-IoT; feature mapping tier sensitivity).
+  - **Table V:** Containerized Edge Simulation & Quantization Trade-offs across Profiles R0–R3 and precisions FP32, FP16, INT8, INT4 under Profile R1.
+  - **Figures 1–6:** Synchronized high-resolution canonical figures into `docs/paper/figures/`.
+
+#### 4. Mandatory Edge Simulation Limitation & 8-Part Threats to Validity
+- Explicitly stated that containerized Linux cgroups v2 resource profiles (R0–R3) simulate CPU and memory quotas but do NOT reproduce physical ARM Big.LITTLE microarchitectures, dedicated NPU/TPU cores, thermal throttling, memory bus bandwidth saturation, or physical NIC line-rate packet capture.
+- Expanded Section VII into 8 structured subsections: Dataset Representativeness, Hardware/Simulation Fidelity, Architectural Generalizability, OOD Representativeness, Calibration Sensitivity, Label Taxonomy Mismatch, Semantic Audit Subjectivity, and Historical Evaluation Consistency.
+
+#### 5. Numeric Verification & Publication PDF Compilation
+- Updated [`docs/paper/verify_numbers.py`](file:///d:/Internship/08-onnx-semantic-security-engine/docs/paper/verify_numbers.py) to assert 89 quantitative claims against canonical JSON artifacts. Verified: **89/89 checks pass (100% agreement, 0 mismatches)**.
+- Verified test suite: **71/71 tests passing (100% pass rate)**.
+- Successfully compiled the complete manuscript using Tectonic into [`docs/paper/paper-draft.pdf`](file:///d:/Internship/08-onnx-semantic-security-engine/docs/paper/paper-draft.pdf) (12 pages, 2.4 MB, publication ready).
+
+---
+
+### Artifact Summary for Issue 7
+
+| Artifact | File Location | Purpose |
+|:---|:---|:---|
+| **Rewritten Manuscript Source** | [`docs/paper/paper-draft.tex`](file:///d:/Internship/08-onnx-semantic-security-engine/docs/paper/paper-draft.tex) | Complete publication manuscript refocused on runtime assurance |
+| **Compiled Publication PDF** | [`docs/paper/paper-draft.pdf`](file:///d:/Internship/08-onnx-semantic-security-engine/docs/paper/paper-draft.pdf) | 12-page compiled IEEE Transactions-style PDF |
+| **Canonical Verification Script** | [`docs/paper/verify_numbers.py`](file:///d:/Internship/08-onnx-semantic-security-engine/docs/paper/verify_numbers.py) | Automated assertion test validating 89 numbers against JSON results |
+| **Synchronized Canonical Figures** | [`docs/paper/figures/`](file:///d:/Internship/08-onnx-semantic-security-engine/docs/paper/figures/) | Complete set of canonical high-resolution evaluation figures |
+| **Comprehensive Plan Artifact** | [`issue7_paper_rewrite_plan.md`](file:///C:/Users/DELL/.gemini/antigravity-ide/brain/1c189b73-f1ef-442c-a171-e08d6108f3ab/issue7_paper_rewrite_plan.md) | Architectural plan and mapping reference |
+| **Updated Progress Log** | [`docs/weekly-progress.md`](file:///d:/Internship/08-onnx-semantic-security-engine/docs/weekly-progress.md) | Full Issue 7 documentation and milestone signoff |
+
+---
+
 
 
 
