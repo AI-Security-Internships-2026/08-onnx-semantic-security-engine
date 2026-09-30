@@ -1,0 +1,6 @@
+Method,AUROC,AUROC 95% CI,AUPRC,AUPRC 95% CI,FPR@95TPR,TPR@0.1% FPR,TPR@1% FPR,TPR@5% FPR
+MSP (1-Confidence),0.8501,"[0.8406, 0.8576]",0.9073,"[0.9010, 0.9126]",0.7212,0.0110,0.7922,0.7930
+Cosine Distance,0.9455,"[0.9406, 0.9503]",0.9447,"[0.9390, 0.9502]",0.1452,0.0000,0.0000,0.7604
+Mahalanobis Distance,0.9713,"[0.9677, 0.9745]",0.9639,"[0.9586, 0.9691]",0.0616,0.0034,0.0118,0.7962
+Composite Drift Score,0.9486,"[0.9436, 0.9534]",0.9376,"[0.9310, 0.9441]",0.1186,0.0000,0.0114,0.7852
+Input Validator (structural),N/A (deterministic),,N/A (deterministic),,N/A,N/A,N/A,rej=0.0000

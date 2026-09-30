@@ -1,0 +1,14 @@
+{
+  "system": "Windows",
+  "platform_release": "11",
+  "platform_version": "10.0.26200",
+  "architecture": "AMD64",
+  "processor": "Intel64 Family 6 Model 165 Stepping 2, GenuineIntel",
+  "python_version": "3.14.3",
+  "onnxruntime_version": "1.24.4",
+  "host_logical_cpus": 12,
+  "host_total_ram_gb": 15.61,
+  "docker_cgroups_v2": false,
+  "timestamp_utc": "2026-09-25T17:06:50Z",
+  "framing_guardrail": "Simulated resource constraints (NOT physical edge hardware)"
+}

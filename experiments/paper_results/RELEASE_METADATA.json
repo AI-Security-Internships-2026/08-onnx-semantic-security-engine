@@ -1,0 +1,215 @@
+{
+  "release": {
+    "name": "SEMANTICSHIELD Paper Artifact Release",
+    "tag": "paper-v1.0",
+    "timestamp_utc": "2026-09-30T17:21:03.917738+00:00",
+    "git_commit": "b18300b9f99a0027c5998d0afdeee975287d65dc",
+    "git_branch": "sikandarhussain6858-issue-1",
+    "paper_title": "SEMANTICSHIELD: Invariant-Aware and Drift-Calibrated Semantic Runtime Assurance for Edge NIDS in ONNX",
+    "paper_manuscript": "docs/paper/paper-draft.pdf",
+    "paper_source": "docs/paper/paper-draft.tex"
+  },
+  "frozen_configuration": {
+    "config_file": "configs/paper_v1.yaml",
+    "version": "paper_v1",
+    "frozen_date": "2026-09-11",
+    "feature_schema": "NF-Standardized (13 Features)",
+    "target_fpr": 0.05,
+    "evaluation_seeds": [
+      42,
+      123,
+      456,
+      789,
+      1024
+    ],
+    "calibration_samples": 10000,
+    "fpr_budgets": [
+      0.001,
+      0.01,
+      0.05
+    ]
+  },
+  "environment": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "os": "Windows",
+    "os_release": "11",
+    "architecture": "AMD64",
+    "cpu_physical_cores": 6,
+    "cpu_logical_cores": 12,
+    "total_ram_gb": 15.61,
+    "python_version": "3.14.3",
+    "python_full": "3.14.3 (tags/v3.14.3:323c59a, Feb  3 2026, 16:04:56) [MSC v.1944 64 bit (AMD64)]"
+  },
+  "simulated_edge_profiles": {
+    "R0_reference": {
+      "cpu_quota": "unlimited",
+      "memory_limit": "host_ram",
+      "onnx_intra_threads": 0,
+      "onnx_inter_threads": 0,
+      "description": "Unconstrained host reference baseline"
+    },
+    "R1_constrained": {
+      "cpu_quota": "1.0 vCPU",
+      "memory_limit": "512 MB",
+      "onnx_intra_threads": 1,
+      "onnx_inter_threads": 1,
+      "description": "Strongly constrained edge profile (simulated via ONNX Runtime thread controls)"
+    },
+    "R2_moderate": {
+      "cpu_quota": "2.0 vCPUs",
+      "memory_limit": "1024 MB",
+      "onnx_intra_threads": 2,
+      "onnx_inter_threads": 1,
+      "description": "Moderately constrained edge controller (simulated via ONNX Runtime thread controls)"
+    },
+    "R3_higher": {
+      "cpu_quota": "4.0 vCPUs",
+      "memory_limit": "2048 MB",
+      "onnx_intra_threads": 4,
+      "onnx_inter_threads": 2,
+      "description": "Less constrained edge gateway (simulated via ONNX Runtime thread controls)"
+    }
+  },
+  "dependency_versions": {
+    "python": "3.14.3",
+    "torch": "2.11.0+cpu",
+    "onnx": "1.21.0",
+    "onnxruntime": "1.24.4",
+    "scikit-learn": "1.8.0",
+    "scipy": "1.17.1",
+    "pandas": "3.0.2",
+    "numpy": "2.4.4",
+    "joblib": "1.5.3"
+  },
+  "datasets": {
+    "in_distribution": {
+      "name": "CSE-CIC-IDS2018",
+      "role": "Training, validation calibration, and test baseline",
+      "flow_extractor": "CICFlowMeter-V3",
+      "n_test_samples": 138069,
+      "features": 13,
+      "source_url": "https://www.unb.ca/cic/datasets/ids-2018.html"
+    },
+    "out_of_distribution_toniot": {
+      "name": "NF-ToN-IoT-v2",
+      "role": "Out-of-distribution real covariate shift evaluation (Track B)",
+      "flow_extractor": "nProbe (NetFlow v9/IPFIX)",
+      "total_rows": 13135881,
+      "features": 13,
+      "source_citation": "Sarhan et al. (2021)"
+    },
+    "out_of_distribution_botiot": {
+      "name": "NF-BoT-IoT-v2",
+      "role": "Same-schema cross-dataset domain shift & cross-model replication (Track A)",
+      "flow_extractor": "nProbe (NetFlow v9/IPFIX)",
+      "total_rows": 30420086,
+      "features": 13,
+      "source_citation": "Sarhan et al. (2021)"
+    },
+    "failure_modes": {
+      "E1_clean_test": "CSE-CIC-IDS2018 held-out test traffic",
+      "E2_real_shift": "NF-ToN-IoT-v2 domain & extractor shift",
+      "E3_nan_inf": "Malformed IEEE-754 NaN and Inf numerical corruptions",
+      "E4_zero_fill": "Partial-to-complete zero-fill pipeline truncation (10%-100%)",
+      "E5_feature_permutation": "Schema mismatch via random feature permutation",
+      "E6_unit_scale": "Scale corruption via byte-to-kilobyte unit conversion error",
+      "E7_extreme_outliers": "High Z-score synthetic statistical outliers",
+      "E8_gaussian_noise": "Adversarial/random Gaussian perturbation shift"
+    }
+  },
+  "artifact_checksums": {
+    "experiments/threat_mlp_nf_fp32.onnx": {
+      "sha256": "0de24a3e6f918767f953834375ffaa417c6255942a2d73e77b93e0cced7abe33",
+      "size_bytes": 2544
+    },
+    "experiments/threat_mlp_nf_fp32.onnx.data": {
+      "sha256": "6fc17b0100cb3c9a87e731e85076b2e5fb49bb6b38fdc108925a66c06892de9c",
+      "size_bytes": 182528
+    },
+    "experiments/threat_mlp_nf_fp16.onnx": {
+      "sha256": "f53b4fe9f7c5b767dc0da5270648c128d32426b59c3c1c6c3f2a1489a8d3af7f",
+      "size_bytes": 93234
+    },
+    "experiments/threat_mlp_nf_int8.onnx": {
+      "sha256": "7f37549fbe07ce45e23e576a65a1209257621550868285c2b09e69ddb2fe1339",
+      "size_bytes": 50184
+    },
+    "experiments/threat_mlp_nf_int4.onnx": {
+      "sha256": "eb77233c61927827c7580525afeeb24a92e28b634602f5677b03cefaaf11f578",
+      "size_bytes": 35660
+    },
+    "experiments/threat_cnn1d_nf_fp32.onnx": {
+      "sha256": "e0a4cd36a8d9873b9bd72a039675910ab122bb9a352a1e7bcad40030b2f5070b",
+      "size_bytes": 16014
+    },
+    "experiments/threat_cnn1d_nf_fp32.onnx.data": {
+      "sha256": "2aed98dbdeed8d3b3a691c71f89969195b0572b7f436446e374a04f61e0a3c48",
+      "size_bytes": 136192
+    },
+    "experiments/threat_mlp_nf.pth": {
+      "sha256": "d12ac1cd20ff3fd8d95125ae70cd5b96e54623f00c9e3ba24b1e8d3914ea559b",
+      "size_bytes": 197836
+    },
+    "experiments/threat_mlp_nf_best.pth": {
+      "sha256": "469ed722d646715fe527529497c1133448bd0591c00b11fbf94034f806fc776a",
+      "size_bytes": 197981
+    },
+    "experiments/threat_cnn1d_nf.pth": {
+      "sha256": "c2f75459624c35e1e221316a0d0355b1a30c6e9ee85982d43d4ffd78fbdae304",
+      "size_bytes": 148887
+    },
+    "experiments/threat_cnn1d_nf_best.pth": {
+      "sha256": "c2f75459624c35e1e221316a0d0355b1a30c6e9ee85982d43d4ffd78fbdae304",
+      "size_bytes": 148887
+    },
+    "experiments/standard_scaler_nf.joblib": {
+      "sha256": "25bc23a31b8f017011af00b39eb9bcfd58869f08a5d31ccac87763872fdce180",
+      "size_bytes": 879
+    },
+    "experiments/label_encoder_nf.joblib": {
+      "sha256": "204609908a13635a7addd8cd934d691005ed890a1a4cbc8ee102b0617d31d85f",
+      "size_bytes": 753
+    },
+    "experiments/reference_embeddings_nf.npz": {
+      "sha256": "0c4514b76571e735c7baaa27f3168a3b800b9b65660a1a3a187ed98deae711c9",
+      "size_bytes": 76774
+    },
+    "experiments/reference_embeddings_cnn1d_nf.npz": {
+      "sha256": "65fd04b4782c62020b59a6bf0ea82950dc415c15c27e8984a95271fc863fa301",
+      "size_bytes": 76774
+    },
+    "experiments/training_feature_stats_nf.json": {
+      "sha256": "16c8c00d0def1f242f17ad272075be26dc104adef807b10bcc82d8089c799db2",
+      "size_bytes": 2633
+    },
+    "experiments/training_feature_stats_cnn1d_nf.json": {
+      "sha256": "d934a9d0559d42f4dac06bbc6d61840379aca018c6d7cbcdb0f4dfe92f948748",
+      "size_bytes": 2641
+    },
+    "experiments/calibration_config.json": {
+      "sha256": "f638ae0c31532d9ad070ccc62331559ac3b5a97c73ea53ab1090596ebdd8a5de",
+      "size_bytes": 318
+    },
+    "experiments/X_test_nf.npy": {
+      "sha256": "8cde16a35e0505eff2a7b98f8648e7ab55b2f9a653c5fe743913d6ab41c04760",
+      "size_bytes": 7179716
+    },
+    "experiments/y_test_nf.npy": {
+      "sha256": "dc3c050542a88c50ea4301d8f001bc337a9b7bd7a4c6af9a67021a1fec1a55c0",
+      "size_bytes": 1104680
+    },
+    "configs/paper_v1.yaml": {
+      "sha256": "8adb7bfa82d92a06438db8c0aaba6a09fb4961ae2fc357b16c1ba6acc4732397",
+      "size_bytes": 3958
+    },
+    "docs/paper/paper-draft.tex": {
+      "sha256": "e2dca5b094537622076444dd0d2d950820dbd22349999ebbf40471cdfb905cd0",
+      "size_bytes": 56407
+    },
+    "docs/paper/paper-draft.pdf": {
+      "sha256": "785ac833c7f4724a6861ffac0a6aa80c4232c96c8e3f320634be5225120a557c",
+      "size_bytes": 2473497
+    }
+  },
+  "simulation_disclaimer": "All edge resource profiles (R0-R3) use ONNX Runtime thread affinity controls on a commodity x86_64 host to simulate CPU-constrained execution. These results do NOT constitute validation on physical ARM edge hardware (Raspberry Pi, Jetson, etc.). Physical edge deployment remains future work."
+}

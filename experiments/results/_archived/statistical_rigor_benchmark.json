@@ -1,4 +1,13 @@
 {
+  "provenance": {
+    "config_version": "paper_v1",
+    "config_frozen_date": "2026-09-11",
+    "git_commit": "3532595b2f3d78397df64e35f6f9659e5a541223",
+    "git_branch": "sikandarhussain6858-issue-1",
+    "timestamp_utc": "2026-09-22T16:48:22.365576+00:00",
+    "python_version": "3.14.3",
+    "platform": "win32"
+  },
   "experiment": "Statistical Rigor 5-Seed Evaluation Benchmark",
   "num_seeds": 5,
   "seeds": [
@@ -17,6 +26,10 @@
       "auroc_comp": 0.7533521650000001,
       "auroc_cos": 0.78022736,
       "auroc_msp": 0.8106633249999999,
+      "fpr95_mahal": 55.779999999999994,
+      "fpr95_comp": 71.14,
+      "fpr95_cos": 64.32,
+      "fpr95_msp": 58.620000000000005,
       "ap_mahal": 0.7181121536269376,
       "ood_intercept_pct": 61.9,
       "noise_intercept_pct": 100.0,
@@ -33,6 +46,10 @@
       "auroc_comp": 0.7544146100000001,
       "auroc_cos": 0.7795343800000001,
       "auroc_msp": 0.8086529849999999,
+      "fpr95_mahal": 55.37,
+      "fpr95_comp": 70.62,
+      "fpr95_cos": 64.47,
+      "fpr95_msp": 58.56,
       "ap_mahal": 0.7189336946079308,
       "ood_intercept_pct": 61.629999999999995,
       "noise_intercept_pct": 100.0,
@@ -49,6 +66,10 @@
       "auroc_comp": 0.75464828,
       "auroc_cos": 0.7818938700000001,
       "auroc_msp": 0.81085576,
+      "fpr95_mahal": 56.16,
+      "fpr95_comp": 70.81,
+      "fpr95_cos": 64.83,
+      "fpr95_msp": 56.54,
       "ap_mahal": 0.7195449766776841,
       "ood_intercept_pct": 61.92999999999999,
       "noise_intercept_pct": 100.0,
@@ -65,6 +86,10 @@
       "auroc_comp": 0.7492901200000001,
       "auroc_cos": 0.7757175000000001,
       "auroc_msp": 0.80740005,
+      "fpr95_mahal": 55.64,
+      "fpr95_comp": 70.71,
+      "fpr95_cos": 64.11,
+      "fpr95_msp": 58.52,
       "ap_mahal": 0.7138072720090441,
       "ood_intercept_pct": 61.31999999999999,
       "noise_intercept_pct": 100.0,
@@ -81,6 +106,10 @@
       "auroc_comp": 0.7546979399999999,
       "auroc_cos": 0.7820248699999999,
       "auroc_msp": 0.8104364799999999,
+      "fpr95_mahal": 54.87,
+      "fpr95_comp": 69.37,
+      "fpr95_cos": 63.870000000000005,
+      "fpr95_msp": 57.699999999999996,
       "ap_mahal": 0.7183629334352457,
       "ood_intercept_pct": 61.83,
       "noise_intercept_pct": 100.0,
@@ -133,6 +162,34 @@
       "formatted": "0.8096 +/- 0.0015",
       "formatted_pct": "0.81% +/- 0.00%"
     },
+    "mahalanobis_fpr95": {
+      "mean": 55.564,
+      "std": 0.4814,
+      "ci95_margin": 0.5976,
+      "formatted": "55.5640 +/- 0.4814",
+      "formatted_pct": "55.56% +/- 0.48%"
+    },
+    "composite_engine_fpr95": {
+      "mean": 70.53,
+      "std": 0.6776,
+      "ci95_margin": 0.8412,
+      "formatted": "70.5300 +/- 0.6776",
+      "formatted_pct": "70.53% +/- 0.68%"
+    },
+    "cosine_distance_fpr95": {
+      "mean": 64.32,
+      "std": 0.3637,
+      "ci95_margin": 0.4516,
+      "formatted": "64.3200 +/- 0.3637",
+      "formatted_pct": "64.32% +/- 0.36%"
+    },
+    "msp_confidence_fpr95": {
+      "mean": 57.988,
+      "std": 0.8929,
+      "ci95_margin": 1.1085,
+      "formatted": "57.9880 +/- 0.8929",
+      "formatted_pct": "57.99% +/- 0.89%"
+    },
     "mahalanobis_avg_precision": {
       "mean": 0.7178,
       "std": 0.0023,
@@ -171,20 +228,20 @@
   },
   "latency_percentiles": {
     "plain_inference": {
-      "mean_ms": 0.0684,
-      "std_ms": 0.0299,
-      "median_p50": 0.0606,
-      "p95_ms": 0.1058,
-      "p99_ms": 0.1764
+      "mean_ms": 0.0955,
+      "std_ms": 0.084,
+      "median_p50": 0.0684,
+      "p95_ms": 0.2231,
+      "p99_ms": 0.3983
     },
     "semantic_inference": {
-      "mean_ms": 0.6641,
-      "std_ms": 0.2276,
-      "median_p50": 0.6186,
-      "p95_ms": 0.9084,
-      "p99_ms": 1.3005,
-      "overhead_mean_ms": 0.5957,
-      "overhead_pct": 871.34
+      "mean_ms": 0.7337,
+      "std_ms": 0.2871,
+      "median_p50": 0.6423,
+      "p95_ms": 1.1896,
+      "p99_ms": 1.7343,
+      "overhead_mean_ms": 0.6382,
+      "overhead_pct": 668.21
     }
   }
 }

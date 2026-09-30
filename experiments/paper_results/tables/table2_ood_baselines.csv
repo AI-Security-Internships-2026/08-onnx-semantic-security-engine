@@ -1,0 +1,6 @@
+Detector Method,In-Dist FPR,ToN-IoT AUROC,ToN-IoT AUPRC,ToN-IoT FPR@95,ToN-IoT Intercept %,Noise AUROC,Zero-Fill AUROC,Mean Latency (ms)
+MSP (Confidence Alone),3.33%,0.8503,0.9011,62.73%,75.92%,0.0312,0.9169,0.0944
+Mahalanobis Distance Alone,4.78%,0.9592,0.9553,32.96%,74.39%,1.0000,0.9198,0.6464
+Isolation Forest,2.69%,0.6381,0.6258,39.98%,0.84%,0.9746,0.7082,13.0016
+One-Class SVM,4.47%,0.2129,0.4828,83.92%,4.55%,1.0000,0.9583,0.3099
+Semantic Engine (Combined),3.87%,0.9378,0.9295,35.04%,74.30%,0.9989,0.8346,0.6982

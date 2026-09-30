@@ -27,17 +27,21 @@ import os
 import argparse
 from pathlib import Path
 
-from model import ThreatMLP, ThreatMLPWithEmbedding
+from model import ThreatMLP, ThreatMLPWithEmbedding, ThreatCNN1D, ThreatCNN1DWithEmbedding
 
 # ── CLI Arguments ──
-parser = argparse.ArgumentParser(description="Export PyTorch ThreatMLP to ONNX format")
+parser = argparse.ArgumentParser(description="Export PyTorch model (MLP or CNN1D) to ONNX format")
 parser.add_argument(
     "--nf", action="store_true",
     help="Export the NF-standardized model (13 features) instead of baseline (76 features)"
 )
 parser.add_argument(
+    "--arch", type=str, default="mlp", choices=["mlp", "cnn1d"],
+    help="Model architecture: 'mlp' or 'cnn1d' (default: 'mlp')"
+)
+parser.add_argument(
     "--with-embeddings", action="store_true", default=True,
-    help="Export with fc3 embedding layer as second output (default: True)"
+    help="Export with intermediate embedding layer as second output (default: True)"
 )
 parser.add_argument(
     "--no-embeddings", action="store_true",
@@ -53,14 +57,11 @@ if args.no_embeddings:
 BASE_DIR = Path(__file__).parent.parent
 EXPERIMENTS = BASE_DIR / "experiments"
 
-if args.nf:
-    model_file = "threat_mlp_nf.pth"
-    onnx_file = "threat_mlp_nf_fp32.onnx"
-    model_label = "NF-Standardized (13 features)"
-else:
-    model_file = "threat_mlp.pth"
-    onnx_file = "threat_mlp_fp32.onnx"
-    model_label = "Baseline (76 features)"
+suffix = "_nf" if args.nf else ""
+arch_prefix = f"threat_{args.arch}"
+model_file = f"{arch_prefix}{suffix}.pth"
+onnx_file = f"{arch_prefix}{suffix}_fp32.onnx"
+model_label = f"{args.arch.upper()} ({'NF-Standardized 13' if args.nf else 'Baseline 76'} features)"
 
 model_path = EXPERIMENTS / model_file
 onnx_path = EXPERIMENTS / onnx_file
@@ -76,19 +77,26 @@ if not model_path.exists():
 state_dict = torch.load(model_path, map_location="cpu")
 
 # Infer input_dim and num_classes from state_dict weight shapes
-input_dim = state_dict["fc1.weight"].shape[1]
-num_classes = state_dict["fc4.weight"].shape[0]
+if args.arch == "cnn1d":
+    input_dim = 13 if args.nf else 76
+    num_classes = state_dict["fc2.weight"].shape[0]
+    base_model = ThreatCNN1D(input_dim, num_classes)
+    wrapper_cls = ThreatCNN1DWithEmbedding
+else:
+    input_dim = state_dict["fc1.weight"].shape[1]
+    num_classes = state_dict["fc4.weight"].shape[0]
+    base_model = ThreatMLP(input_dim, num_classes)
+    wrapper_cls = ThreatMLPWithEmbedding
+
 print(f"  Detected dimensions: input_dim={input_dim}, num_classes={num_classes}")
 
-# Initialize and load model
-base_model = ThreatMLP(input_dim, num_classes)
 base_model.load_state_dict(state_dict)
 base_model.eval()
 
 # ── Choose export mode ──
 if args.with_embeddings:
-    print("  Export mode: DUAL OUTPUT (logits + fc3 embedding)")
-    model = ThreatMLPWithEmbedding(base_model)
+    print("  Export mode: DUAL OUTPUT (logits + intermediate embedding)")
+    model = wrapper_cls(base_model)
     model.eval()
     output_names = ["output", "embedding"]
     dynamic_axes = {

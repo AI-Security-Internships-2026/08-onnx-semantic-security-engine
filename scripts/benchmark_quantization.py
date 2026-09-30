@@ -17,6 +17,7 @@ Outputs:
 import json
 import time
 import sys
+import argparse
 import numpy as np
 import joblib
 import onnxruntime as ort
@@ -25,6 +26,9 @@ from sklearn.metrics import f1_score, accuracy_score
 
 # ── Paths ──
 BASE_DIR = Path(__file__).parent.parent
+sys.path.insert(0, str(BASE_DIR))
+from scripts.config_loader import load_paper_config, get_provenance_metadata
+
 EXPERIMENTS = BASE_DIR / "experiments"
 RESULTS_DIR = EXPERIMENTS / "results"
 IMAGES_DIR = EXPERIMENTS / "images"
@@ -163,7 +167,7 @@ def benchmark_variant(name: str, model_path: Path, X_test: np.ndarray, y_test: n
     }
 
 
-def generate_plots(results: dict):
+def generate_plots(results: dict, figures_dir=None):
     """Generate publication-quality comparison plots."""
     import matplotlib
     matplotlib.use('Agg')
@@ -240,13 +244,39 @@ def generate_plots(results: dict):
     ax.grid(axis='y', alpha=0.3)
     
     plt.tight_layout()
+    if figures_dir is not None:
+        canonical_plot = Path(figures_dir) / "quantization_benchmark.png"
+        plt.savefig(canonical_plot, dpi=150, bbox_inches='tight')
+        print(f"\n[SAVED] {canonical_plot}")
+
     plot_path = IMAGES_DIR / "quantization_benchmark.png"
     plt.savefig(plot_path, dpi=150, bbox_inches='tight')
     plt.close()
-    print(f"\n[SAVED] {plot_path}")
+    print(f"[SAVED] {plot_path}")
 
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="Full precision / quantization benchmark.")
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=str(EXPERIMENTS / "paper_results" / "json"),
+        help="Directory to save quantization_benchmark.json",
+    )
+    parser.add_argument(
+        "--figures-dir",
+        type=str,
+        default=str(EXPERIMENTS / "paper_results" / "figures"),
+        help="Directory to save quantization benchmark plots",
+    )
+    args = parser.parse_args()
+
+    output_dir = Path(args.output_dir)
+    figures_dir = Path(args.figures_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    figures_dir.mkdir(parents=True, exist_ok=True)
+
     print("=" * 70)
     print("  FULL PRECISION / QUANTIZATION COMPARISON BENCHMARK")
     print("=" * 70)
@@ -300,6 +330,7 @@ def main():
     
     # ── Save JSON ──
     output = {
+        "provenance": get_provenance_metadata(),
         "experiment": "Full Precision/Quantization Comparison Benchmark",
         "test_samples": len(X_test),
         "n_warmup": N_WARMUP,
@@ -308,14 +339,20 @@ def main():
         "variants": results,
     }
     
-    json_path = RESULTS_DIR / "quantization_benchmark.json"
-    with open(json_path, "w") as f:
+    canonical_json = output_dir / "quantization_benchmark.json"
+    with open(canonical_json, "w") as f:
         json.dump(output, f, indent=2)
-    print(f"\n[SAVED] {json_path}")
+    print(f"\n[SAVED] {canonical_json}")
+
+    legacy_json = RESULTS_DIR / "quantization_benchmark.json"
+    if legacy_json.parent.exists() and canonical_json != legacy_json:
+        with open(legacy_json, "w") as f:
+            json.dump(output, f, indent=2)
+        print(f"[MIRRORED] {legacy_json}")
     
     # ── Generate plots ──
     print("\nGenerating publication-quality benchmark plots...")
-    generate_plots(results)
+    generate_plots(results, figures_dir=figures_dir)
     
     # ── Summary table ──
     print(f"\n{'='*90}")

@@ -1,0 +1,5 @@
+Profile,vCPU_Limit,Memory_Limit,Plain_Peak_RSS_MB,SEMANTICSHIELD_Peak_RSS_MB,Plain_CPU_pct,SEMANTICSHIELD_CPU_pct
+R0,Unconstrained,Unconstrained,123.65,124.88,9.7,12.5
+R1,1,512 MB,122.4,124.5,8.6,9.8
+R2,2,1024 MB,123.44,124.29,8.7,12.0
+R3,4,2048 MB,123.05,124.05,9.2,9.0

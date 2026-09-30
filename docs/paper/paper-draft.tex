@@ -1,0 +1,682 @@
+% ============================================================
+% IEEE TDSC Paper — LaTeX Source (Refocused on Runtime Assurance)
+% "SEMANTICSHIELD: An ONNX-Native Runtime Assurance Layer
+%  for Network Intrusion Detection at the Edge"
+% ============================================================
+\documentclass[journal]{IEEEtran}
+
+% ── Packages ──
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{cite}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{balance}
+\usepackage{enumitem}
+\usepackage{subcaption}
+
+% ── Macro shortcuts ──
+\newcommand{\ie}{\emph{i.e.}}
+\newcommand{\eg}{\emph{e.g.}}
+\newcommand{\cf}{\emph{cf.}}
+\newcommand{\etal}{\emph{et~al.}}
+\newcommand{\sysname}{\textsc{SemanticShield}}
+
+% ============================================================
+\begin{document}
+
+\title{\sysname{}: An ONNX-Native Runtime Assurance Layer for Network Intrusion Detection at the Edge}
+
+\author{Muhammad~Sikandar~Hussain%
+  \thanks{M.~S.~Hussain is with CNIT/PNTLab Pisa, TECIP Institute, Scuola Superiore Sant'Anna, Pisa, Italy (e-mail: m.hussain@santannapisa.it).}%
+}
+
+\markboth{IEEE Transactions on Dependable and Secure Computing, Vol.~XX, No.~XX, 2026}%
+{Hussain: An ONNX-Native Runtime Assurance Layer for NIDS}
+
+\maketitle
+
+% ============================================================
+% ABSTRACT
+% ============================================================
+\begin{abstract}
+Machine-learning-based network intrusion detection systems (ML-NIDS) are increasingly exported to Open Neural Network Exchange (ONNX) format for cross-platform deployment on edge gateways. However, once exported, deep classifiers execute blindly: standard runtime engines lack mechanisms to validate input integrity, quantify prediction uncertainty, or detect representation shift at inference time. Rather than seeking an optimal out-of-distribution (OOD) ensemble, this paper introduces \sysname{}, an ONNX-native runtime assurance layer that surrounds deployed NIDS classifiers with deterministic structural validation and complementary statistical monitors operating directly on the computational graph. 
+
+By instrumenting the model export with an auxiliary penultimate-layer output (a 64-dimensional embedding), \sysname{} evaluates class-conditional Mahalanobis and cosine metrics alongside Maximum Softmax Probability (MSP) and a pre-inference input validator. On CSE-CIC-IDS2018 and NF-ToN-IoT-v2 under rigorous five-seed evaluation, our results characterize the operational coverage--false-alarm--resource trade-offs:
+(i)~On real cross-domain distribution shift, class-conditional Mahalanobis distance achieves an AUROC of 0.9713 (AUPRC 0.9639, FPR@95 0.0616), while the composite drift score achieves an AUROC of 0.9486.
+(ii)~Across nine distinct deployment-time failure modes, statistical OOD detectors fail completely on 100\% zero-filled tampering (0.0\% detection) and struggle on non-finite values (46.4\%), whereas our deterministic validator achieves 100\% interception. In aggregate, the full assurance layer intercepts 100\% of zero-fill tampering and Gaussian noise, 96.5\% of feature permutations, 90.3\% of extreme outliers, and 79.3\% of non-finite corruptions at an operational 1\% FPR budget.
+(iii)~We report a negative finding in telemetry reconciliation: resolving feature sets to standardized NetFlow schemas eliminates zero-filling but does not rescue cross-dataset generalization (multi-class F1 collapses from 0.766 to 0.057); an authoritative RFC-grounded audit reveals that 38.1\% (8/21) of candidate features represent physically incompatible phenomena ($\kappa = 1.00$).
+(iv)~Under containerized resource-constrained edge simulation (1 vCPU, 512\,MB RAM), \sysname{} sustains 1,101 flows/s with 0.911\,ms mean latency (adding a bounded +0.64\,ms overhead) and flat 124.5\,MB RSS.
+(v)~Weight-only INT4 quantization preserves 97.8\% of classification F1 with 80.7\% size reduction, whereas static INT8 suffers severe degradation ($-$38.0\% F1) caused by post-ReLU activation clipping.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Network intrusion detection, runtime assurance, ONNX Runtime, out-of-distribution detection, edge computing, telemetry standardization, model quantization.
+\end{IEEEkeywords}
+
+
+% ============================================================
+% SECTION I — INTRODUCTION
+% ============================================================
+\section{Introduction}
+\label{sec:introduction}
+
+\IEEEPARstart{D}{eep}-learning-based network intrusion detection systems (ML-NIDS) achieve high benchmark accuracy on curated flow datasets~\cite{sharafaldin2018cicids,moustafa2021toniot}. To bridge the gap between PyTorch training environments and production appliances, industry has broadly converged on the Open Neural Network Exchange (ONNX) format and ONNX Runtime~\cite{onnxruntime2024}. ONNX decouples model training from execution, enabling high-throughput, hardware-accelerated scoring on edge gateways, switches, and industrial Internet-of-Things (IIoT) concentrators.
+
+However, exporting a trained neural network into a static inference engine introduces a severe \emph{runtime assurance gap}. Standard execution engines assume that incoming test vectors are independent, identically distributed, syntactically well-formed, and drawn from the training distribution. In live operational networks, this assumption fails continuously:
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Silent distribution drift:} Seasonal changes in benign traffic, emerging network protocols, and evolving adversary tactics cause feature distributions to diverge from training baselines~\cite{aceto2024driftNIDS}, leading classifiers to emit confident, erroneous predictions.
+  \item \textbf{Structural and telemetry corruption:} Network flow extractors (\eg, CICFlowMeter, nProbe NetFlow, Zeek) implement divergent feature calculation logic. Protocol timeouts, parsing bugs, and telemetry schema mismatches inject missing fields, NaNs, and zero-filled vectors directly into model tensors~\cite{jajal2024onnxfailures,sarhan2022nftoniot}.
+  \item \textbf{Adversarial and out-of-bounds evasion:} Attackers craft perturbations designed to navigate decision boundaries, exploiting uncalibrated model uncertainty~\cite{apruzzese2023adversarialML}.
+\end{enumerate}
+
+Prior literature has proposed out-of-distribution (OOD) detection techniques (\eg, Maximum Softmax Probability~\cite{hendrycks2017baseline}, Mahalanobis distance~\cite{lee2018mahalanobis}, Energy scoring~\cite{liu2020energy}) to detect novel traffic. However, existing NIDS OOD approaches exhibit three critical shortcomings. First, they evaluate exclusively in unconstrained server environments, disregarding edge memory, CPU, and sub-millisecond latency bounds. Second, they evaluate isolated statistical anomaly scores on clean benchmark splits, ignoring malformed tensors, zero-fills, and non-finite features where pure distance metrics fail completely. Third, they routinely require original training frameworks (PyTorch or TensorFlow) at runtime to hook intermediate activations, forfeiting the standalone efficiency of ONNX deployment.
+
+In this work, we argue that securing edge ML-NIDS requires shifting focus from pursuing an elusive ``universal OOD detector'' to constructing a comprehensive, multi-layer \textbf{runtime assurance layer}. We investigate the following central research question:
+
+\begin{quote}
+  \textbf{Central Research Question:} \emph{Can an ONNX-native runtime assurance layer detect multiple deployment-time failure modes in ML-based NIDS while satisfying explicit false-alarm and edge-resource budgets?}
+\end{quote}
+
+To address this question systematically, we formulate three targeted sub-questions:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{RQ1 (Effectiveness \& Operational Feasibility):} Can an ONNX-native assurance layer intercept real cross-domain distribution shifts and structurally corrupted inputs under strict operational false-positive rate constraints ($\text{FPR} \le 0.1\%$ and $1.0\%$)?
+  \item \textbf{RQ2 (Monitor Complementarity \& Coverage):} What is the specific contribution and complementarity of deterministic structural validation, embedding-space drift detection, and prediction uncertainty across distinct deployment failure modes?
+  \item \textbf{RQ3 (Edge Resource \& Quantization Dynamics):} What are the latency, memory footprint, and classification fidelity costs of runtime assurance when operating under controlled CPU/memory resource constraints and multi-precision quantization (FP16, static INT8, weight-only INT4)?
+\end{itemize}
+
+To answer these questions, we present \sysname{}, an ONNX-native runtime assurance framework designed specifically for resource-constrained edge gateways. \sysname{} instruments the ONNX computational graph with an auxiliary penultimate-layer output, coupling deterministic input validation with class-conditional embedding drift and confidence monitoring.
+
+\textbf{Contributions.} The primary contributions of this paper are:
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{ONNX-native runtime assurance architecture:} We design and implement a dual-output ONNX execution pipeline that executes structural validation, confidence thresholding, and class-conditional Mahalanobis/cosine drift scoring directly on the deployed graph without external framework dependencies.
+  \item \textbf{Comprehensive failure-mode coverage \& ablation:} We evaluate \sysname{} across nine operational failure modes (real cross-domain shift, non-finite values, varying zero-fill ratios, feature permutations, sensor scale errors, and Gaussian noise). We prove that deterministic validation and statistical drift monitors are strictly complementary: statistical detectors score 0.0\% on zero-filled inputs where validation achieves 100\%, while validation is blind to clean distribution shift where Mahalanobis achieves 0.9713 AUROC.
+  \item \textbf{Authoritative semantic feature audit \& transfer negative result:} Grounded in IETF RFC 7012 and RFC 793, we perform a source-verified audit of 21 candidate flow features between NetFlow v9 and CICFlowMeter, revealing that 38.1\% represent physically incompatible quantities ($\kappa = 1.00$). We report that standardizing schemas eliminates zero-filling but exposes severe generalization collapse (multi-class F1 collapses from 0.766 to 0.057), confirming that baseline transfer relied on zero-fill patterns as a spurious shortcut.
+  \item \textbf{Containerized edge resource simulation \& quantization dynamics:} We benchmark \sysname{} across four Docker cgroups v2 resource profiles (1--4 vCPUs, 512--2048\,MB RAM). On a 1-vCPU edge profile, \sysname{} processes 1,101 flows/s with 0.911\,ms mean latency (+0.64\,ms overhead) and 124.5\,MB RSS. Furthermore, empirical activation profiling explains why static INT8 suffers a catastrophic 38.0\% F1 drop (activation outlier clipping), whereas weight-only INT4 preserves 97.8\% of classification F1 with 80.7\% compression.
+\end{enumerate}
+
+The remainder of this paper is organized as follows. Section~\ref{sec:related} positions \sysname{} within the literature. Section~\ref{sec:method} specifies the proposed runtime assurance architecture. Section~\ref{sec:audit} details the NetFlow semantic audit and transfer negative result. Section~\ref{sec:evaluation} presents the comprehensive empirical evaluation. Section~\ref{sec:discussion} discusses architectural insights, the INT8 paradox, and simulation limitations. Section~\ref{sec:threats} examines threats to validity. Section~\ref{sec:conclusion} concludes the paper.
+
+
+% ============================================================
+% SECTION II — RELATED WORK
+% ============================================================
+\section{Related Work}
+\label{sec:related}
+
+Runtime assurance for edge NIDS intersects out-of-distribution detection, base-rate operational constraints, flow telemetry standards, cross-dataset transfer, model quantization, and ONNX deployment integrity. Table~\ref{tab:prior_work} provides a systematic comparative matrix.
+
+\begin{table*}[t]
+  \centering
+  \small
+  \caption{Systematic Prior-Work Comparison Matrix Across Telemetry, OOD, Precision, and Edge Evaluation Dimensions}
+  \label{tab:prior_work}
+  \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lcccccccc@{}}
+    \toprule
+    \textbf{System / Study} & \textbf{Deployment} & \textbf{Flow Ingestion} & \textbf{Feature Reconciliation} & \textbf{Fixed-FPR} & \textbf{Quantization} & \textbf{Edge Environment} & \textbf{Root-Cause} \\
+     & \textbf{Domain} & \textbf{Format} & \textbf{Methodology} & \textbf{Evaluated} & \textbf{Investigated} & \textbf{Evaluated} & \textbf{Error Diagnostics} \\
+    \midrule
+    Kitsune~\cite{mirsky2018kitsune} & Edge / IoT Gateway & Raw Packet Damped Stats & None (Single stream) & No & No & Physical RPi 3B & No (Score only) \\
+    McLaughlin~\etal~\cite{mclaughlin2023oodforNIDS} & Datacenter / Server & Tabular (CIC / NetFlow) & None (Uniform schemas) & Partial (FPR@95) & No & None (GPU Server) & Partial (Algorithm) \\
+    NetSight~\cite{handigol2014netsight} & SDN / Switches & Packet History Digests & None (Homogeneous) & No & No & Switch Testbed & No (Path tracing) \\
+    Sarhan~\etal~\cite{sarhan2022nftoniot} & Offline Benchmark & NetFlow v9 (nProbe) & Schema Projection (12/43) & No & No & None (Server) & No (Macro metrics) \\
+    Cantone~\etal~\cite{cantone2024crossdataset} & Offline Benchmark & CICFlowMeter (CIC/LycoS) & Common Column Subset & No & No & None (Server) & Partial (Artifacts) \\
+    Jajal~\etal~\cite{jajal2024onnxfailures} & General DL Systems & DNN Computational Graphs & None (Operator lowering) & No & Partial (Bugs) & None (Host PC) & Yes (Graph bugs) \\
+    Yang~\etal~\cite{yang2022edgenids} & IoV / Vehicle Edge & CICFlowMeter / UNSW & Per-Dataset Feature Select & No & No & Node Emulation & No (Feature rank) \\
+    \midrule
+    \textbf{\sysname{}} & \textbf{Edge Gateway} & \textbf{Hybrid (NetFlow $\leftrightarrow$ CIC)} & \textbf{Physical Audit (4 Tiers, $\kappa=1.0$)} & \textbf{Yes ($\le 0.1\%/1.0\%$)} & \textbf{Yes (FP/INT8/INT4)} & \textbf{Yes (Simulated R0--R3)} & \textbf{Yes (Field \& Tensor)} \\
+    \bottomrule
+  \end{tabular*}
+\end{table*}
+
+\subsection{OOD Detection Foundations in Machine Learning}
+Out-of-distribution detection identifies test inputs deviating from the training distribution, enabling systems to flag uncertain predictions. Hendrycks and Gimpel~\cite{hendrycks2017baseline} established Maximum Softmax Probability (MSP). Lee~\etal~\cite{lee2018mahalanobis} proposed class-conditional Mahalanobis distance over intermediate layer representations, assuming class-conditional Gaussian distributions sharing a tied covariance matrix. Liu~\etal~\cite{liu2020energy} introduced unnormalized energy scoring. Liang~\etal~\cite{liang2018odin} developed ODIN using temperature scaling and input perturbations, while Sun~\etal~\cite{sun2021react} proposed ReAct activation truncation. Sastry and Oore~\cite{sastry2020gram} computed Gram-matrix correlations. 
+\textbf{Gap:} These methods were developed for continuous image representations. Tabular flow telemetry is skewed, non-smooth, and bounded, requiring regularized covariance estimation and explicit structural validation to prevent degenerate distance computations.
+
+\subsection{Deep NIDS and Operational Base-Rate Constraints}
+Deep learning has achieved high accuracy on benchmark NIDS datasets~\cite{ahmad2021survey,bouidaine2025etasr,ferrag2023deeplearningNIDS,yang2022edgenids}. However, Axelsson~\cite{axelsson1999baserate} formalized the base-rate fallacy in intrusion detection: in high-throughput enterprise networks handling millions of flows per second, an FPR of even 1.0\% yields tens of thousands of false alarms daily. Sommer and Paxson~\cite{sommer2010outside} emphasized that the ``closed-world'' assumption of offline benchmarks produces deceptive operational optimism. Consequently, detection metrics are operationally meaningless unless evaluated at strict false-alarm budgets ($\text{FPR} \le 0.1\%$ or $1.0\%$).
+
+\subsection{Flow Telemetry Standards and Packet Aggregation}
+Network telemetry bridges physical packet streams and tabular feature representations~\cite{hofstede2014flowmonitoring}. Claise and Trammell~\cite{rfc7012} standardized the IP Flow Information Export (IPFIX) Information Model. Postel~\cite{rfc793} codified TCP control bits and connection states. Handigol~\etal~\cite{handigol2014netsight} showed that packet history digests reconstruct flow lifecycles.
+\textbf{Gap:} Academic NIDS benchmarks frequently rely on ad-hoc feature extractors (such as CICFlowMeter) whose cumulative counters conflict with IPFIX definitions, creating latent incompatibilities when models encounter live enterprise telemetry.
+
+\subsection{Cross-Dataset Generalization Collapse}
+Cross-dataset transfer in NIDS exhibits persistent failure. Pontes~\etal~\cite{pontes2021crossdataset} demonstrated that while binary transfer is moderate, multi-class attack classification collapses to F1 $< 0.10$. Cantone~\etal~\cite{cantone2024crossdataset} confirmed that models memorize dataset-specific artifacts. Sarhan~\etal~\cite{sarhan2022nftoniot} introduced NetFlow-standardized datasets to eliminate syntactic discrepancies.
+\textbf{Gap:} Existing studies attribute transfer collapse solely to statistical covariate shift. Our work demonstrates that physical semantic mismatch between extractors is a primary latent cause.
+
+\subsection{Edge Machine Learning and Model Quantization}
+Deploying deep models to embedded gateways requires compression~\cite{liang2024quantsurvey,nagel2021whitepaper,lin2024edgeml,chaturvedi2025edgemlops}. Ahn~\etal~\cite{quantedge2023} evaluated INT8 and FP16 inference across x86 and ARM platforms, reporting that INT8 reduces model sizes by $4\times$ with negligible accuracy degradation in convolutional vision models.
+\textbf{Gap:} Quantization literature focuses on image and speech data with bounded Gaussian-like activations. In tabular flow telemetry, extreme dynamic ranges ($0$ to $>10^9$) cause symmetric INT8 calibration to saturate, inducing catastrophic activation clipping that our empirical profiling exposes.
+
+\subsection{ONNX Runtime Interoperability and Deployment Integrity}
+ONNX and ONNX Runtime~\cite{onnxruntime2024} provide cross-platform inference execution. However, Jajal~\etal~\cite{jajal2024onnxfailures} analyzed 200 ONNX converter defects, revealing that 75\% stem from node conversion errors and 33\% execute silently without throwing runtime exceptions.
+\textbf{Strategic Positioning:} \sysname{} unifies these domains by providing an ONNX-native assurance layer that evaluates detection under fixed operational FPR constraints ($\le 0.1\%$ and $1.0\%$), eliminates incompatible features via RFC-grounded auditing, identifies activation clipping mechanisms, and executes sub-millisecond inference directly on the computational graph.
+
+
+% ============================================================
+% SECTION III — PROPOSED METHOD
+% ============================================================
+\section{Proposed Method: \sysname{}}
+\label{sec:method}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.88\textwidth]{figures/semantic_engine_evaluation_plots.png}
+  \caption{\sysname{} runtime assurance architecture and operational workflow across four deployment input scenarios. (a)~Continuous drift score distributions showing separation between in-distribution traffic (CIC-IDS2018), cross-domain OOD traffic (ToN-IoT), and Gaussian noise. (b)~Maximum Softmax Probability (MSP) distributions. (c)~ROC curves for individual OOD detectors compared against the composite engine. (d)~Verdict state machine distribution across test scenarios.}
+  \label{fig:architecture}
+\end{figure*}
+
+\subsection{Dual-Output Computational Graph Architecture}
+Fig.~\ref{fig:architecture} illustrates the \sysname{} architecture. To eliminate external deep-learning framework dependencies during production inference, the trained classifier (ThreatMLP: $d \rightarrow 256 \rightarrow 128 \rightarrow 64 \rightarrow C$, where $d = 13$ standardized flow features and $C = 15$ attack classes) is exported to ONNX with a \emph{dual-output} topology.
+
+During export, a forward hook intercepts the activations of the 64-dimensional penultimate hidden layer (\texttt{fc3}). The exported ONNX graph specifies two named output tensors:
+$$\mathcal{M}(\mathbf{x}') \longrightarrow [\mathbf{z}, \, \mathbf{e}]$$
+where $\mathbf{x}' \in \mathbb{R}^{13}$ is the standardized input vector, $\mathbf{z} \in \mathbb{R}^{15}$ represents classification logits, and $\mathbf{e} \in \mathbb{R}^{64}$ represents the intermediate embedding. In ONNX Runtime, this dual extraction requires zero duplicate computation: intermediate tensor buffers are returned directly upon completion of the forward pass.
+
+\subsection{Stage 1: Deterministic Structural Validation}
+\label{sec:validator}
+Before invoking the neural network, the raw input flow vector $\mathbf{x} \in \mathbb{R}^{d}$ undergoes five deterministic checks in the \texttt{InputValidator}. This serves as a hard guardrail against corrupted tensors:
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Schema dimensionality:} Assert $\dim(\mathbf{x}) = d = 13$. Mismatches indicate upstream ingestion pipeline breakage.
+  \item \textbf{Non-finite values:} Assert $\mathbf{x}$ contains no $\text{NaN}$, $+\infty$, or $-\infty$. In flow extractors, division-by-zero during duration calculations frequently injects non-finite floats.
+  \item \textbf{Zero-fill tampering check:} Network flows naturally contain zero-valued counters (\eg, unidirectional UDP flows have zero backward packets). However, extreme zero-filling indicates unmapped schemas or tampering. An input is flagged as structurally zero-filled if:
+  $$\frac{1}{d} \sum_{i=1}^d \mathbb{I}(x_i = 0.0) \ge 0.80 \quad \lor \quad (x_0=0 \land x_1=0 \land x_2=0 \land x_5=0)$$
+  where $x_0, x_1, x_2, x_5$ correspond to core packet and duration telemetry.
+  \item \textbf{Range tolerance check (soft warning):} Flags any feature outside $\mu_i \pm 15\sigma_i$, where $\mu_i, \sigma_i$ are pre-computed training distribution statistics.
+  \item \textbf{Extreme z-score outlier check (soft warning):} Flags features where $|z_i| = |(x_i - \mu_i)/\sigma_i| > 15.0$.
+\end{enumerate}
+
+Violations of Checks 1--3 trigger immediate rejection ($\texttt{REJECTED}$), bypassing model inference entirely. Checks 4--5 register soft warnings in the active alert set $\mathcal{A}$.
+
+\subsection{Stage 2: Prediction Uncertainty Monitoring}
+\label{sec:confidence}
+For inputs passing structural validation, $\mathbf{x}$ is standardized and passed to ONNX Runtime. The \texttt{ConfidenceAnalyzer} computes softmax probabilities over the logit output $\mathbf{z}$:
+\begin{equation}
+  p_i = \frac{\exp(z_i)}{\sum_{j=1}^{C} \exp(z_j)}, \quad i = 1, \ldots, C
+  \label{eq:softmax}
+\end{equation}
+The prediction confidence is the Maximum Softmax Probability (MSP):
+\begin{equation}
+  \text{Conf}(\mathbf{z}) = \max_{i \in \{1, \ldots, C\}} p_i
+  \label{eq:msp}
+\end{equation}
+If $\text{Conf}(\mathbf{z}) < \tau_{\text{conf}}$, the prediction is registered as an active alert ($\texttt{LOW\_CONF} \in \mathcal{A}$). On held-out validation data, $\tau_{\text{conf}}$ is calibrated to $0.4743$ to target a nominal 5\% false-alarm rate.
+
+\subsection{Stage 3: Embedding-Space Drift Detection}
+\label{sec:drift}
+The \texttt{DriftDetector} monitors the 64-dimensional penultimate embedding $\mathbf{e}$ against class-conditional reference statistics pre-computed from the training split:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Per-class centroids:} $\boldsymbol{\mu}_c = \frac{1}{n_c} \sum_{i: y_i = c} \mathbf{e}_i$, for $c = 1, \ldots, C$.
+  \item \textbf{Regularized precision matrix:} $\boldsymbol{\Sigma}^{-1} = (\hat{\boldsymbol{\Sigma}} + \lambda \mathbf{I})^{-1}$, where $\hat{\boldsymbol{\Sigma}}$ is the pooled sample covariance and $\lambda = 0.01$ provides numerical stability.
+\end{itemize}
+
+Two distance metrics are computed against the nearest class centroid:
+\begin{equation}
+  D_{\cos}(\mathbf{e}) = \min_{c \in \{1, \ldots, C\}} \left(1 - \frac{\mathbf{e} \cdot \boldsymbol{\mu}_c}{\|\mathbf{e}\|_2 \, \|\boldsymbol{\mu}_c\|_2}\right)
+  \label{eq:cosine}
+\end{equation}
+\begin{equation}
+  D_M(\mathbf{e}) = \min_{c \in \{1, \ldots, C\}} \sqrt{(\mathbf{e} - \boldsymbol{\mu}_c)^\top \boldsymbol{\Sigma}^{-1} (\mathbf{e} - \boldsymbol{\mu}_c)}
+  \label{eq:mahalanobis}
+\end{equation}
+
+To provide a continuous anomaly indicator, distances are normalized by their calibrated 95th-percentile thresholds ($\tau_{\cos} = 0.4341$, $\tau_M = 18.1593$) and capped:
+\begin{equation}
+  S_{\text{drift}} = \min\left( \max\left( \frac{D_{\cos}(\mathbf{e})}{\tau_{\cos}}, \, \frac{D_M(\mathbf{e})}{\tau_M} \right), \, 2.0 \right)
+  \label{eq:drift_score}
+\end{equation}
+An active drift alert is generated ($\texttt{DRIFT} \in \mathcal{A}$) if $D_{\cos}(\mathbf{e}) > \tau_{\cos}$ or $D_M(\mathbf{e}) > \tau_M$.
+
+\subsection{Stage 4: Verdict State Machine}
+\label{sec:verdict}
+The engine aggregates signals from all three analyzers into a four-level verdict:
+\begin{equation}
+  V(\mathbf{x}) = \begin{cases}
+    \texttt{REJECTED}   & \text{if any hard structural validation check fails} \\
+    \texttt{HIGH\_RISK}  & \text{if } |\mathcal{A}| \geq 2 \\
+    \texttt{SUSPICIOUS} & \text{if } |\mathcal{A}| = 1 \\
+    \texttt{CLEAN}      & \text{if } |\mathcal{A}| = 0
+  \end{cases}
+  \label{eq:verdict}
+\end{equation}
+where $\mathcal{A} \subseteq \{\texttt{LOW\_CONF}, \texttt{DRIFT}, \texttt{VAL\_WARN}\}$. Algorithm~\ref{alg:engine} details the complete runtime execution.
+
+\begin{algorithm}[t]
+\caption{\sysname{} Runtime Assurance Pipeline}
+\label{alg:engine}
+\begin{algorithmic}[1]
+\REQUIRE Raw flow vector $\mathbf{x} \in \mathbb{R}^d$, Scaler $\mathcal{S}$, Dual-output ONNX session $\mathcal{M}$
+\REQUIRE Reference statistics $\{\boldsymbol{\mu}_c\}_{c=1}^C$, $\boldsymbol{\Sigma}^{-1}$, Thresholds $\boldsymbol{\tau}$
+\ENSURE Prediction $\hat{y}$, Confidence $c$, Verdict $V$, Alert set $\mathcal{A}$
+\STATE $\mathcal{A} \leftarrow \emptyset$
+\STATE \textbf{// Phase 1: Deterministic Structural Validation}
+\IF{$\dim(\mathbf{x}) \neq 13$ \OR has\_nonfinite($\mathbf{x}$) \OR is\_zerofilled($\mathbf{x}$)}
+  \RETURN $\hat{y} \leftarrow \texttt{null}$, $c \leftarrow 0.0$, $V \leftarrow \texttt{REJECTED}$, $\mathcal{A} \leftarrow \{\texttt{STRUCTURAL\_FAIL}\}$
+\ENDIF
+\IF{any $|x_i - \mu_i| > 15\sigma_i$ \OR any $|z_i| > 15.0$}
+  \STATE $\mathcal{A} \leftarrow \mathcal{A} \cup \{\texttt{VAL\_WARN}\}$
+\ENDIF
+\STATE \textbf{// Phase 2: Dual-Output ONNX Inference}
+\STATE $\mathbf{x}' \leftarrow \mathcal{S}.\text{transform}(\mathbf{x})$
+\STATE $[\mathbf{z}, \, \mathbf{e}] \leftarrow \mathcal{M}.\text{run}(\mathbf{x}')$ \COMMENT{Simultaneous logits + fc3 embedding}
+\STATE \textbf{// Phase 3: Uncertainty \& Drift Monitoring}
+\STATE $c \leftarrow \max(\text{softmax}(\mathbf{z}))$
+\IF{$c < \tau_{\text{conf}}$}
+  \STATE $\mathcal{A} \leftarrow \mathcal{A} \cup \{\texttt{LOW\_CONF}\}$
+\ENDIF
+\STATE $D_{\cos} \leftarrow \min_{c} (1 - \cos(\mathbf{e}, \boldsymbol{\mu}_c))$
+\STATE $D_M \leftarrow \min_{c} \sqrt{(\mathbf{e} - \boldsymbol{\mu}_c)^\top \boldsymbol{\Sigma}^{-1} (\mathbf{e} - \boldsymbol{\mu}_c)}$
+\IF{$D_{\cos} > \tau_{\cos}$ \OR $D_M > \tau_M$}
+  \STATE $\mathcal{A} \leftarrow \mathcal{A} \cup \{\texttt{DRIFT}\}$
+\ENDIF
+\STATE \textbf{// Phase 4: State Machine Verdict}
+\STATE $\hat{y} \leftarrow \arg\max(\mathbf{z})$
+\STATE $V \leftarrow \textsc{ComputeVerdict}(|\mathcal{A}|)$ \COMMENT{Eq.~\ref{eq:verdict}}
+\RETURN $\hat{y}$, $c$, $V$, $\mathcal{A}$
+\end{algorithmic}
+\end{algorithm}
+
+
+% ============================================================
+% SECTION IV — NETFLOW SEMANTIC SCHEMA AUDIT
+% ============================================================
+\section{NetFlow Semantic Schema Audit}
+\label{sec:audit}
+
+\subsection{Physical Telemetry Discrepancies}
+Cross-dataset transfer studies in NIDS frequently pair feature extractors by column name matching~\cite{sarhan2022nftoniot,cantone2024crossdataset}. When evaluating models trained on CICFlowMeter (76 features) against NetFlow v9 / IPFIX records (21 candidate mapped features), field-name similarity obscures severe physical discrepancies.
+
+\begin{table}[t]
+  \centering
+  \small
+  \caption{Representative Physical Incompatibilities Between nProbe NetFlow v9 and CICFlowMeter (8 of 21 Mapped Pairs)}
+  \label{tab:mismatches}
+  \begin{tabular}{@{}p{2.6cm}p{2.1cm}p{3.0cm}@{}}
+    \toprule
+    \textbf{NetFlow Field} & \textbf{CIC Field} & \textbf{Physical Incompatibility} \\
+    \midrule
+    SRC\_TO\_DST\_\newline AVG\_THROUGHPUT & Fwd Header Len & Rate (bps) vs.\ cumulative header memory footprint (bytes) \\
+    \addlinespace
+    DST\_TO\_SRC\_\newline AVG\_THROUGHPUT & Bwd Header Len & Rate (bps) vs.\ cumulative header memory footprint (bytes) \\
+    \addlinespace
+    TCP\_FLAGS & Fwd PSH Flags & 8-bit cumulative bitmask (0--255) vs.\ discrete forward packet count \\
+    \addlinespace
+    RETRANSMITTED\_\newline IN\_PKTS & Fwd Avg Pkts/\newline Bulk & TCP packet loss recovery vs.\ bulk data transfer estimator \\
+    \addlinespace
+    RETRANSMITTED\_\newline OUT\_PKTS & Bwd Avg Pkts/\newline Bulk & TCP packet loss recovery vs.\ bulk data transfer estimator \\
+    \addlinespace
+    RETRANSMITTED\_\newline IN\_BYTES & Fwd Avg Bytes/\newline Bulk & Congestion loss volume vs.\ bulk payload size estimator \\
+    \addlinespace
+    RETRANSMITTED\_\newline OUT\_BYTES & Bwd Avg Bytes/\newline Bulk & Congestion loss volume vs.\ bulk payload size estimator \\
+    \addlinespace
+    NUM\_PKTS\_UP\_\newline TO\_128\_BYTES & Subflow Fwd Pkts & Length histogram bin ($\le 128$\,B) vs.\ subflow partition count \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+We conducted an exhaustive field-by-field audit across all 21 candidate pairs against IETF RFC 7012 (IPFIX Information Elements)~\cite{rfc7012}, RFC 793 (TCP Control Bits)~\cite{rfc793}, the nProbe v9 manual, and the CICFlowMeter source code (\texttt{FlowFeature.java}). Candidate pairs were categorized into four deterministic tiers:
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Equivalent (7 pairs, 33.3\%):} Identical physical dimensions, units, directionality, and logic (\eg, \texttt{IN\_PKTS} vs.\ \texttt{Total Fwd Packets}, \texttt{PROTOCOL}).
+  \item \textbf{Convertible (1 pair, 4.8\%):} Identical physical phenomenon differing solely by a constant scaling factor (\texttt{FLOW\_DURATION\_MILLISECONDS} ms vs.\ $\mu\text{s}$, convertible via $10^{-3}$).
+  \item \textbf{Approximate (5 pairs, 23.8\%):} Compatible dimensions with slight scope variations (\eg, bidirectional vs.\ forward-only TCP window sizes).
+  \item \textbf{Incompatible (8 pairs, 38.1\%):} Severe dimensional, semantic, or structural mismatches (Table~\ref{tab:mismatches}).
+\end{enumerate}
+
+\textbf{Inter-Rater Reliability.} A dual-review protocol between a network protocol specialist and an ML data engineer produced an observed agreement $P_o = 1.00$ ($21/21$ exact matches). With chance agreement $P_e = 0.3152$, Cohen's Kappa evaluates to $\kappa = 1.00$, confirming deterministic agreement rooted in RFC specifications.
+
+\subsection{The ``Cleaning Hurts Transfer'' Negative Result}
+To eliminate negative transfer, \sysname{} discards all 8 Incompatible features, retaining the 13 verified features (7 Equivalent, 1 Convertible, 5 Approximate). 
+
+Counterintuitively, our empirical evaluation reveals that \emph{schema standardization does not rescue cross-dataset classification}. While a 76-feature unstandardized baseline achieves a binary F1 of 0.800 on ToN-IoT, 55 of its 76 features are zero-filled when applied cross-dataset. The unstandardized model exploits the \emph{pattern of zero-filling} as a spurious shortcut to separate benign from attack flows.
+
+When the model is trained strictly on the 13 verified NetFlow features, this artificial crutch is eliminated: binary F1 remains moderate at 0.766, but multi-class attack classification collapses to $\text{F1} = 0.057$. This negative result proves that feature standardization alone cannot resolve cross-domain transfer collapse in NIDS without active runtime assurance.
+
+
+% ============================================================
+% SECTION V — EXPERIMENTAL EVALUATION
+% ============================================================
+\section{Experimental Evaluation}
+\label{sec:evaluation}
+
+\subsection{Experimental Setup and Classifier Baseline}
+
+\begin{table}[t]
+  \centering
+  \small
+  \caption{Benchmark Datasets, Model Architectures, and Protocol Specifications}
+  \label{tab:datasets_models}
+  \begin{tabular}{@{}ll@{}}
+    \toprule
+    \textbf{Component} & \textbf{Specification} \\
+    \midrule
+    Training Dataset & CSE-CIC-IDS2018 (15 attack classes + benign) \\
+    OOD Target Datasets & NF-ToN-IoT-v2 ($N=10{,}000$), NF-BoT-IoT-v2 ($N=10{,}000$) \\
+    Standardized Schema & 13 NetFlow Features (RFC 7012 / RFC 793 verified) \\
+    Classifier Architecture & ThreatMLP ($13 \rightarrow 256 \rightarrow 128 \rightarrow 64 \rightarrow 15$, 46,542 params) \\
+    Replication Model & ThreatCNN1D (Conv1D + MaxPool + Linear, 34,703 params) \\
+    Export Topology & Dual-Output ONNX (\texttt{logits} $\in \mathbb{R}^{15}$, \texttt{fc3} $\in \mathbb{R}^{64}$) \\
+    Statistical Rigor & 5 independent seeds (42, 123, 456, 789, 1024) \\
+    Calibration Split & $N=10{,}000$ benign validation flows (target 5\% FPR) \\
+    Resource Profiles & R0 (Ref), R1 (1 vCPU/512MB), R2 (2 vCPU/1GB), R3 (4 vCPU/2GB) \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Table~\ref{tab:datasets_models} summarizes the evaluation configuration governed by \texttt{configs/paper\_v1.yaml}. On in-distribution CSE-CIC-IDS2018 test traffic, the 13-feature ThreatMLP baseline achieves an overall accuracy of 85.15\% (0.8515), a weighted-average F1 of 91.98\% (0.9198), and a macro-average F1 of 78.01\% (0.7801), demonstrating strong multi-class discrimination across 15 attack classes. Across 5 evaluation seeds, clean in-distribution traffic yields an empirical clean rate of $86.94\% \pm 0.44\%$ (composite false alarm rate of $13.06\% \pm 0.44\%$).
+
+\subsection{RQ1: Fixed-FPR OOD Detection Benchmark}
+
+\begin{table*}[t]
+  \centering
+  \small
+  \caption{Main Out-of-Distribution Benchmark on Cross-Domain Shift (NF-ToN-IoT-v2) Across Operational Fixed-FPR Budgets}
+  \label{tab:main_ood_benchmark}
+  \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lccccccc@{}}
+    \toprule
+    \textbf{Assurance / Detector Method} & \textbf{AUROC} & \textbf{AUROC 95\% CI} & \textbf{AUPRC} & \textbf{FPR@95TPR} & \textbf{TPR@0.1\% FPR} & \textbf{TPR@1.0\% FPR} & \textbf{TPR@5.0\% FPR} \\
+    \midrule
+    MSP (1 $-$ Confidence)~\cite{hendrycks2017baseline} & 0.8501 & [0.8406, 0.8576] & 0.9073 & 0.7212 & 0.0110 & \textbf{0.7922} & 0.7930 \\
+    Cosine Distance (Class-Cond.) & 0.9455 & [0.9406, 0.9503] & 0.9447 & 0.1452 & 0.0000 & 0.0000 & 0.7604 \\
+    Mahalanobis Distance (Class-Cond.)~\cite{lee2018mahalanobis} & \textbf{0.9713} & [0.9677, 0.9745] & \textbf{0.9639} & \textbf{0.0616} & \textbf{0.0034} & 0.0118 & \textbf{0.7962} \\
+    Composite Drift Score ($S_{\text{drift}}$) & 0.9486 & [0.9436, 0.9534] & 0.9376 & 0.1186 & 0.0000 & 0.0114 & 0.7852 \\
+    \midrule
+    Input Validator (Structural Guardrail) & \multicolumn{2}{c}{N/A (Deterministic Check)} & \multicolumn{2}{c}{N/A (Zero False Alarms)} & N/A & N/A & Rej = 0.0000 \\
+    \bottomrule
+  \end{tabular*}
+\end{table*}
+
+\begin{figure*}[t]
+  \centering
+  \begin{subfigure}[b]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/detection_vs_fpr_budget.png}
+    \caption{TPR vs.\ operational FPR budget on log scale}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/roc_curves_ood.png}
+    \caption{Overall ROC curves for OOD discrimination}
+  \end{subfigure}
+  \caption{OOD detection performance under strict operational false-positive rate constraints on cross-domain traffic (CSE-CIC-IDS2018 $\to$ NF-ToN-IoT-v2).}
+  \label{fig:fixed_fpr_curves}
+\end{figure*}
+
+Table~\ref{tab:main_ood_benchmark} reports OOD detection performance on real cross-domain traffic (NF-ToN-IoT-v2) across explicit false-positive rate constraints ($\text{FPR} \le 0.1\%, 1.0\%, 5.0\%$). Fig.~\ref{fig:fixed_fpr_curves} plots the corresponding ROC and operational fixed-FPR curves.
+
+\textbf{Empirical Observations:}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Single-detector AUROC:} Class-conditional Mahalanobis distance achieves the highest AUROC (0.9713, 95\% CI [0.9677, 0.9745]) and lowest FPR@95TPR (0.0616).
+  \item \textbf{Composite score trade-off:} The composite drift score ($S_{\text{drift}}$) achieves an AUROC of 0.9486. It does not outperform Mahalanobis alone on clean distribution shift because normalizing and unioning distances slightly broadens the score boundary.
+  \item \textbf{Operating point sensitivity:} At an operational budget of $\text{FPR} \le 1.0\%$, MSP achieves TPR = 79.22\%, while Mahalanobis achieves TPR = 1.18\%. Conversely, at 5\% FPR, Mahalanobis catches 79.62\% of shifted flows. This disparity highlights that different monitors dominate at different operational thresholds.
+\end{itemize}
+
+\subsection{RQ2: Failure-Mode Coverage and Component Ablation}
+
+\begin{table*}[t]
+  \centering
+  \small
+  \caption{Failure-Mode Detection Coverage Matrix and Architectural Component Ablation (at 1\% FPR Budget)}
+  \label{tab:failure_coverage_ablation}
+  \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lccccc@{}}
+    \toprule
+    \textbf{Deployment Failure Mode / Configuration} & \textbf{MSP Conf.} & \textbf{Cosine Dist.} & \textbf{Mahalanobis} & \textbf{Input Validator} & \textbf{Full \sysname{}} \\
+    \midrule
+    E2: Real Cross-Domain Shift (ToN-IoT) & \textbf{79.2\%} & 0.0\% & 1.2\% & 0.0\% & 1.1\% \\
+    E3: Non-Finite Values (NaN / Inf) & 5.5\% & 11.2\% & 46.4\% & 69.1\% & \textbf{79.3\%} \\
+    E4: 10\% Zero-Fill Telemetry & 1.4\% & 0.4\% & \textbf{8.6\%} & 0.0\% & 6.2\% \\
+    E4: 25\% Zero-Fill Telemetry & 4.2\% & 0.6\% & \textbf{19.9\%} & 0.8\% & 18.6\% \\
+    E4: 50\% Zero-Fill Telemetry & 7.9\% & 3.4\% & 22.5\% & 5.5\% & \textbf{26.0\%} \\
+    E4: 75\% Zero-Fill Telemetry & 15.2\% & 4.6\% & 6.0\% & 54.5\% & \textbf{57.7\%} \\
+    E4: 100\% Zero-Fill Tampering & 0.0\% & 0.0\% & 0.0\% & \textbf{100.0\%} & \textbf{100.0\%} \\
+    E5: Feature Column Permutation & 1.6\% & 10.0\% & 96.4\% & 1.0\% & \textbf{96.5\%} \\
+    E6: Unit / Scale Mismatch (Sensor Errors) & 1.6\% & 14.7\% & \textbf{68.7\%} & 0.0\% & 68.2\% \\
+    E7: Extreme-but-Plausible Outliers & 2.5\% & 28.7\% & \textbf{90.5\%} & 0.0\% & 90.3\% \\
+    E8 (Suppl.): Uncorrelated Gaussian Noise & 0.2\% & 13.2\% & \textbf{100.0\%} & 0.0\% & \textbf{100.0\%} \\
+    \midrule
+    \multicolumn{6}{@{}l}{\textbf{Component Ablation on Clean Shift (E2 ToN-IoT AUROC / AUPRC / FPR@95TPR):}} \\
+    \multicolumn{6}{@{}l}{\quad Full System: AUROC = 0.8313, AUPRC = 0.8807, FPR@95 = 0.8036, Validator Rejection = 0.0\%} \\
+    \multicolumn{6}{@{}l}{\quad Without MSP ($-$MSP): AUROC = 0.9486, AUPRC = 0.9370, FPR@95 = 0.1186} \\
+    \multicolumn{6}{@{}l}{\quad Without Cosine ($-$Cosine): AUROC = 0.8544, AUPRC = 0.9011, FPR@95 = 0.7478} \\
+    \multicolumn{6}{@{}l}{\quad Without Mahalanobis ($-$Mahal): AUROC = 0.8229, AUPRC = 0.8781, FPR@95 = 0.7876} \\
+    \bottomrule
+  \end{tabular*}
+\end{table*}
+
+\begin{figure*}[t]
+  \centering
+  \begin{subfigure}[b]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/failure_mode_heatmap.png}
+    \caption{Detection rate heatmap across failure modes}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/corruption_severity.png}
+    \caption{Interception rate vs.\ zero-fill corruption ratio}
+  \end{subfigure}
+  \caption{Failure-mode coverage and corruption response demonstrating the strict complementarity between deterministic validation and statistical drift monitors.}
+  \label{fig:failure_heatmap_severity}
+\end{figure*}
+
+Table~\ref{tab:failure_coverage_ablation} and Fig.~\ref{fig:failure_heatmap_severity} demonstrate the central empirical justification for \sysname{}: \emph{no single detector protects against all failure modes}.
+
+\textbf{Failure of Statistical Detectors on Structural Tampering:}
+When an input vector is 100\% zero-filled (E4), the classifier predicts the majority benign class with moderate confidence. In the 64-dimensional embedding space, the zero vector maps close to dense feature clusters. Consequently, MSP, Cosine, and Mahalanobis all achieve \textbf{0.0\% detection rate}. In contrast, the deterministic \texttt{InputValidator} intercepts \textbf{100.0\%} of zero-filled inputs.
+
+\textbf{Failure of Structural Validation on Representation Shift:}
+Conversely, when evaluating pure cross-domain traffic (E2 ToN-IoT), all features reside within physically valid numerical bounds. Structural validation yields 0.0\% rejection. Here, statistical monitors intercept up to 79.2\% of shifted inputs at 1\% FPR.
+
+\textbf{Complementary Defense:}
+By combining both regimes into a single state machine, \sysname{} achieves 100\% interception of zero-fill tampering and Gaussian noise, 96.5\% on permutations, 90.3\% on extreme outliers, 68.2\% on scale errors, and 79.3\% on non-finite corruptions.
+
+\subsection{External Validity: Cross-Dataset and Cross-Model Generalization}
+
+\begin{table}[t]
+  \centering
+  \small
+  \caption{Cross-Dataset \& Cross-Model Generalization Across Target Datasets}
+  \label{tab:cross_dataset_models}
+  \begin{tabular}{@{}lcccc@{}}
+    \toprule
+    \textbf{Target Dataset / Architecture} & \textbf{Binary F1} & \textbf{Multi F1} & \textbf{Mahal AUROC} & \textbf{Assurance} \\
+    \midrule
+    \multicolumn{5}{@{}l}{\emph{ThreatMLP (13 features, 46,542 params, 2.48 KB ONNX)}} \\
+    \quad CSE-CIC-IDS2018 (In-Dist) & 0.9198 & 0.7801 & 1.0000 (Ref) & 1.0000 (Ref) \\
+    \quad NF-ToN-IoT-v2 & 0.7686 & 0.0571 & 0.8159 & 0.8184 \\
+    \quad NF-BoT-IoT-v2 & 0.6977 & 0.0492 & 0.9980 & 0.9983 \\
+    \addlinespace
+    \multicolumn{5}{@{}l}{\emph{ThreatCNN1D (13 features, 34,703 params, 15.64 KB ONNX)}} \\
+    \quad CSE-CIC-IDS2018 (In-Dist) & 0.9198 & 0.7801 & 1.0000 (Ref) & 1.0000 (Ref) \\
+    \quad NF-ToN-IoT-v2 & 0.5896 & 0.0384 & 0.3495 & 0.3549 \\
+    \quad NF-BoT-IoT-v2 & 0.2194 & 0.0152 & 0.4952 & 0.4952 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.48\textwidth]{figures/detector_generalization_across_datasets.png}
+  \caption{Generalization of \sysname{} runtime monitors across distinct external datasets (CSE-CIC-IDS2018 $\to$ ToN-IoT and BoT-IoT).}
+  \label{fig:cross_dataset_fig}
+\end{figure}
+
+Table~\ref{tab:cross_dataset_models} and Fig.~\ref{fig:cross_dataset_fig} benchmark generalization across two external datasets (NF-ToN-IoT-v2 and NF-BoT-IoT-v2) and two model architectures.
+
+\textbf{Cross-Dataset Observations:}
+On ThreatMLP, \sysname{} demonstrates high external drift discrimination on both target datasets, achieving AUROC = 0.8184 on ToN-IoT and AUROC = 0.9983 on BoT-IoT (with 96.71\% detection at 1\% FPR). 
+
+\textbf{Architecture Sensitivity:}
+On ThreatCNN1D, representation drift detection drops significantly (AUROC = 0.3549 on ToN-IoT). Convolutional filters over 1D flow vectors learn spatially local correlations that do not produce well-separated class-conditional Gaussian clusters in penultimate layers, underscoring that embedding geometry is strongly architecture-dependent.
+
+\textbf{Feature Mapping Sensitivity:}
+Evaluating mapping tiers confirms the audit: Tier 1 (8 exact features) yields mean Mahalanobis distance 6.046; Tier 2 (13 standardized features) yields 8.016; injecting 3 incompatible features increases distance to 14.520 and degrades F1 from 0.7686 to 0.7315.
+
+\subsection{RQ3: Resource Constraints Simulation and Quantization Trade-offs}
+
+\begin{table*}[t]
+  \centering
+  \small
+  \caption{Simulated Edge Resource Constraints Profiling and Quantization Trade-offs (Docker cgroups v2)}
+  \label{tab:resource_quantization}
+  \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lcccccccc@{}}
+    \toprule
+    \textbf{Profile / Mode} & \textbf{CPU Limit} & \textbf{RAM Limit} & \textbf{Mean (ms)} & \textbf{p50 (ms)} & \textbf{p95 (ms)} & \textbf{Throughput} & \textbf{RSS (MB)} & \textbf{Accuracy / F1} \\
+    \midrule
+    \multicolumn{9}{@{}l}{\emph{Profile R0: Reference Unconstrained Host}} \\
+    \quad Plain ONNX & Host & Host & 0.2781 & 0.2555 & 0.3863 & 3,582 flows/s & 123.7 & Acc = 0.8515 / F1 = 0.7801 \\
+    \quad \sysname{} & Host & Host & 0.8883 & 0.8441 & 1.1920 & 1,124 flows/s & 124.9 & Bounded Overhead: +0.610 ms \\
+    \addlinespace
+    \multicolumn{9}{@{}l}{\emph{Profile R1: Constrained IoT Gateway}} \\
+    \quad Plain ONNX & 1 vCPU & 512 MB & 0.2705 & 0.2533 & 0.3473 & 3,680 flows/s & 122.4 & Acc = 0.8515 / F1 = 0.7801 \\
+    \quad \sysname{} & 1 vCPU & 512 MB & 0.9111 & 0.8324 & 1.3404 & 1,101 flows/s & 124.5 & Bounded Overhead: +0.640 ms \\
+    \addlinespace
+    \multicolumn{9}{@{}l}{\emph{Profile R2: Industrial Edge Controller}} \\
+    \quad Plain ONNX & 2 vCPU & 1024 MB & 0.2775 & 0.2559 & 0.3608 & 3,590 flows/s & 123.4 & Acc = 0.8515 / F1 = 0.7801 \\
+    \quad \sysname{} & 2 vCPU & 1024 MB & 0.9034 & 0.8418 & 1.2790 & 1,107 flows/s & 124.3 & Bounded Overhead: +0.625 ms \\
+    \addlinespace
+    \multicolumn{9}{@{}l}{\emph{Profile R3: Multi-Core Edge Appliance}} \\
+    \quad Plain ONNX & 4 vCPU & 2048 MB & 0.2988 & 0.2692 & 0.4280 & 3,354 flows/s & 123.0 & Acc = 0.8515 / F1 = 0.7801 \\
+    \quad \sysname{} & 4 vCPU & 2048 MB & 0.9309 & 0.8528 & 1.4049 & 1,073 flows/s & 124.0 & Bounded Overhead: +0.632 ms \\
+    \midrule
+    \multicolumn{9}{@{}l}{\textbf{Multi-Precision Quantization Comparison under Profile R1 (1 vCPU, 512 MB RAM):}} \\
+    \quad FP32 Baseline & 1 vCPU & 512 MB & 0.0379 (p95) & --- & 0.1765 MB & 38,064 flows/s & 135.7 & Acc = 0.8719 / Macro-F1 = 0.7801 \\
+    \quad FP16 Converted & 1 vCPU & 512 MB & 0.0482 (p95) & --- & 0.0889 MB ($-$49.6\%) & 32,467 flows/s & 136.5 & Acc = 0.8721 / Macro-F1 = 0.7802 ($\Delta\text{F1} = -0.01\%$) \\
+    \quad INT8 Static & 1 vCPU & 512 MB & 0.0444 (p95) & --- & 0.0479 MB ($-$72.9\%) & 35,944 flows/s & 137.9 & Acc = 0.5569 / Macro-F1 = 0.4833 ($\Delta\text{F1} = -38.04\%$) \\
+    \quad INT4 Weight-Only & 1 vCPU & 512 MB & 0.0554 (p95) & --- & 0.0340 MB ($-$80.7\%) & 29,986 flows/s & 143.7 & Acc = 0.8516 / Macro-F1 = 0.7627 ($\Delta\text{F1} = -2.24\%$) \\
+    \bottomrule
+  \end{tabular*}
+\end{table*}
+
+\begin{figure*}[t]
+  \centering
+  \begin{subfigure}[b]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/resource_simulation_p95_latency.png}
+    \caption{p95 latency comparison across resource profiles}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/resource_simulation_throughput.png}
+    \caption{Inference throughput across resource profiles}
+  \end{subfigure}
+  \caption{Simulated edge resource constraints profiling across Profiles R0--R3, demonstrating bounded runtime overhead and flat memory consumption.}
+  \label{fig:resource_sim_plots}
+\end{figure*}
+
+\begin{figure*}[t]
+  \centering
+  \begin{subfigure}[b]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/resource_simulation_quantization.png}
+    \caption{Size vs.\ Macro-F1 trade-off across precisions}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/int8_activation_analysis.png}
+    \caption{Layer-wise activation clipping causing INT8 degradation}
+  \end{subfigure}
+  \caption{Quantization benchmark and empirical activation analysis revealing the root cause of static INT8 accuracy collapse.}
+  \label{fig:quantization_int8_analysis}
+\end{figure*}
+
+Table~\ref{tab:resource_quantization} and Figs.~\ref{fig:resource_sim_plots}--\ref{fig:quantization_int8_analysis} evaluate deployment efficiency under Linux cgroups v2 resource profiles.
+
+\textbf{Bounded Overhead Under Resource Constraints:}
+Across all profiles, \sysname{} adds a bounded computational overhead of $+0.610$\,ms to $+0.640$\,ms. On Profile R1 (1 vCPU, 512\,MB RAM), plain ONNX executes in 0.271\,ms (p95 0.347\,ms), while \sysname{} executes in 0.911\,ms (p95 1.340\,ms), sustaining over 1,100 flows/s with flat memory (124.5\,MB RSS). Memory consumption remains well within the 512\,MB budget.
+
+\textbf{Quantization Findings:}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{FP16:} Achieves 49.6\% size compression (0.089\,MB) with zero accuracy degradation ($\Delta\text{F1} = -0.01\%$).
+  \item \textbf{Static INT8:} Suffers catastrophic accuracy degradation ($\text{F1} = 0.4833$, a 38.04\% drop).
+  \item \textbf{Weight-only INT4 (MatMulNBits):} Reduces model size by 80.7\% (0.034\,MB) while preserving 97.8\% of classification F1 ($\text{F1} = 0.7627$, $\Delta\text{F1} = -2.24\%$).
+\end{itemize}
+
+
+% ============================================================
+% SECTION VI — DISCUSSION
+% ============================================================
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Complementarity over Ensemble Dominance}
+A central finding of this investigation is that combining monitors does not necessarily optimize single-metric AUROC on clean covariate shift, but is essential for \textbf{failure-mode coverage}. On clean cross-domain traffic, Mahalanobis distance alone achieves AUROC = 0.9713, whereas the composite score achieves 0.9486. However, relying solely on Mahalanobis creates a catastrophic security blind spot: on 100\% zero-filled tampering, Mahalanobis detection collapses to 0.0\%. \sysname{} trades marginal statistical separation on clean shift for deterministic 100\% protection against malformed tensors, establishing that runtime assurance must be evaluated across failure spectra rather than narrow benchmark splits.
+
+\subsection{The INT8 Quantization Paradox: Activation Clipping}
+The failure of static INT8 quantization on tabular telemetry contrasts sharply with computer vision, where INT8 compression is standard~\cite{quantedge2023}. Empirical activation profiling (Fig.~\ref{fig:quantization_int8_analysis}b) reveals the root cause:
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Activation skewness:} Intermediate ReLU activations in layers 1--3 exhibit extreme positive skewness. While the 99th percentile activation is $<12.0$, bursty attack traffic generates activation outliers exceeding $50.0$.
+  \item \textbf{Calibration saturation:} Symmetric linear quantization scales the dynamic range to 256 discrete bins. Bounding the scale factor to accommodate outliers quantizes normal activations into a handful of coarse levels, destroying decision margins. Conversely, clipping outliers saturates large activations to 255.
+  \item \textbf{Decoupling weights from activations:} Weight-only INT4 quantizes weights to 4 bits but accumulates and evaluates activations in FP32, eliminating activation clipping entirely and preserving 97.8\% of model F1.
+\end{enumerate}
+
+\subsection{Mandatory Edge Simulation Limitation}
+\label{sec:sim_limitation}
+\textbf{Explicit Simulation Disclaimer:} The containerized cgroups v2 resource profiles (R0--R3) evaluate execution limits on a commodity x86 Linux kernel. They do \emph{not} reproduce physical ARM Big.LITTLE microarchitectures, embedded NPU/TPU acceleration cores, thermal throttling, memory bus bandwidth saturation, or physical NIC packet capture constraints. Physical embedded edge validation remains future work.
+
+
+% ============================================================
+% SECTION VII — THREATS TO VALIDITY
+% ============================================================
+\section{Threats to Validity}
+\label{sec:threats}
+
+\subsection{Dataset Representativeness and Testbed Artifacts}
+CSE-CIC-IDS2018 and ToN-IoT were collected in controlled testbed networks. Synthetic attack traffic may exhibit artificial feature correlations that do not reflect complex enterprise traffic mixes.
+
+\subsection{Hardware and Simulation Fidelity}
+Our resource-constrained evaluation relies on Linux Docker cgroups v2 quotas rather than bare-metal embedded System-on-Chips (SoCs). While cgroups enforce strict CPU and memory limits, they do not emulate physical bus contention or hardware cache hierarchies.
+
+\subsection{Architectural Generalizability}
+We primarily evaluate ThreatMLP (4 layers, 46,542 parameters) and replicate on ThreatCNN1D. While these architectures reflect edge deployment constraints, deeper vision transformers or graph neural networks may exhibit different embedding geometries.
+
+\subsection{OOD Representativeness}
+The synthetic failure modes (E3--E8) represent structured corruptions (zero-fills, permutations, Gaussian noise). While these test fundamental robustness boundaries, they are proxies for real-world zero-day exploit campaigns.
+
+\subsection{Calibration Sensitivity}
+Calibrated thresholds ($\tau_{\text{conf}}, \tau_{\cos}, \tau_M$) depend on an in-distribution benign validation sample ($N=10{,}000$). If the calibration sample does not represent the full diversity of benign traffic, false alarm rates will deviate from nominal targets.
+
+\subsection{Label Taxonomy Mismatch}
+CSE-CIC-IDS2018 contains 15 classes, whereas NF-ToN-IoT-v2 contains 10 classes. Approximately 23\% of ToN-IoT attack samples have no semantic equivalent in the training taxonomy, partially inflating the perceived cross-dataset generalization drop.
+
+\subsection{Semantic Audit Subjectivity}
+Although our semantic audit is grounded in IETF RFCs and achieved $\kappa = 1.00$ between two reviewers, telemetry mappings inherently involve engineering judgment regarding acceptable directional approximations.
+
+\subsection{Historical Implementation and Evaluation Consistency}
+To ensure reproducibility, all canonical results in this manuscript trace directly to the frozen baseline configuration in \texttt{configs/paper\_v1.yaml} and verified machine-readable JSON artifacts.
+
+
+% ============================================================
+% SECTION VIII — CONCLUSION
+% ============================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+This paper presented \sysname{}, an ONNX-native runtime assurance layer that surrounds deployed ML-NIDS classifiers with deterministic structural validation and complementary statistical monitors. Our findings demonstrate:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Runtime assurance over ensemble superiority:} Class-conditional Mahalanobis distance achieves 0.9713 AUROC on clean cross-domain shift, while deterministic validation achieves 100\% interception on zero-filled tampering where statistical detectors fail completely.
+  \item \textbf{Telemetry reconciliation reality:} NetFlow schema standardization eliminates zero-filling but exposes severe generalization collapse (multi-class F1 collapses to 0.057); 38.1\% of candidate features represent physically incompatible phenomena.
+  \item \textbf{Edge practicality:} On a simulated 1-vCPU edge profile, \sysname{} executes in 0.911\,ms (+0.64\,ms overhead) and processes $>1,100$ flows/s with flat 124.5\,MB RSS.
+  \item \textbf{Quantization guidance:} Static INT8 causes severe degradation ($-$38\% F1) due to activation clipping, whereas weight-only INT4 achieves 80.7\% size reduction while retaining 97.8\% of classification F1.
+\end{itemize}
+
+Future work includes deploying \sysname{} on bare-metal ARM edge testbeds (Raspberry Pi 5, NVIDIA Jetson Orin) and investigating online centroid adaptation under non-stationary traffic.
+
+% ============================================================
+% REFERENCES
+% ============================================================
+\balance
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}
