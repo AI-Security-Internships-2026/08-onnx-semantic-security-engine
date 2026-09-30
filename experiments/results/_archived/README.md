@@ -1,25 +1,44 @@
-# Archived Historical Results
+# Archived / Stale Results
 
-This directory contains legacy, superseded, and duplicate experiment results from intermediate development stages of the SEMANTICSHIELD engine.
+**Generated:** 2026-09-30T17:21:03.919291+00:00
 
-> **CRITICAL REPRODUCIBILITY NOTICE:**  
-> None of the files in this directory should be cited or used in the final manuscript.  
-> All canonical, reproducible paper results are located in `experiments/paper_results/`.
+These files were produced during intermediate development stages and are
+**NOT part of the canonical paper results**. They are retained for
+historical reference and audit traceability only.
 
----
+The authoritative results live in `experiments/paper_results/json/`.
 
-## Inventory of Archived Files
+## Archived Files (22 total)
 
-| Archived File | Original Location | Reason for Archival | Superseded By |
-|---|---|---|---|
-| `classification_report.json` | `experiments/results/` | Evaluated legacy 76-feature CICFlowMeter model | `experiments/paper_results/json/classifier_metrics.json` |
-| `nf_classification_report.json` | `experiments/results/` | Contained stale text metadata ("21 features") despite being evaluated on 13-feature model | `experiments/paper_results/json/classifier_metrics.json` |
-| `cross_dataset_comparison.json` | `experiments/results/` | Evaluated legacy 76-feature model across datasets | `experiments/paper_results/json/cross_dataset_alignment.json` |
-| `nf_vs_baseline_comparison.json` | `experiments/results/` | Referenced 21-feature NetFlow schema from intermediate prototyping era | `experiments/paper_results/json/cross_model_comparison.json` |
-| `quantization_comparison.json` | `experiments/results/` | Fragmentary latency/size data without throughput or statistical bounds | `experiments/paper_results/json/quantization_benchmark.json` |
-| `quantization_comparison_full.json` | `experiments/results/` | Partial duplicate of quantization metrics | `experiments/paper_results/json/quantization_benchmark.json` |
-| `nf_cross_dataset_comparison.json` | `experiments/` (root) | Stale duplicate of report located in `results/` | `experiments/paper_results/json/cross_dataset_alignment.json` |
-| `nf_quantization_comparison.json` | `experiments/` (root) | Stale duplicate of report located in `results/` | `experiments/paper_results/json/quantization_benchmark.json` |
-| `nf_comparison_plots.png` | `experiments/` (root) | Orphaned figure in root directory; canonical plots are in `paper_results/figures/` | `experiments/paper_results/figures/` |
-| `nf_confusion_matrix_cic.png` | `experiments/` (root) | Orphaned figure in root directory; superseded by regenerated confusion matrix | `experiments/paper_results/figures/confusion_matrix_cic.png` |
-| `nf_confusion_matrix_toniot.png` | `experiments/` (root) | Orphaned figure in root directory; superseded by regenerated confusion matrix | `experiments/paper_results/figures/confusion_matrix_toniot.png` |
+| File | Status |
+|---|---|
+| `classification_report.json` | Archived (superseded by canonical pipeline) |
+| `cross_dataset_alignment_audit.json` | Archived (superseded by canonical pipeline) |
+| `cross_dataset_comparison.json` | Archived (superseded by canonical pipeline) |
+| `dedup_cross_dataset_alignment_audit.json` | Archived (superseded by canonical pipeline) |
+| `dedup_realtime_vs_offline_benchmark.json` | Archived (superseded by canonical pipeline) |
+| `nf_classification_report.json` | Archived (superseded by canonical pipeline) |
+| `nf_comparison_plots.png` | Archived (superseded by canonical pipeline) |
+| `nf_confusion_matrix_cic.png` | Archived (superseded by canonical pipeline) |
+| `nf_confusion_matrix_toniot.png` | Archived (superseded by canonical pipeline) |
+| `nf_cross_dataset_comparison.json` | Archived (superseded by canonical pipeline) |
+| `nf_cross_dataset_comparison_dup_1790788863.json` | Archived (superseded by canonical pipeline) |
+| `nf_quantization_comparison.json` | Archived (superseded by canonical pipeline) |
+| `nf_quantization_comparison_dup_1790788863.json` | Archived (superseded by canonical pipeline) |
+| `nf_vs_baseline_comparison.json` | Archived (superseded by canonical pipeline) |
+| `ood_baselines_benchmark.json` | Archived (superseded by canonical pipeline) |
+| `quantization_benchmark.json` | Archived (superseded by canonical pipeline) |
+| `quantization_comparison.json` | Archived (superseded by canonical pipeline) |
+| `quantization_comparison_full.json` | Archived (superseded by canonical pipeline) |
+| `realtime_vs_offline_benchmark.json` | Archived (superseded by canonical pipeline) |
+| `semantic_engine_evaluation.json` | Archived (superseded by canonical pipeline) |
+| `statistical_rigor_benchmark.json` | Archived (superseded by canonical pipeline) |
+| `training_time_benchmark.json` | Archived (superseded by canonical pipeline) |
+
+## Why Were These Archived?
+
+Per supervisor feedback (Issue #22), all historical/stale results must be
+archived or clearly marked obsolete. These files were produced by earlier
+script versions, different configurations, or intermediate experiments
+that have been superseded by the unified canonical pipeline using
+`configs/paper_v1.yaml`.

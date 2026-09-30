@@ -2,8 +2,8 @@
   "release": {
     "name": "SEMANTICSHIELD Paper Artifact Release",
     "tag": "paper-v1.0",
-    "timestamp_utc": "2026-09-27T08:50:35.490527+00:00",
-    "git_commit": "3c57ada2df9f6855f8495fadbc638642f7b49128",
+    "timestamp_utc": "2026-09-30T17:21:03.917738+00:00",
+    "git_commit": "c32522fb5b7c9571f3aa11e9df2e038e87e49a58",
     "git_branch": "sikandarhussain6858-issue-1",
     "paper_title": "SEMANTICSHIELD: Invariant-Aware and Drift-Calibrated Semantic Runtime Assurance for Edge NIDS in ONNX",
     "paper_manuscript": "docs/paper/paper-draft.pdf",
@@ -41,25 +41,33 @@
     "python_full": "3.14.3 (tags/v3.14.3:323c59a, Feb  3 2026, 16:04:56) [MSC v.1944 64 bit (AMD64)]"
   },
   "simulated_edge_profiles": {
-    "R0_unconstrained": {
+    "R0_reference": {
       "cpu_quota": "unlimited",
       "memory_limit": "host_ram",
-      "description": "Unconstrained baseline host execution"
+      "onnx_intra_threads": 0,
+      "onnx_inter_threads": 0,
+      "description": "Unconstrained host reference baseline"
     },
-    "R1_moderate_edge": {
-      "cpu_quota": "2.0 vCPUs",
-      "memory_limit": "2048 MB",
-      "description": "Moderate edge gateway / mini server"
-    },
-    "R2_constrained_edge": {
+    "R1_constrained": {
       "cpu_quota": "1.0 vCPU",
-      "memory_limit": "1024 MB",
-      "description": "Constrained edge device (e.g. Raspberry Pi 4)"
-    },
-    "R3_extreme_gateway": {
-      "cpu_quota": "0.5 vCPU",
       "memory_limit": "512 MB",
-      "description": "Extreme constrained IoT edge gateway"
+      "onnx_intra_threads": 1,
+      "onnx_inter_threads": 1,
+      "description": "Strongly constrained edge profile (simulated via ONNX Runtime thread controls)"
+    },
+    "R2_moderate": {
+      "cpu_quota": "2.0 vCPUs",
+      "memory_limit": "1024 MB",
+      "onnx_intra_threads": 2,
+      "onnx_inter_threads": 1,
+      "description": "Moderately constrained edge controller (simulated via ONNX Runtime thread controls)"
+    },
+    "R3_higher": {
+      "cpu_quota": "4.0 vCPUs",
+      "memory_limit": "2048 MB",
+      "onnx_intra_threads": 4,
+      "onnx_inter_threads": 2,
+      "description": "Less constrained edge gateway (simulated via ONNX Runtime thread controls)"
     }
   },
   "dependency_versions": {
@@ -202,5 +210,6 @@
       "sha256": "785ac833c7f4724a6861ffac0a6aa80c4232c96c8e3f320634be5225120a557c",
       "size_bytes": 2473497
     }
-  }
+  },
+  "simulation_disclaimer": "All edge resource profiles (R0-R3) use ONNX Runtime thread affinity controls on a commodity x86_64 host to simulate CPU-constrained execution. These results do NOT constitute validation on physical ARM edge hardware (Raspberry Pi, Jetson, etc.). Physical edge deployment remains future work."
 }

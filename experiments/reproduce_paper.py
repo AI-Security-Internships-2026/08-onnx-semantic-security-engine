@@ -236,6 +236,8 @@ def verify_results(json_dir: Path, fig_dir: Path = None, tables_dir: Path = None
         "cross_dataset_generalization.json",
         "semantic_mismatch_sensitivity.json",
         "cross_model_replication.json",
+        "cross_dataset_alignment.json",
+        "nf_cross_dataset_comparison.json",
     ]
 
     all_ok = True
@@ -269,6 +271,7 @@ def verify_results(json_dir: Path, fig_dir: Path = None, tables_dir: Path = None
 
     required_figures = [
         "confusion_matrix_cic.png",
+        "confusion_matrix_toniot.png",
         "cross_model_comparison.png",
         "ablation_comparison.png",
         "quantization_benchmark.png",

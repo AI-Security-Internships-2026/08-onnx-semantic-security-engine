@@ -2,11 +2,13 @@
   "provenance": {
     "config_version": "paper_v1",
     "config_frozen_date": "2026-09-11",
-    "git_commit": "eaa1a1d1cb9cea7c520edcb821b9d78724cb1685",
+    "git_commit": "c32522fb5b7c9571f3aa11e9df2e038e87e49a58",
     "git_branch": "sikandarhussain6858-issue-1",
-    "timestamp_utc": "2026-09-23T18:43:39.379015+00:00",
+    "timestamp_utc": "2026-09-30T17:21:03.775750+00:00",
     "python_version": "3.14.3",
-    "platform": "win32"
+    "platform": "win32",
+    "provenance_note": "Provenance block standardized by fix_issue22_provenance.py",
+    "original_generation_timestamp": "2026-09-23T18:43:39.379015+00:00"
   },
   "experiment": "Issue 3: Fixed-FPR Evaluation, Failure-Mode Coverage & Ablation",
   "config": {

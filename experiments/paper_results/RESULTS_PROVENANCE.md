@@ -85,11 +85,13 @@ To maintain scientific integrity, the manuscript strictly avoids claiming physic
 > *"We evaluate SEMANTICSHIELD under controlled CPU- and memory-constrained deployment profiles to approximate resource-limited inference conditions. Physical edge hardware validation remains future work."*
 
 ### 5.2 Resource Profiles & Execution Parameters
-Evaluated via Docker cgroups v2 resource quotas on Linux container runtime (`docker-security-engine:latest`):
-- **Profile R0 (Reference):** Unconstrained vCPU, unconstrained RAM. Host baseline.
-- **Profile R1 (Low):** 1 vCPU (`--cpus 1.0`), 512 MB RAM (`--memory 512m`). Emulates strongly constrained IoT/edge gateway.
-- **Profile R2 (Medium):** 2 vCPU (`--cpus 2.0`), 1024 MB RAM (`--memory 1024m`). Emulates industrial controller.
-- **Profile R3 (Higher):** 4 vCPU (`--cpus 4.0`), 2048 MB RAM (`--memory 2048m`). Emulates high-end edge appliance.
+Evaluated via ONNX Runtime `intra_op_num_threads` / `inter_op_num_threads` thread affinity controls on a commodity x86_64 host (Windows 11, AMD64, 6 physical cores / 12 logical threads, 16 GB RAM):
+- **Profile R0 (Reference):** Unconstrained threads, unconstrained RAM. Host baseline.
+- **Profile R1 (Constrained):** 1 thread (`intra_threads=1, inter_threads=1`), simulating 1 vCPU / 512 MB edge device.
+- **Profile R2 (Moderate):** 2 threads (`intra_threads=2, inter_threads=1`), simulating 2 vCPU / 1024 MB edge controller.
+- **Profile R3 (Higher):** 4 threads (`intra_threads=4, inter_threads=2`), simulating 4 vCPU / 2048 MB edge gateway.
+
+> **Important:** These profiles simulate CPU-constrained execution via thread controls. They do NOT use Docker cgroups v2 on this host (Windows). Physical edge hardware validation (ARM, NPU/TPU, thermal throttling) remains future work.
 
 ### 5.3 Runtime Overhead & Resource Sensitivity Findings
 Across 5 repeated measured runs (5,000 flows/run, 500-flow warm-up) per profile:
@@ -130,4 +132,51 @@ Across 5 repeated measured runs (5,000 flows/run, 500-flow warm-up) per profile:
 - **Foundational Additions:** Added Axelsson (ACM CCS 1999, base-rate fallacy), Sommer & Paxson (IEEE S&P 2010, closed world), Hofstede et al. (IEEE Surveys 2014, flow monitoring), RFC 7012, RFC 793, Handigol et al. (NSDI 2014), and Sastry & Oore (ICML 2020).
 - **Documentation:** `docs/reference_audit_report.md` and `docs/paper/references.bib`.
 
+---
 
+## 7. Provenance Consolidation Audit (Issue #22 Compliance)
+
+### 7.1 Problem: Inconsistent Git Commit References
+Prior to consolidation, the 21 canonical JSON files in `experiments/paper_results/json/` referenced **4 different git commits** in their provenance blocks:
+
+| Commit (short) | Files | Origin |
+|---|---|---|
+| `3532595b` | 7 files (classifier_metrics, ablation_study, cross_model_comparison, ood_baselines, quantization, semantic_engine, statistical_rigor, training_time) | Early canonical pipeline generation |
+| `eaa1a1d1` | 3 files (fixed_fpr_evaluation, failure_mode_coverage_matrix, ablation_fixed_fpr) | Issue #23 fixed-FPR evaluation |
+| `9e55e61d` | 2 files (resource_simulation_benchmark, int8_degradation_investigation) | Issue #25 edge simulation |
+| (none) | 9 files (cross_dataset_*, cross_model_replication, semantic_mismatch, latency, nf_cross_dataset, alignment*) | Missing provenance entirely |
+
+Additionally, `RELEASE_METADATA.json` referenced commit `3c57ada2` (the paper rewrite commit), creating a 5th divergent reference.
+
+### 7.2 Resolution: Unified Provenance Standardization
+All 19 canonical JSON files now reference the same commit (`c32522fb`), matching `RELEASE_METADATA.json`. The script `scripts/fix_issue22_provenance.py` performed:
+
+1. **Provenance Injection:** Added provenance blocks to 9 JSONs that previously lacked them.
+2. **Commit Standardization:** Updated 12 provenance blocks from stale commits to current HEAD.
+3. **Original Timestamp Preservation:** Each updated JSON retains its `original_generation_timestamp` for audit traceability.
+
+### 7.3 Stale Result Archival
+9 stale result files were moved from `experiments/results/` to `experiments/results/_archived/`:
+- `cross_dataset_alignment_audit.json`, `nf_cross_dataset_comparison.json`, `nf_quantization_comparison.json`
+- `ood_baselines_benchmark.json`, `quantization_benchmark.json`, `realtime_vs_offline_benchmark.json`
+- `semantic_engine_evaluation.json`, `statistical_rigor_benchmark.json`, `training_time_benchmark.json`
+
+### 7.4 Duplicate JSON Deduplication
+2 duplicate JSON files in `experiments/paper_results/json/` were archived:
+- `cross_dataset_alignment_audit.json` (identical to `cross_dataset_alignment.json`)
+- `realtime_vs_offline_benchmark.json` (identical to `latency_benchmark.json`)
+
+### 7.5 Resource Profile Naming Correction
+Resource profile definitions were inconsistent across `REPRODUCE.md`, `RELEASE_METADATA.json`, and `benchmark_resource_simulation.py`. All documents now use the authoritative script definitions:
+- R0 = Reference (unconstrained), R1 = Constrained (1 vCPU/512 MB), R2 = Moderate (2 vCPU/1 GB), R3 = Higher (4 vCPU/2 GB)
+- Removed erroneous "Raspberry Pi 4" description from `RELEASE_METADATA.json`
+- Clarified that profiles use ONNX Runtime thread controls, not Docker cgroups v2 on this Windows host
+
+### 7.6 Final Canonical State
+After consolidation:
+- **19 canonical JSON files** in `experiments/paper_results/json/`
+- **23 figures** in `experiments/paper_results/figures/`
+- **19 CSV tables** in `experiments/paper_results/tables/`
+- **All provenance blocks reference commit** `c32522fb`
+- **RELEASE_METADATA.json** references the same commit
+- **experiments/results/** contains only `.gitkeep` and `_archived/`

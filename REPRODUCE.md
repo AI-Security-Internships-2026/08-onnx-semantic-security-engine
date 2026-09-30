@@ -35,11 +35,12 @@ python -m pytest tests/ -v
   - Fast Reproduction / Pre-packaged test partitions: ~500 MB.
   - Full End-to-End Retraining (raw multi-day captures): ~60 GB.
 - **Simulated Edge Environments:**
-  - Experiments in Section 5.4 evaluate simulated containerized cgroup profiles:
-    - **R0 (Unconstrained):** Unlimited host CPU & RAM.
-    - **R1 (Moderate Edge):** 2.0 vCPUs, 2048 MB RAM.
-    - **R2 (Constrained Edge):** 1.0 vCPU, 1024 MB RAM.
-    - **R3 (Extreme Gateway):** 0.5 vCPU, 512 MB RAM.
+  - Experiments in Section 5.4 evaluate simulated resource-constrained profiles using ONNX Runtime thread affinity controls (NOT physical edge hardware):
+    - **R0 (Reference):** Unconstrained host CPU & RAM (baseline).
+    - **R1 (Constrained):** 1 vCPU, 512 MB RAM — strongly constrained edge profile.
+    - **R2 (Moderate):** 2 vCPUs, 1024 MB RAM — moderately constrained edge controller.
+    - **R3 (Higher):** 4 vCPUs, 2048 MB RAM — less constrained edge gateway.
+  - **Note:** These profiles simulate resource constraints via ONNX Runtime `intra_op_num_threads` / `inter_op_num_threads` controls on a commodity x86_64 host. They do NOT reproduce physical ARM microarchitectures, NPU/TPU cores, thermal throttling, or NIC line-rate capture. Physical edge validation remains future work.
 
 ### 1.2 Python Environment Setup
 We recommend Python 3.10 to 3.14.

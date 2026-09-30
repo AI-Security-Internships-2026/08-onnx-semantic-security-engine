@@ -1,4 +1,14 @@
 {
+  "provenance": {
+    "config_version": "paper_v1",
+    "config_frozen_date": "2026-09-11",
+    "git_commit": "c32522fb5b7c9571f3aa11e9df2e038e87e49a58",
+    "git_branch": "sikandarhussain6858-issue-1",
+    "timestamp_utc": "2026-09-30T17:21:03.775750+00:00",
+    "python_version": "3.14.3",
+    "platform": "win32",
+    "provenance_note": "Provenance block standardized by fix_issue22_provenance.py"
+  },
   "experiment": "Real-Time Streaming vs. Offline Batch Inference Comparison",
   "model": "ThreatMLP NF (13 features, FP32)",
   "offline_in_memory": {

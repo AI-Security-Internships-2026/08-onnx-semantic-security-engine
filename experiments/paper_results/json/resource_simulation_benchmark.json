@@ -2,11 +2,13 @@
   "provenance": {
     "config_version": "paper_v1",
     "config_frozen_date": "2026-09-11",
-    "git_commit": "9e55e61dd9f07c51b6cebf1e9a88d88e9e8ceaa8",
+    "git_commit": "c32522fb5b7c9571f3aa11e9df2e038e87e49a58",
     "git_branch": "sikandarhussain6858-issue-1",
-    "timestamp_utc": "2026-09-25T17:11:17.809042+00:00",
+    "timestamp_utc": "2026-09-30T17:21:03.775750+00:00",
     "python_version": "3.14.3",
-    "platform": "win32"
+    "platform": "win32",
+    "provenance_note": "Provenance block standardized by fix_issue22_provenance.py",
+    "original_generation_timestamp": "2026-09-25T17:11:17.809042+00:00"
   },
   "experiment": "E2.3 Edge Resource Constraints Simulation Benchmark",
   "paper_framing_statement": "We evaluate SEMANTICSHIELD under controlled CPU- and memory-constrained deployment profiles to approximate resource-limited inference conditions. Physical edge hardware validation remains future work.",

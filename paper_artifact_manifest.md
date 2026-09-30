@@ -62,7 +62,7 @@ This document provides the authoritative mapping between every table, figure, an
 All artifacts and numbers in this manifest can be verified immediately:
 
 ```bash
-# Verify presence and integrity of all 18 JSONs, 22 PNGs, 19 CSVs, 23 checksums, and 89 numbers
+# Verify presence and integrity of all 19 JSONs, 23 PNGs, 19 CSVs, 23 checksums, and 89 numbers
 python experiments/reproduce_paper.py --verify
 
 # Automated numerical assertion test against paper-draft.tex
