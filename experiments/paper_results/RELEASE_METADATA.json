@@ -3,7 +3,7 @@
     "name": "SEMANTICSHIELD Paper Artifact Release",
     "tag": "paper-v1.0",
     "timestamp_utc": "2026-09-30T17:21:03.917738+00:00",
-    "git_commit": "c32522fb5b7c9571f3aa11e9df2e038e87e49a58",
+    "git_commit": "b18300b9f99a0027c5998d0afdeee975287d65dc",
     "git_branch": "sikandarhussain6858-issue-1",
     "paper_title": "SEMANTICSHIELD: Invariant-Aware and Drift-Calibrated Semantic Runtime Assurance for Edge NIDS in ONNX",
     "paper_manuscript": "docs/paper/paper-draft.pdf",
