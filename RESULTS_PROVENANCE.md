@@ -203,3 +203,23 @@ To address supervisor review requirements for Issue #23 (M2.2), `scripts/fixed_f
 
 4. **Strict Separation of Structural Rejection vs. Statistical OOD:**
    - JSON notes and table structures explicitly document that deterministic structural rules operate independently of statistical false-positive rate budgets.
+
+---
+
+## 9. Issue #24: Cross-Dataset & Cross-Model Generalization Standardization
+
+To address supervisor review requirements for Issue #24 (M2.3), the cross-dataset and cross-model evaluation pipeline was standardized:
+
+1. **Explicit Track A vs. Track B Partitioning:**
+   - **Track A (Same-Schema Distribution / Domain Shift):** Evaluates models trained on NF-CSE-CIC-IDS2018 against external NetFlow v2 datasets (NF-ToN-IoT-v2 and NF-BoT-IoT-v2) sharing the exact 13-feature standardized schema. Documented in `cross_dataset_generalization.json` with explicit `"track"` tags and a top-level `tracks_summary`.
+   - **Track B (Feature-Schema Mismatch / Semantic Shift):** Evaluates feature mapping degradation across Tier 1 (Exact Only), Tier 2 (Standardized), and Tier 3 (Mismatched) schema representations in `semantic_mismatch_sensitivity.json`.
+
+2. **Separation of Classifier Performance vs. Assurance Performance:**
+   - In `cross_dataset_generalization.json` and `cross_model_replication.json`, classification metrics (`binary_accuracy`, `binary_macro_f1`) and runtime assurance metrics (`assurance_performance` including MSP, Cosine, Mahalanobis, and Composite AUROC, AUPRC, and TPR @ 0.1%, 1%, 5% FPR) are now clearly organized in dedicated subsections while preserving top-level keys for backward compatibility.
+
+3. **Replication Across Multiple Architectures (ThreatMLP vs. ThreatCNN1D):**
+   - Core runtime assurance is evaluated on both ThreatMLP (fully connected) and ThreatCNN1D (1D convolutional) under the identical fixed-FPR protocol.
+   - All claims of "architecture-independence" have been audited and replaced with qualified language highlighting that embedding geometry is strongly architecture-dependent (Conv1D spatial pooling leads to lower class separation in penultimate layers).
+
+4. **Comprehensive Dataset Metadata:**
+   - Documented dataset roles, formats, feature column mappings, preprocessing steps, and source collections in `dataset_metadata` within `cross_dataset_generalization.json`.

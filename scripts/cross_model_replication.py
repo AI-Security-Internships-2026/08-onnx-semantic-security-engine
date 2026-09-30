@@ -37,6 +37,7 @@ from scripts.data_utils import (
     NF_FEATURES, load_standardized_netflow, get_toniot_path, get_botiot_path,
     safe_auroc, safe_auprc, tpr_at_fixed_fpr
 )
+from scripts.config_loader import get_provenance_metadata
 
 EXPERIMENTS = BASE_DIR / "experiments"
 JSON_DIR = EXPERIMENTS / "paper_results" / "json"
@@ -238,6 +239,15 @@ def main():
             n_latency_runs=500
         )
         res["params_label"] = m["params_label"]
+        res["classifier_performance"] = {
+            "id_accuracy": res["id_accuracy"],
+            "id_macro_f1": res["id_macro_f1"],
+        }
+        res["assurance_performance"] = {
+            "toniot_metrics": res["toniot_metrics"],
+            "botiot_metrics": res["botiot_metrics"],
+            "assurance_overhead_ms": res["assurance_overhead_ms"],
+        }
         benchmark_results.append(res)
 
         table_rows.append({
@@ -252,9 +262,10 @@ def main():
         })
 
     # Save JSON
+    provenance = get_provenance_metadata()
     json_path = JSON_DIR / "cross_model_replication.json"
     with open(json_path, "w") as f:
-        json.dump({"models": benchmark_results}, f, indent=2)
+        json.dump({"provenance": provenance, "models": benchmark_results}, f, indent=2)
     print(f"\n[3/3] Saved JSON to: {json_path}")
 
     # Save CSV Table

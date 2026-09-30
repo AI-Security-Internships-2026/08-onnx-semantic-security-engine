@@ -108,7 +108,7 @@ class ThreatCNN1D(nn.Module):
 class ThreatCNN1DWithEmbedding(nn.Module):
     """Wrapper that returns both logits and 64-dim embeddings from ThreatCNN1D fc1.
 
-    Used for ONNX export with dual outputs for architecture-agnostic
+    Used for ONNX export with dual outputs for multi-architecture (MLP and 1D-CNN)
     assurance layer evaluation.
     """
 

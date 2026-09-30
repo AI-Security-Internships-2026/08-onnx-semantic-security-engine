@@ -135,9 +135,14 @@ def evaluate_model_on_dataset(
     res = {
         "model": model_name,
         "dataset": dataset_name,
+        "track": "Track A (Same-Schema Distribution Shift)",
         "is_id": is_id,
         "sample_count": len(X_raw),
         "sample_latency_ms": round(sample_latency_ms, 4),
+        "classifier_performance": {
+            "binary_accuracy": round(bin_acc, 4),
+            "binary_macro_f1": round(bin_f1, 4),
+        },
         "binary_accuracy": round(bin_acc, 4),
         "binary_macro_f1": round(bin_f1, 4),
         "raw_scores": {
@@ -178,6 +183,11 @@ def evaluate_model_on_dataset(
         res["observed_id_fpr"] = round(id_fpr_5pct, 4)
         res["assurance"] = assurance_metrics
         res["full_assurance_auroc"] = assurance_metrics["composite"]["auroc"]
+        res["assurance_performance"] = {
+            "observed_id_fpr": round(id_fpr_5pct, 4),
+            "detectors": assurance_metrics,
+            "composite_assurance_auroc": assurance_metrics["composite"]["auroc"]
+        }
 
     return res
 
@@ -302,9 +312,60 @@ def main():
         clean_r = {k: v for k, v in r.items() if k != "raw_scores"}
         clean_results.append(clean_r)
 
+    dataset_metadata = {
+        "NF-CSE-CIC-IDS2018-v2": {
+            "role": "Training / In-Distribution Baseline",
+            "format": "NetFlow v2 (standardized)",
+            "num_features": 13,
+            "features": NF_FEATURES,
+            "source": "University of Queensland NetFlow Dataset Collection",
+            "track": "Track A (Source Domain)",
+            "preprocessing": "StandardScaler calibrated on D_train; Min/Max clipping"
+        },
+        "NF-ToN-IoT-v2": {
+            "role": "External Evaluation Dataset 1 (Cross-Domain OOD)",
+            "format": "NetFlow v2 (standardized)",
+            "num_features": 13,
+            "features": NF_FEATURES,
+            "track": "Track A (Same-Schema Distribution Shift)",
+            "sample_count": 30000,
+            "source": "University of Queensland NetFlow Dataset Collection",
+            "preprocessing": "Standardized schema alignment via feature mapping; source scaler applied"
+        },
+        "NF-BoT-IoT-v2": {
+            "role": "External Evaluation Dataset 2 (Cross-Domain OOD)",
+            "format": "NetFlow v2 (standardized)",
+            "num_features": 13,
+            "features": NF_FEATURES,
+            "track": "Track A (Same-Schema Distribution Shift)",
+            "sample_count": 30000,
+            "source": "University of Queensland NetFlow Dataset Collection",
+            "preprocessing": "Standardized schema alignment via feature mapping; source scaler applied"
+        }
+    }
+
+    tracks_summary = {
+        "track_A": {
+            "name": "Track A: Same-Schema Distribution / Domain Shift",
+            "description": "Evaluates models trained on NF-CSE-CIC-IDS2018 against external NetFlow v2 datasets (NF-ToN-IoT-v2, NF-BoT-IoT-v2) sharing the exact 13-feature standardized schema. Isolates covariate and concept shift from schema incompatibility.",
+            "evaluated_in": "cross_dataset_generalization.json"
+        },
+        "track_B": {
+            "name": "Track B: Feature-Schema Mismatch / Semantic Shift",
+            "description": "Evaluates feature mapping degradation across Tier 1 (Exact Only), Tier 2 (Standardized), and Tier 3 (Mismatched) schema representations.",
+            "evaluated_in": "semantic_mismatch_sensitivity.json"
+        }
+    }
+
+    provenance = get_provenance_metadata()
     json_path = JSON_DIR / "cross_dataset_generalization.json"
     with open(json_path, "w") as f:
-        json.dump({"cross_dataset_results": clean_results}, f, indent=2)
+        json.dump({
+            "provenance": provenance,
+            "tracks_summary": tracks_summary,
+            "dataset_metadata": dataset_metadata,
+            "cross_dataset_results": clean_results
+        }, f, indent=2)
     print(f"\n[3/4] Saved JSON to: {json_path}")
 
     # 4. Save Table CSV

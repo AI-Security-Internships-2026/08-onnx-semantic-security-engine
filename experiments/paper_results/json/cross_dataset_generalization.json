@@ -2,29 +2,123 @@
   "provenance": {
     "config_version": "paper_v1",
     "config_frozen_date": "2026-09-11",
-    "git_commit": "c32522fb5b7c9571f3aa11e9df2e038e87e49a58",
+    "git_commit": "77d32bd0a2e6e2c5c75ac24037d278ff59890b18",
     "git_branch": "sikandarhussain6858-issue-1",
-    "timestamp_utc": "2026-09-30T17:21:03.775750+00:00",
+    "timestamp_utc": "2026-09-30T18:28:54.015790+00:00",
     "python_version": "3.14.3",
-    "platform": "win32",
-    "provenance_note": "Provenance block standardized by fix_issue22_provenance.py"
+    "platform": "win32"
+  },
+  "tracks_summary": {
+    "track_A": {
+      "name": "Track A: Same-Schema Distribution / Domain Shift",
+      "description": "Evaluates models trained on NF-CSE-CIC-IDS2018 against external NetFlow v2 datasets (NF-ToN-IoT-v2, NF-BoT-IoT-v2) sharing the exact 13-feature standardized schema. Isolates covariate and concept shift from schema incompatibility.",
+      "evaluated_in": "cross_dataset_generalization.json"
+    },
+    "track_B": {
+      "name": "Track B: Feature-Schema Mismatch / Semantic Shift",
+      "description": "Evaluates feature mapping degradation across Tier 1 (Exact Only), Tier 2 (Standardized), and Tier 3 (Mismatched) schema representations.",
+      "evaluated_in": "semantic_mismatch_sensitivity.json"
+    }
+  },
+  "dataset_metadata": {
+    "NF-CSE-CIC-IDS2018-v2": {
+      "role": "Training / In-Distribution Baseline",
+      "format": "NetFlow v2 (standardized)",
+      "num_features": 13,
+      "features": [
+        "Flow Duration",
+        "Total Fwd Packets",
+        "Total Backward Packets",
+        "Fwd Packets Length Total",
+        "Bwd Packets Length Total",
+        "Packet Length Max",
+        "Packet Length Min",
+        "Protocol",
+        "Fwd Packet Length Max",
+        "Fwd Packet Length Min",
+        "Flow Bytes/s",
+        "Init Fwd Win Bytes",
+        "Init Bwd Win Bytes"
+      ],
+      "source": "University of Queensland NetFlow Dataset Collection",
+      "track": "Track A (Source Domain)",
+      "preprocessing": "StandardScaler calibrated on D_train; Min/Max clipping"
+    },
+    "NF-ToN-IoT-v2": {
+      "role": "External Evaluation Dataset 1 (Cross-Domain OOD)",
+      "format": "NetFlow v2 (standardized)",
+      "num_features": 13,
+      "features": [
+        "Flow Duration",
+        "Total Fwd Packets",
+        "Total Backward Packets",
+        "Fwd Packets Length Total",
+        "Bwd Packets Length Total",
+        "Packet Length Max",
+        "Packet Length Min",
+        "Protocol",
+        "Fwd Packet Length Max",
+        "Fwd Packet Length Min",
+        "Flow Bytes/s",
+        "Init Fwd Win Bytes",
+        "Init Bwd Win Bytes"
+      ],
+      "track": "Track A (Same-Schema Distribution Shift)",
+      "sample_count": 30000,
+      "source": "University of Queensland NetFlow Dataset Collection",
+      "preprocessing": "Standardized schema alignment via feature mapping; source scaler applied"
+    },
+    "NF-BoT-IoT-v2": {
+      "role": "External Evaluation Dataset 2 (Cross-Domain OOD)",
+      "format": "NetFlow v2 (standardized)",
+      "num_features": 13,
+      "features": [
+        "Flow Duration",
+        "Total Fwd Packets",
+        "Total Backward Packets",
+        "Fwd Packets Length Total",
+        "Bwd Packets Length Total",
+        "Packet Length Max",
+        "Packet Length Min",
+        "Protocol",
+        "Fwd Packet Length Max",
+        "Fwd Packet Length Min",
+        "Flow Bytes/s",
+        "Init Fwd Win Bytes",
+        "Init Bwd Win Bytes"
+      ],
+      "track": "Track A (Same-Schema Distribution Shift)",
+      "sample_count": 30000,
+      "source": "University of Queensland NetFlow Dataset Collection",
+      "preprocessing": "Standardized schema alignment via feature mapping; source scaler applied"
+    }
   },
   "cross_dataset_results": [
     {
       "model": "ThreatMLP",
       "dataset": "CIC-IDS2018 (In-Dist)",
+      "track": "Track A (Same-Schema Distribution Shift)",
       "is_id": true,
       "sample_count": 20000,
-      "sample_latency_ms": 0.0101,
+      "sample_latency_ms": 0.0025,
+      "classifier_performance": {
+        "binary_accuracy": 0.8515,
+        "binary_macro_f1": 0.9198
+      },
       "binary_accuracy": 0.8515,
       "binary_macro_f1": 0.9198
     },
     {
       "model": "ThreatMLP",
       "dataset": "NF-ToN-IoT-v2",
+      "track": "Track A (Same-Schema Distribution Shift)",
       "is_id": false,
       "sample_count": 30000,
-      "sample_latency_ms": 0.0015,
+      "sample_latency_ms": 0.0011,
+      "classifier_performance": {
+        "binary_accuracy": 0.63,
+        "binary_macro_f1": 0.7686
+      },
       "binary_accuracy": 0.63,
       "binary_macro_f1": 0.7686,
       "observed_id_fpr": 0.9014,
@@ -58,14 +152,53 @@
           "tpr@5.0%": 0.8183
         }
       },
-      "full_assurance_auroc": 0.8184
+      "full_assurance_auroc": 0.8184,
+      "assurance_performance": {
+        "observed_id_fpr": 0.9014,
+        "detectors": {
+          "msp": {
+            "auroc": 0.5656,
+            "auprc": 0.7886,
+            "tpr@0.1%": 0.4659,
+            "tpr@1.0%": 0.5289,
+            "tpr@5.0%": 0.5291
+          },
+          "cosine": {
+            "auroc": 0.7386,
+            "auprc": 0.8815,
+            "tpr@0.1%": 0.6153,
+            "tpr@1.0%": 0.6163,
+            "tpr@5.0%": 0.6164
+          },
+          "mahalanobis": {
+            "auroc": 0.8159,
+            "auprc": 0.921,
+            "tpr@0.1%": 0.6612,
+            "tpr@1.0%": 0.746,
+            "tpr@5.0%": 0.8152
+          },
+          "composite": {
+            "auroc": 0.8184,
+            "auprc": 0.9224,
+            "tpr@0.1%": 0.666,
+            "tpr@1.0%": 0.7533,
+            "tpr@5.0%": 0.8183
+          }
+        },
+        "composite_assurance_auroc": 0.8184
+      }
     },
     {
       "model": "ThreatMLP",
       "dataset": "NF-BoT-IoT-v2",
+      "track": "Track A (Same-Schema Distribution Shift)",
       "is_id": false,
       "sample_count": 30000,
-      "sample_latency_ms": 0.0012,
+      "sample_latency_ms": 0.0011,
+      "classifier_performance": {
+        "binary_accuracy": 0.5358,
+        "binary_macro_f1": 0.6977
+      },
       "binary_accuracy": 0.5358,
       "binary_macro_f1": 0.6977,
       "observed_id_fpr": 0.9014,
@@ -99,23 +232,67 @@
           "tpr@5.0%": 0.9995
         }
       },
-      "full_assurance_auroc": 0.9983
+      "full_assurance_auroc": 0.9983,
+      "assurance_performance": {
+        "observed_id_fpr": 0.9014,
+        "detectors": {
+          "msp": {
+            "auroc": 0.3777,
+            "auprc": 0.6739,
+            "tpr@0.1%": 0.0058,
+            "tpr@1.0%": 0.3708,
+            "tpr@5.0%": 0.3708
+          },
+          "cosine": {
+            "auroc": 0.9437,
+            "auprc": 0.9506,
+            "tpr@0.1%": 0.444,
+            "tpr@1.0%": 0.444,
+            "tpr@5.0%": 0.444
+          },
+          "mahalanobis": {
+            "auroc": 0.998,
+            "auprc": 0.9987,
+            "tpr@0.1%": 0.8799,
+            "tpr@1.0%": 0.967,
+            "tpr@5.0%": 0.9991
+          },
+          "composite": {
+            "auroc": 0.9983,
+            "auprc": 0.9988,
+            "tpr@0.1%": 0.8802,
+            "tpr@1.0%": 0.9673,
+            "tpr@5.0%": 0.9995
+          }
+        },
+        "composite_assurance_auroc": 0.9983
+      }
     },
     {
       "model": "ThreatCNN1D",
       "dataset": "CIC-IDS2018 (In-Dist)",
+      "track": "Track A (Same-Schema Distribution Shift)",
       "is_id": true,
       "sample_count": 20000,
-      "sample_latency_ms": 0.0197,
+      "sample_latency_ms": 0.0202,
+      "classifier_performance": {
+        "binary_accuracy": 0.8515,
+        "binary_macro_f1": 0.9198
+      },
       "binary_accuracy": 0.8515,
       "binary_macro_f1": 0.9198
     },
     {
       "model": "ThreatCNN1D",
       "dataset": "NF-ToN-IoT-v2",
+      "track": "Track A (Same-Schema Distribution Shift)",
       "is_id": false,
       "sample_count": 30000,
-      "sample_latency_ms": 0.0128,
+      "sample_latency_ms": 0.0167,
+      "classifier_performance": {
+        "binary_accuracy": 0.4721,
+        "binary_macro_f1": 0.5896
+      },
       "binary_accuracy": 0.4721,
       "binary_macro_f1": 0.5896,
       "observed_id_fpr": 0.9,
@@ -149,14 +326,53 @@
           "tpr@5.0%": 0.2834
         }
       },
-      "full_assurance_auroc": 0.3549
+      "full_assurance_auroc": 0.3549,
+      "assurance_performance": {
+        "observed_id_fpr": 0.9,
+        "detectors": {
+          "msp": {
+            "auroc": 0.3985,
+            "auprc": 0.6944,
+            "tpr@0.1%": 0.0564,
+            "tpr@1.0%": 0.2592,
+            "tpr@5.0%": 0.4006
+          },
+          "cosine": {
+            "auroc": 0.2962,
+            "auprc": 0.6258,
+            "tpr@0.1%": 0.1327,
+            "tpr@1.0%": 0.2693,
+            "tpr@5.0%": 0.2693
+          },
+          "mahalanobis": {
+            "auroc": 0.3495,
+            "auprc": 0.6481,
+            "tpr@0.1%": 0.2336,
+            "tpr@1.0%": 0.2807,
+            "tpr@5.0%": 0.2807
+          },
+          "composite": {
+            "auroc": 0.3549,
+            "auprc": 0.6498,
+            "tpr@0.1%": 0.2342,
+            "tpr@1.0%": 0.2834,
+            "tpr@5.0%": 0.2834
+          }
+        },
+        "composite_assurance_auroc": 0.3549
+      }
     },
     {
       "model": "ThreatCNN1D",
       "dataset": "NF-BoT-IoT-v2",
+      "track": "Track A (Same-Schema Distribution Shift)",
       "is_id": false,
       "sample_count": 30000,
-      "sample_latency_ms": 0.0183,
+      "sample_latency_ms": 0.0143,
+      "classifier_performance": {
+        "binary_accuracy": 0.124,
+        "binary_macro_f1": 0.2194
+      },
       "binary_accuracy": 0.124,
       "binary_macro_f1": 0.2194,
       "observed_id_fpr": 0.9,
@@ -190,7 +406,41 @@
           "tpr@5.0%": 0.4409
         }
       },
-      "full_assurance_auroc": 0.4952
+      "full_assurance_auroc": 0.4952,
+      "assurance_performance": {
+        "observed_id_fpr": 0.9,
+        "detectors": {
+          "msp": {
+            "auroc": 0.0545,
+            "auprc": 0.4391,
+            "tpr@0.1%": 0.0,
+            "tpr@1.0%": 0.054,
+            "tpr@5.0%": 0.0546
+          },
+          "cosine": {
+            "auroc": 0.0509,
+            "auprc": 0.4354,
+            "tpr@0.1%": 0.046,
+            "tpr@1.0%": 0.0466,
+            "tpr@5.0%": 0.0466
+          },
+          "mahalanobis": {
+            "auroc": 0.4952,
+            "auprc": 0.7352,
+            "tpr@0.1%": 0.0482,
+            "tpr@1.0%": 0.4409,
+            "tpr@5.0%": 0.4409
+          },
+          "composite": {
+            "auroc": 0.4952,
+            "auprc": 0.7352,
+            "tpr@0.1%": 0.0482,
+            "tpr@1.0%": 0.4409,
+            "tpr@5.0%": 0.4409
+          }
+        },
+        "composite_assurance_auroc": 0.4952
+      }
     }
   ]
 }
