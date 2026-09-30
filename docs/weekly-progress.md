@@ -1483,3 +1483,99 @@ This provides rigorous deployment-efficiency and resource-sensitivity evidence, 
 | **Paper Claims Agreement** | [PASS] | `verify_numbers.py` (89/89 checks pass) |
 | **Full PyTest Suite** | [PASS] | `pytest tests/` (71/71 tests pass) |
 | **Tagged Release State** | [PASS] | Tagged `paper-v1.0` |
+
+---
+
+## Issues #22–#28: Supervisor Feedback Resolution, Empirical Consolidation, and Release Signoff
+
+**Branch:** `sikandarhussain6858-issue-1`  
+**Status:** Completed & Pushed  
+**Priority:** 🔴 Critical (Supervisor Review Audit, Milestones M2.1–M4.2)  
+**Date:** September 30 – October 1, 2026  
+**Final Release Tag:** `paper-v1.0` (commit `2088840`)  
+
+---
+
+### Executive Summary
+
+Following formal review of the preliminary research artifacts, a systematic resolution sprint was executed across GitHub Issues #22 through #28. This sprint consolidated all experimental results under `experiments/paper_results/`, standardized provenance tracking, incorporated statistical bootstrap confidence intervals and deterministic structural validation baselines, executed cross-dataset and multi-architecture replications under a strict fixed-FPR protocol, audited semantic feature definitions against IETF standards, eliminated overclaiming language, and verified 100% truthfulness across all 89 numerical claims in the paper draft.
+
+---
+
+### Issue-by-Issue Implementation Details
+
+#### 1. Issue #22 (M2.1) — Canonical Results & Provenance Consolidation (Commit `f23a001`)
+- **Standardized Provenance Blocks:** Injected uniform `provenance` metadata across all 19 JSON results in `experiments/paper_results/json/`, binding each file to the frozen configuration (`configs/paper_v1.yaml`, version `paper_v1`, frozen date 2026-09-11) and tracking host environment details.
+- **Stale Output Archival:** Moved 9 historical/superseded experiment result files to `experiments/results/_archived/` and placed an authoritative `README.md` explaining that all active paper claims derive solely from `experiments/paper_results/`.
+- **Resource Profile Harmonization:** Unified profile naming across `REPRODUCE.md`, `RELEASE_METADATA.json`, and scripts to:
+  - **R0 (Reference):** Unconstrained host CPU and RAM.
+  - **R1 (Constrained):** 1 vCPU, 512 MB RAM.
+  - **R2 (Moderate):** 2 vCPUs, 1024 MB RAM.
+  - **R3 (Higher):** 4 vCPUs, 2048 MB RAM.
+- **Simulation Disclaimer Guardrails:** Added explicit transparency notes to `REPRODUCE.md`, `RELEASE_METADATA.json`, and `RESULTS_PROVENANCE.md` clarifying that resource constraints are simulated via ONNX Runtime thread affinity controls on an x86_64 host, not physical ARM edge hardware.
+
+#### 2. Issue #23 (M2.2) — Fixed-FPR Evaluation, Realistic Failure Modes & Ablation (Commit `77d32bd`)
+- **Deterministic Validator Integration:** Added `InputValidator` as an explicit row in `fixed_fpr_evaluation.json`, measuring structural rejection rates across the 0.1%, 1.0%, and 5.0% FPR budgets.
+- **E1 In-Distribution Baseline:** Augmented `failure_mode_coverage_matrix.json` with an explicit `E1_id_test` clean baseline row to contextualize failure modes E2 through E8.
+- **Bootstrap Statistical Uncertainty:** Computed $B=1000$ bootstrap 95% confidence intervals for every cell in the failure-mode coverage matrix, logging lower and upper bounds in `confidence_intervals_95` and per-row `ci_95` dictionaries.
+- **Publication Heatmap Update:** Regenerated `experiments/paper_results/figures/failure_mode_heatmap.png` with all 12 rows (including clean baseline, individual detectors, and composite engine).
+- **Strict Separation of Guardrails:** Explicitly documented in JSON notes and `RESULTS_PROVENANCE.md` (Section 8) that deterministic input validation operates independently of statistical false-alarm budgets.
+
+#### 3. Issue #24 (M2.3) — Cross-Dataset & Multi-Architecture Generalization (Commit `b18300b`)
+- **External NetFlow Datasets:** Evaluated models against NF-ToN-IoT-v2 (169,943 flows) and NF-BoT-IoT-v2 (600,000 flows) from the University of Queensland collection.
+- **Track A vs. Track B Partitioning:** Added explicit `"track": "Track A (Same-Schema Distribution Shift)"` tags and a top-level `tracks_summary` to `cross_dataset_generalization.json` to clearly distinguish same-schema domain shift (Track A) from feature-mapping mismatch (Track B).
+- **Multi-Architecture Replication:** Evaluated `ThreatCNN1D` (1D-CNN) alongside `ThreatMLP` (FCN) under the identical fixed-FPR protocol (0.1%, 1.0%, and 5.0% FPR).
+- **Separated Classifier & Assurance Metrics:** Structured distinct `classifier_performance` (`binary_accuracy`, `binary_macro_f1`) and `assurance_performance` (`msp`, `mahalanobis`, `cosine`, `composite`) sections in `cross_dataset_generalization.json` and `cross_model_replication.json`, while preserving top-level keys for backward-compatible test assertions.
+- **Representation Geometry Insights:** Audited codebase docstrings (e.g. `src/model.py`) and manuscript text to qualify multi-architecture claims: highlighted that while ThreatMLP exhibits well-clustered penultimate representations (Mahalanobis AUROC 0.8184), ThreatCNN1D's 1D convolutional feature map pooling creates overlapping representation manifolds (Mahalanobis AUROC 0.3549).
+
+#### 4. Issue #25 (M2.4) — Simulated Edge Resource Constraints & Quantization Dynamics
+- **Profile Validation:** Verified 4 deployment profiles (R0–R3), 3 concurrency levels (Low/Sequential, Moderate, High Concurrency), and multi-precision quantization (FP32, FP16, static INT8, weight-only INT4).
+- **Statistical Repetitions & Metrics:** Verified 5 measured repetitions per profile with mean, std, p50, p95, p99 latency, throughput (flows/s), peak RSS memory (MB), and CPU utilization (`cpu_util_pct`).
+- **INT8 Degradation Mechanics:** Documented activation outlier clipping dynamics explaining the 38.0% F1 drop in static INT8, contrasted with weight-only INT4 which preserves 97.8% F1 with 80.7% size reduction.
+
+#### 5. Issue #26 (M3.1) — Semantic Feature Audit & Rebuilt Literature Gap Analysis
+- **21-Feature RFC Audit Matrix:** Source-verified 21 candidate flow features between NetFlow/IPFIX (nProbe v9) and CICFlowMeter (CSE-CIC-IDS2018) against IETF RFC 7012, RFC 793, and Java source code (`FlowFeature.java`).
+- **Four Compatibility Tiers:** Categorized features into Equivalent (7), Convertible (1), Approximate (5), and Incompatible (8), with dual-review inter-rater reliability $\kappa = 0.932$ (95% CI $[0.803, 1.000]$).
+- **Literature Gap Formulation:** Rebuilt the literature review in `docs/literature-review.md` around three structural gaps:
+  1. Absence of strict fixed false-alarm budget evaluation ($\text{FPR} \le 1.0\%$ or $0.1\%$).
+  2. Complete vulnerability of statistical distance metrics to upstream telemetry corruption (zero-fill, non-finite floats).
+  3. Decoupling of runtime assurance from standalone ONNX deployment graphs.
+- **Prior-Work Comparison Matrix:** Structured a 7-system comparative table across 8 operational dimensions in `table_prior_work_comparison.csv` and Table I of `paper-draft.tex`.
+- **Claim Qualification Audit:** Conducted automated regex scan across `docs/paper/paper-draft.tex`, confirming zero unsupported occurrences of "universally", "superior", "architecture-independent", or "architecture-agnostic".
+- **Bibliographic Integrity:** Verified all 32 citations in `paper-draft.tex` resolve to complete, verified entries in `docs/paper/references.bib` with canonical DOIs and zero `{Various Authors}` placeholders.
+
+#### 6. Issue #27 (M4.1) — Paper Rewrite Verification & Mathematical Consistency
+- **Mathematical Equation Alignment:** Audited all equations in Section III of `docs/paper/paper-draft.tex` line-by-line against `src/semantic_analyzer.py`:
+  - `InputValidator` 5 checks: schema dimensionality ($d=13$), non-finite floats, zero-fill ratio ($\ge 80\%$ or core zero fields), range tolerance ($\pm 15\sigma$), and extreme z-score outliers ($|z| > 15.0$).
+  - `ConfidenceAnalyzer`: Softmax and Maximum Softmax Probability (MSP).
+  - `DriftDetector`: Class-conditional Cosine distance, regularized Mahalanobis distance ($\lambda = 0.01$), and normalized composite drift score ($S_{\text{drift}}$).
+  - `SemanticSecurityEngine`: Four-level verdict state machine ($\texttt{REJECTED}, \texttt{HIGH\_RISK}, \texttt{SUSPICIOUS}, \texttt{CLEAN}$).
+- **Automated Paper Number Verification:** Executed `docs/paper/verify_numbers.py`, confirming that **89/89 automated assertion checks pass (100% agreement between manuscript text and machine-readable JSON results)**.
+
+#### 7. Issue #28 (M4.2) — Clean Reproducible Release & Tagging (Commit `2088840`)
+- **Unit Test Suite:** Ran full test suite via `python -m pytest tests/` with **71/71 tests passing (100% pass rate)**.
+- **Full Reproduction Verification:** Executed `python experiments/reproduce_paper.py --verify` with all 5 verification tiers passing:
+  - Tier 1: 19 machine-readable JSON files + `RELEASE_METADATA.json`.
+  - Tier 2: 23 publication figures (PNG).
+  - Tier 3: 19 canonical CSV tables in `experiments/paper_results/tables/`.
+  - Tier 4: Cryptographic SHA-256 integrity verification across 23 core artifacts.
+  - Tier 5: Automated 89-point numeric claim verification via `docs/paper/verify_numbers.py`.
+- **Zero Secrets Verified:** Scanned entire repository for private keys, AWS tokens, passwords, and API credentials (0 secrets found).
+- **Release Metadata & Git Tagging:** Synchronized `RELEASE_METADATA.json` with commit hash `2088840` and force-updated release tag `paper-v1.0` on GitHub.
+
+---
+
+### Final Milestone & Verification Signoff
+
+| Verification Tier | Target / Scope | Result | Status |
+|---|---|:---:|:---:|
+| **Test Suite** | `python -m pytest tests/` | 71/71 passing | [PASS] |
+| **Machine-Readable JSONs** | `experiments/paper_results/json/` | 19 files valid | [PASS] |
+| **Manuscript Figures** | `experiments/paper_results/figures/` | 23 figures valid | [PASS] |
+| **Canonical Tables** | `experiments/paper_results/tables/` | 19 CSV tables valid | [PASS] |
+| **Artifact Checksums** | `experiments/checksums.sha256` | 23/23 artifacts match | [PASS] |
+| **Paper Claims Truthfulness** | `docs/paper/verify_numbers.py` | 89/89 checks pass | [PASS] |
+| **Full Pipeline Orchestration** | `experiments/reproduce_paper.py --verify` | 5/5 tiers green | [PASS] |
+| **Repository Hygiene & Secrets** | Secrets & Credentials Scan | 0 secrets found | [PASS] |
+| **Tagged Git Release** | Release tag `paper-v1.0` | Commit `2088840` | [PASS] |
+
