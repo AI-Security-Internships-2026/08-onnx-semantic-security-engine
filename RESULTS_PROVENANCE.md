@@ -177,6 +177,29 @@ After consolidation:
 - **19 canonical JSON files** in `experiments/paper_results/json/`
 - **23 figures** in `experiments/paper_results/figures/`
 - **19 CSV tables** in `experiments/paper_results/tables/`
-- **All provenance blocks reference commit** `c32522fb`
-- **RELEASE_METADATA.json** references the same commit
+- **All provenance blocks reference canonical commits**
+- **RELEASE_METADATA.json** references the current release HEAD
 - **experiments/results/** contains only `.gitkeep` and `_archived/`
+
+---
+
+## 8. Issue #23: Fixed-FPR Evaluation, Failure-Mode Coverage & Ablation Standardization
+
+To address supervisor review requirements for Issue #23 (M2.2), `scripts/fixed_fpr_evaluation.py` and canonical outputs were enhanced:
+
+1. **Explicit Validator Rows Across Fixed-FPR Budgets:**
+   - `fixed_fpr_evaluation.json` now includes `InputValidator` as an explicit 5th detector alongside MSP, Cosine, Mahalanobis, and Composite Drift.
+   - Thresholds are marked as deterministic (`deterministic_rule`).
+   - Clean ID false rejection rate is verified at 0.0% across all FPR budgets.
+   - Structural rejection rate is reported consistently for every failure mode (e.g., 100.0% on 100% zero-fill tampering, 69.1% on NaN/Inf corruptions, 0.0% on pure representation shift).
+
+2. **Inclusion of E1 Clean In-Distribution Baseline:**
+   - `failure_mode_coverage_matrix.json` and `table_failure_mode_coverage.csv` now include `E1_id_test` (`E1: Clean ID Baseline (CSE-CIC-IDS2018)`) as the initial baseline row.
+   - Demonstrates empirical false positive rates under 1% FPR budget: MSP (0.6%), Cosine (0.3%), Mahalanobis (0.7%), Validator (0.0%), Full System (0.7%).
+
+3. **Bootstrap 95% Confidence Intervals for All Cells:**
+   - Empirical bootstrap with $B=1000$ resamples is computed for every cell in the failure-mode coverage matrix.
+   - Reported in `failure_mode_coverage_matrix.json` under `confidence_intervals_95` and per-row `ci_95`.
+
+4. **Strict Separation of Structural Rejection vs. Statistical OOD:**
+   - JSON notes and table structures explicitly document that deterministic structural rules operate independently of statistical false-positive rate budgets.
