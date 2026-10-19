@@ -1,0 +1,20 @@
+Traffic Class,Precision,Recall,F1-Score,Support
+Benign,0.7903,0.4711,0.5903,20000
+Bot,0.9641,0.9179,0.9404,3802
+Brute Force -Web,0.6142,0.7260,0.6654,1000
+Brute Force -XSS,0.4982,0.9680,0.6578,1000
+DDOS attack-HOIC,0.9941,1.0000,0.9970,20000
+DDOS attack-LOIC-UDP,0.9747,1.0000,0.9872,1000
+DDoS attacks-LOIC-HTTP,0.9998,0.9660,0.9826,20000
+DoS attacks-GoldenEye,0.9247,0.9595,0.9418,8281
+DoS attacks-Hulk,0.9302,0.9999,0.9638,20000
+DoS attacks-SlowHTTPTest,0.4960,1.0000,0.6631,1000
+DoS attacks-Slowloris,0.9284,0.9907,0.9585,1819
+FTP-BruteForce,0.0000,0.0000,0.0000,1000
+Infilteration,0.6179,0.7957,0.6956,20000
+SQL Injection,0.6630,0.6550,0.6590,1000
+SSH-Bruteforce,0.9999,0.9987,0.9993,18167
+---,---,---,---,---
+Macro Average,0.7597,0.8299,0.7801,138069
+Weighted Average,0.8769,0.8719,0.8655,138069
+Overall Accuracy,-,-,0.8719,138069

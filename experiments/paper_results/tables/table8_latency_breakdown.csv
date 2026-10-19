@@ -1,0 +1,7 @@
+Inference Mode & Component,Mean Latency (ms),p50 (ms),p95 (ms),Throughput (flows/s)
+Offline: Plain ONNX,0.0636,0.0598,0.0978,15715.4
+Offline: Semantic Security Engine,1.0657,1.0434,1.1576,938.3
+Real-time REST: Plain ONNX Client E2E,4.2610,4.0365,5.8136,234.7
+Real-time REST: Plain ONNX Server Compute,0.9827,0.9280,1.3771,-
+Real-time REST: Secure Engine Client E2E,5.0471,4.8897,6.0596,198.1
+Real-time REST: Secure Engine Server Compute,1.7618,1.6920,2.0330,-

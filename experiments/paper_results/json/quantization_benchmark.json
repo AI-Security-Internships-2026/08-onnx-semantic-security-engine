@@ -1,4 +1,15 @@
 {
+  "provenance": {
+    "config_version": "paper_v1",
+    "config_frozen_date": "2026-09-11",
+    "git_commit": "c32522fb5b7c9571f3aa11e9df2e038e87e49a58",
+    "git_branch": "sikandarhussain6858-issue-1",
+    "timestamp_utc": "2026-09-30T17:21:03.775750+00:00",
+    "python_version": "3.14.3",
+    "platform": "win32",
+    "provenance_note": "Provenance block standardized by fix_issue22_provenance.py",
+    "original_generation_timestamp": "2026-09-22T16:45:55.470260+00:00"
+  },
   "experiment": "Full Precision/Quantization Comparison Benchmark",
   "test_samples": 138069,
   "n_warmup": 500,
@@ -18,18 +29,18 @@
       "latency": {
         "n_warmup": 500,
         "n_runs": 5000,
-        "mean_ms": 0.0377,
-        "std_ms": 0.0054,
-        "min_ms": 0.0353,
-        "max_ms": 0.1955,
-        "p50_ms": 0.0363,
-        "p95_ms": 0.047,
-        "p99_ms": 0.0587
+        "mean_ms": 0.0389,
+        "std_ms": 0.0104,
+        "min_ms": 0.0363,
+        "max_ms": 0.2904,
+        "p50_ms": 0.0372,
+        "p95_ms": 0.0465,
+        "p99_ms": 0.0637
       },
       "throughput_samples_per_sec": {
-        "batch_1": 27534.8,
-        "batch_32": 420455.7,
-        "batch_128": 769801.2
+        "batch_1": 26676.2,
+        "batch_32": 234951.2,
+        "batch_128": 781244.8
       },
       "f1_drop_vs_fp32_pct": 0.0,
       "size_reduction_vs_fp32_pct": 0.0,
@@ -44,22 +55,22 @@
       "latency": {
         "n_warmup": 500,
         "n_runs": 5000,
-        "mean_ms": 0.0418,
-        "std_ms": 0.0113,
-        "min_ms": 0.0391,
-        "max_ms": 0.734,
-        "p50_ms": 0.0407,
-        "p95_ms": 0.0482,
-        "p99_ms": 0.067
+        "mean_ms": 0.0412,
+        "std_ms": 0.0084,
+        "min_ms": 0.0385,
+        "max_ms": 0.4191,
+        "p50_ms": 0.0401,
+        "p95_ms": 0.0487,
+        "p99_ms": 0.0654
       },
       "throughput_samples_per_sec": {
-        "batch_1": 24210.1,
-        "batch_32": 358368.3,
-        "batch_128": 710605.0
+        "batch_1": 25391.7,
+        "batch_32": 393720.6,
+        "batch_128": 765076.2
       },
       "f1_drop_vs_fp32_pct": -0.01,
       "size_reduction_vs_fp32_pct": 49.63,
-      "latency_change_vs_fp32_pct": 10.88
+      "latency_change_vs_fp32_pct": 5.91
     },
     "INT8": {
       "variant": "INT8",
@@ -70,22 +81,22 @@
       "latency": {
         "n_warmup": 500,
         "n_runs": 5000,
-        "mean_ms": 0.0426,
-        "std_ms": 0.003,
-        "min_ms": 0.041,
-        "max_ms": 0.0954,
-        "p50_ms": 0.0419,
-        "p95_ms": 0.0497,
-        "p99_ms": 0.053
+        "mean_ms": 0.0566,
+        "std_ms": 0.1763,
+        "min_ms": 0.0393,
+        "max_ms": 11.6987,
+        "p50_ms": 0.0416,
+        "p95_ms": 0.0845,
+        "p99_ms": 0.2137
       },
       "throughput_samples_per_sec": {
-        "batch_1": 23959.0,
-        "batch_32": 358004.7,
-        "batch_128": 801384.9
+        "batch_1": 10590.1,
+        "batch_32": 369560.2,
+        "batch_128": 704243.6
       },
       "f1_drop_vs_fp32_pct": 38.04,
       "size_reduction_vs_fp32_pct": 72.86,
-      "latency_change_vs_fp32_pct": 13.0
+      "latency_change_vs_fp32_pct": 45.5
     },
     "INT4": {
       "variant": "INT4",
@@ -96,22 +107,22 @@
       "latency": {
         "n_warmup": 500,
         "n_runs": 5000,
-        "mean_ms": 0.0655,
-        "std_ms": 0.0056,
-        "min_ms": 0.0633,
-        "max_ms": 0.2249,
-        "p50_ms": 0.0643,
-        "p95_ms": 0.0728,
-        "p99_ms": 0.0945
+        "mean_ms": 0.07,
+        "std_ms": 0.0231,
+        "min_ms": 0.0627,
+        "max_ms": 0.713,
+        "p50_ms": 0.0646,
+        "p95_ms": 0.0967,
+        "p99_ms": 0.1402
       },
       "throughput_samples_per_sec": {
-        "batch_1": 15492.6,
-        "batch_32": 349848.0,
-        "batch_128": 813572.4
+        "batch_1": 15480.2,
+        "batch_32": 323334.2,
+        "batch_128": 493656.9
       },
       "f1_drop_vs_fp32_pct": 2.24,
       "size_reduction_vs_fp32_pct": 80.74,
-      "latency_change_vs_fp32_pct": 73.74
+      "latency_change_vs_fp32_pct": 79.95
     }
   }
 }

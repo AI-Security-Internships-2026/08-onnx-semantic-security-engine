@@ -41,7 +41,9 @@ import matplotlib.pyplot as plt
 
 # Import production scoring classes (single source of truth)
 sys.path.insert(0, str(Path(__file__).parent.parent))
+import argparse
 from src.semantic_analyzer import ConfidenceAnalyzer, DriftDetector
+from scripts.config_loader import load_paper_config, get_provenance_metadata
 
 # ── Paths ──
 BASE_DIR = Path(__file__).parent.parent
@@ -57,14 +59,19 @@ FEATURE_STATS_PATH  = EXPERIMENTS / "training_feature_stats_nf.json"
 CIC_DIR     = DATASETS / "CIC-IDS2018"
 TONIOT_PATH = DATASETS / "ToN-IoT" / "NF-ToN-IoT-V2.parquet"
 
-# ── Evaluation parameters ──
-N_FIT_SAMPLES      = 10000  # For training IsoForest and OC-SVM
-N_CALIB_SAMPLES    = 10000  # Held-out validation split for threshold calibration
-N_IN_DIST_SAMPLES  = 10000  # Evaluation split
-N_OOD_SAMPLES      = 10000
-N_NOISE_SAMPLES    = 1000
-N_ZERO_SAMPLES     = 500
-N_LATENCY_ITERS    = 1000
+# ── Load frozen paper configuration (single source of truth) ──
+PAPER_CFG = load_paper_config()
+PAPER_THRESHOLDS = PAPER_CFG['thresholds']
+PAPER_EVAL = PAPER_CFG['evaluation']
+
+# ── Evaluation parameters (from paper_v1.yaml) ──
+N_FIT_SAMPLES      = 10000  # For training IsoForest and OC-SVM (baselines only)
+N_CALIB_SAMPLES    = PAPER_EVAL['n_calibration']
+N_IN_DIST_SAMPLES  = PAPER_EVAL['n_in_dist']
+N_OOD_SAMPLES      = PAPER_EVAL['n_ood']
+N_NOISE_SAMPLES    = PAPER_EVAL['n_noise']
+N_ZERO_SAMPLES     = PAPER_EVAL['n_zero']
+N_LATENCY_ITERS    = PAPER_EVAL['n_latency_iters']
 
 # ── 13 NetFlow Features ──
 FEATURE_MAP = {
@@ -86,6 +93,26 @@ NF_FEATURES = list(FEATURE_MAP.values())
 
 
 def main():
+    parser = argparse.ArgumentParser(description="OOD and anomaly detector baselines benchmarking.")
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=str(EXPERIMENTS / "paper_results" / "json"),
+        help="Directory to save ood_baselines_benchmark.json",
+    )
+    parser.add_argument(
+        "--figures-dir",
+        type=str,
+        default=str(EXPERIMENTS / "paper_results" / "figures"),
+        help="Directory to save baseline comparison plots",
+    )
+    args = parser.parse_args()
+
+    output_dir = Path(args.output_dir)
+    figures_dir = Path(args.figures_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    figures_dir.mkdir(parents=True, exist_ok=True)
+
     print("=" * 80)
     print("  OOD & ANOMALY DETECTOR BASELINE BENCHMARKING (5% FPR CALIBRATED)")
     print("=" * 80)
@@ -186,20 +213,11 @@ def main():
     # NOTE: MSP, Mahalanobis, and Semantic Engine scoring use production classes
     # from src/semantic_analyzer.py to avoid formula drift (Issue #21).
 
-    # Load calibrated thresholds from config file or defaults
-    calib_config_path = EXPERIMENTS / "calibration_config.json"
-    if calib_config_path.exists():
-        try:
-            with open(calib_config_path) as f:
-                calib_cfg = json.load(f)
-            cal_cos_thresh = float(calib_cfg.get("cosine_drift_threshold", 0.4341))
-            cal_mahal_thresh = float(calib_cfg.get("mahalanobis_drift_threshold", 18.1593))
-        except Exception:
-            cal_cos_thresh = 0.4341
-            cal_mahal_thresh = 18.1593
-    else:
-        cal_cos_thresh = 0.4341
-        cal_mahal_thresh = 18.1593
+    # Load calibrated thresholds from frozen paper config (paper_v1.yaml)
+    cal_cos_thresh = float(PAPER_THRESHOLDS['cosine_drift'])
+    cal_mahal_thresh = float(PAPER_THRESHOLDS['mahalanobis_drift'])
+    cal_conf_thresh = float(PAPER_THRESHOLDS['confidence'])
+    print(f"  [CONFIG] Thresholds from paper_v1.yaml: cosine={cal_cos_thresh}, mahal={cal_mahal_thresh}, conf={cal_conf_thresh}")
 
     # Production drift detector instance for scoring
     prod_drift_detector = DriftDetector(
@@ -207,7 +225,7 @@ def main():
         cosine_threshold=cal_cos_thresh,
         mahal_threshold=cal_mahal_thresh,
     )
-    prod_confidence_analyzer = ConfidenceAnalyzer(threshold=0.50)  # threshold only matters for flag, not score
+    prod_confidence_analyzer = ConfidenceAnalyzer(threshold=cal_conf_thresh)
 
     def score_msp(scaled_batch):
         """MSP Score: 1 - max(softmax(logits)) (higher = more anomalous).
@@ -385,6 +403,7 @@ def main():
 
     # ── 12. Save Results JSON ──
     final_output = {
+        "provenance": get_provenance_metadata(),
         "experiment": "OOD & Anomaly Baseline Comparison Benchmark",
         "calibration_target_fpr": 0.05,
         "calibration_samples": N_CALIB_SAMPLES,
@@ -393,10 +412,18 @@ def main():
         "literature_baselines": literature_baselines
     }
 
-    out_json = EXPERIMENTS / "results" / "ood_baselines_benchmark.json"
+    # Save to canonical output directory
+    out_json = output_dir / "ood_baselines_benchmark.json"
     with open(out_json, "w") as f:
         json.dump(final_output, f, indent=2)
     print(f"\n[SAVED] {out_json}")
+
+    # Mirror to legacy results directory
+    legacy_json = EXPERIMENTS / "results" / "ood_baselines_benchmark.json"
+    if legacy_json.parent.exists() and out_json != legacy_json:
+        with open(legacy_json, "w") as f:
+            json.dump(final_output, f, indent=2)
+        print(f"[MIRRORED] {legacy_json}")
 
     # ── 13. Generate 4-Panel Baseline Comparison Plots ──
     print("\nGenerating baseline comparison plots...")
@@ -478,10 +505,15 @@ def main():
     ax.grid(True, alpha=0.25)
 
     plt.tight_layout()
-    out_plot = EXPERIMENTS / "images" / "ood_baselines_comparison.png"
-    plt.savefig(str(out_plot), dpi=300, bbox_inches="tight")
+    canonical_plot = figures_dir / "ood_baselines_comparison.png"
+    plt.savefig(str(canonical_plot), dpi=300, bbox_inches="tight")
+    print(f"[SAVED] {canonical_plot}")
+
+    legacy_plot = EXPERIMENTS / "images" / "ood_baselines_comparison.png"
+    if legacy_plot.parent.exists() and canonical_plot != legacy_plot:
+        plt.savefig(str(legacy_plot), dpi=300, bbox_inches="tight")
+        print(f"[MIRRORED] {legacy_plot}")
     plt.close()
-    print(f"[SAVED] {out_plot}")
     print("\nBaseline benchmarking complete!")
 
 

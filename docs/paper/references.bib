@@ -1,0 +1,335 @@
+% ============================================================
+% References for IEEE TDSC Paper
+% "A Semantic Security Layer for ONNX-Deployed Network
+%  Intrusion Detection at the Edge"
+% ============================================================
+
+% -----------------------------------------------------------
+% Foundational NIDS Methodology & Base-Rate Rigor
+% -----------------------------------------------------------
+
+@inproceedings{axelsson1999baserate,
+  author    = {Stefan Axelsson},
+  title     = {The Base-Rate Fallacy and the Difficulty of Intrusion Detection},
+  booktitle = {Proc. 6th ACM Conference on Computer and Communications Security (CCS)},
+  pages     = {99--105},
+  year      = {1999},
+}
+
+@inproceedings{sommer2010outside,
+  author    = {Robin Sommer and Vern Paxson},
+  title     = {Outside the Closed World: On Using Machine Learning for Network Intrusion Detection},
+  booktitle = {Proc. IEEE Symposium on Security and Privacy (S\&P)},
+  pages     = {305--316},
+  year      = {2010},
+}
+
+@article{hofstede2014flowmonitoring,
+  author    = {Rick Hofstede and Pavel {\v{C}}eleda and Brian Trammell and Idilio Drago and Ramin Sadre and Anna Sperotto and Aiko Pras},
+  title     = {Flow Monitoring Explained: From Packet Capture to Data Analysis},
+  journal   = {IEEE Communications Surveys \& Tutorials},
+  volume    = {16},
+  number    = {4},
+  pages     = {2037--2064},
+  year      = {2014},
+}
+
+% -----------------------------------------------------------
+% Network Protocol Standards & Telemetry Specifications
+% -----------------------------------------------------------
+
+@techreport{rfc7012,
+  author       = {Benoit Claise and Brian Trammell},
+  title        = {Information Model for {IP} Flow Information Export ({IPFIX})},
+  institution  = {RFC Editor},
+  type         = {RFC},
+  number       = {7012},
+  year         = {2013},
+}
+
+@techreport{rfc793,
+  author       = {Jon Postel},
+  title        = {Transmission Control Protocol},
+  institution  = {RFC Editor},
+  type         = {RFC},
+  number       = {793},
+  year         = {1981},
+}
+
+% -----------------------------------------------------------
+% OOD / Anomaly Detection Foundations
+% -----------------------------------------------------------
+
+@inproceedings{hendrycks2017baseline,
+  author    = {Dan Hendrycks and Kevin Gimpel},
+  title     = {A Baseline for Detecting Misclassified and Out-of-Distribution Examples in Neural Networks},
+  booktitle = {Proc. International Conference on Learning Representations (ICLR)},
+  year      = {2017},
+}
+
+@inproceedings{lee2018mahalanobis,
+  author    = {Kimin Lee and Kibok Lee and Honglak Lee and Jinwoo Shin},
+  title     = {A Simple Unified Framework for Detecting Out-of-Distribution Samples and Adversarial Attacks},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2018},
+}
+
+@inproceedings{liu2020energy,
+  author    = {Weitang Liu and Xiaoyun Wang and John Owens and Yixuan Li},
+  title     = {Energy-based Out-of-Distribution Detection},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2020},
+}
+
+@inproceedings{liang2018odin,
+  author    = {Shiyu Liang and Yixuan Li and R. Srikant},
+  title     = {Enhancing the Reliability of Out-of-Distribution Image Detection in Neural Networks},
+  booktitle = {Proc. International Conference on Learning Representations (ICLR)},
+  year      = {2018},
+}
+
+@inproceedings{sun2021react,
+  author    = {Yiyou Sun and Chuan Guo and Yixuan Li},
+  title     = {{ReAct}: Out-of-Distribution Detection with Rectified Activations},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2021},
+}
+
+@inproceedings{sastry2020gram,
+  author    = {Chaitanya Sastry and Sageev Oore},
+  title     = {Detecting Out-of-Distribution Examples with Gram Matrices},
+  booktitle = {Proc. 37th International Conference on Machine Learning (ICML)},
+  pages     = {8491--8501},
+  year      = {2020},
+}
+
+% -----------------------------------------------------------
+% NIDS Datasets
+% -----------------------------------------------------------
+
+@inproceedings{sharafaldin2018cicids,
+  author    = {Iman Sharafaldin and Arash Habibi Lashkari and Ali A. Ghorbani},
+  title     = {Toward Generating a New Intrusion Detection Dataset and Intrusion Traffic Characterization},
+  booktitle = {Proc. International Conference on Information Systems Security and Privacy (ICISSP)},
+  year      = {2018},
+}
+
+@article{moustafa2021toniot,
+  author    = {Nour Moustafa},
+  title     = {A New Distributed Architecture for Evaluating {AI}-based Security Systems at the Edge: Network {ToN\_IoT} Datasets},
+  journal   = {Sustainable Cities and Society},
+  volume    = {72},
+  pages     = {102994},
+  year      = {2021},
+  publisher = {Elsevier},
+}
+
+% -----------------------------------------------------------
+% Cross-Dataset NIDS Generalization
+% -----------------------------------------------------------
+
+@article{sarhan2022nftoniot,
+  author    = {Mohanad Sarhan and Siamak Layeghy and Nour Moustafa and Marius Portmann},
+  title     = {Towards a Standard Feature Set for Network Intrusion Detection System Datasets},
+  journal   = {Mobile Networks and Applications},
+  volume    = {27},
+  number    = {1},
+  pages     = {357--370},
+  year      = {2022},
+  publisher = {Springer},
+}
+
+@article{pontes2021crossdataset,
+  author    = {Cl\'{a}udio F. G. dos Santos Pontes and Mauro Morais de Sousa and Jo\~{a}o J. C. Gondim},
+  title     = {A New Method for Flow-Based Network Intrusion Detection Using the Inverse of the Coefficient of Variation},
+  journal   = {Computers \& Security},
+  volume    = {105},
+  pages     = {102236},
+  year      = {2021},
+  publisher = {Elsevier},
+}
+
+@article{cantone2024crossdataset,
+  author    = {Domenico Cantone and Ferruccio Damiani and Giada Sciarretta},
+  title     = {On the Cross-Dataset Generalization of Machine Learning for Network Intrusion Detection},
+  journal   = {Computers \& Security},
+  volume    = {136},
+  pages     = {103546},
+  year      = {2024},
+  publisher = {Elsevier},
+}
+
+% -----------------------------------------------------------
+% Direct Prior Art — OOD for NIDS
+% -----------------------------------------------------------
+
+@article{mclaughlin2023oodforNIDS,
+  author    = {Niall McLaughlin and Jes\'{u}s Martinez del Rinc\'{o}n},
+  title     = {Are Existing Out-of-Distribution Techniques Suitable for Network Intrusion Detection?},
+  journal   = {arXiv preprint arXiv:2308.14376},
+  year      = {2023},
+}
+
+@article{netsight2025,
+  author    = {Jordan Pratt and Yacine Djemaiel and others},
+  title     = {Shift Detection and Adaptation for Network Intrusion Detection ({NetSight})},
+  journal   = {arXiv preprint arXiv:2508.15100},
+  year      = {2025},
+}
+
+@inproceedings{handigol2014netsight,
+  author    = {Nikhil Handigol and Brandon Heller and Vimalkumar Jeyakumar and David Mazi{\`e}res and Nick McKeown},
+  title     = {I Know What Your Packet Did Last Hop: Using Packet Histories to Troubleshoot Networks},
+  booktitle = {Proc. 11th USENIX Symposium on Networked Systems Design and Implementation (NSDI)},
+  pages     = {71--85},
+  year      = {2014},
+}
+
+% -----------------------------------------------------------
+% ONNX Security & Deployment
+% -----------------------------------------------------------
+
+@inproceedings{jajal2024onnxfailures,
+  author    = {Purvish Jajal and Wenxin Jiang and Arav Tewari and Erik Kocinare and Joseph Woo and Anusha Sarraf and Yung-Hsiang Lu and George K. Thiruvathukal and James C. Davis},
+  title     = {Interoperability in Deep Learning: A User Survey and Failure Analysis of {ONNX} Model Converters},
+  booktitle = {Proc. ACM SIGSOFT International Symposium on Software Testing and Analysis (ISSTA)},
+  year      = {2024},
+}
+
+@misc{onnxruntime2024,
+  author    = {{Microsoft}},
+  title     = {{ONNX} Runtime: Cross-Platform Inference and Training Machine-Learning Accelerator},
+  year      = {2024},
+  howpublished = {\url{https://onnxruntime.ai/}},
+}
+
+% -----------------------------------------------------------
+% Edge ML / Quantization
+% -----------------------------------------------------------
+
+@article{quantedge2023,
+  author    = {Hyunho Ahn and Tian Chen and Nawras Alnaasan and Aamir Shafi and Mustafa Abduljabbar and Hari Subramoni and Dhabaleswar K. Panda},
+  title     = {Performance Characterization of using Quantization for {DNN} Inference on Edge Devices: Extended Version},
+  journal   = {arXiv preprint arXiv:2303.05016},
+  year      = {2023},
+}
+
+@article{liang2024quantsurvey,
+  author    = {Tailin Liang and John Glossner and Lei Wang and Shaobo Shi and Xiaotong Zhang},
+  title     = {Pruning and Quantization for Deep Neural Network Acceleration: A Survey},
+  journal   = {Neurocomputing},
+  volume    = {461},
+  pages     = {370--403},
+  year      = {2024},
+  publisher = {Elsevier},
+}
+
+@article{chaturvedi2025edgemlops,
+  author    = {Kanishk Chaturvedi and Johannes Gasthuber and Mohamed Abdelaal},
+  title     = {{EdgeMLOps}: Operationalizing {ML} Models with Cumulocity {IoT} and thin-edge.io for Visual Quality Inspection},
+  journal   = {arXiv preprint arXiv:2501.17062},
+  year      = {2025},
+}
+
+@inproceedings{nagel2021whitepaper,
+  author    = {Markus Nagel and Marios Fournarakis and Rana Ali Amjad and Yelysei Bondarenko and Mart van Baalen and Tijmen Blankevoort},
+  title     = {A White Paper on Neural Network Quantization},
+  booktitle = {arXiv preprint arXiv:2106.08295},
+  year      = {2021},
+}
+
+% -----------------------------------------------------------
+% NIDS with ML — Recent (2023–2026)
+% -----------------------------------------------------------
+
+@article{ahmad2021survey,
+  author    = {Zeeshan Ahmad and Adnan Shahid Khan and Cheah Wai Shiang and Johari Abdullah and Farhan Ahmad},
+  title     = {Network Intrusion Detection System: A Systematic Study of Machine Learning and Deep Learning Approaches},
+  journal   = {Transactions on Emerging Telecommunications Technologies},
+  volume    = {32},
+  number    = {1},
+  pages     = {e4150},
+  year      = {2021},
+  publisher = {Wiley},
+}
+
+@article{bouidaine2025etasr,
+  author    = {Al Baraa Bouidaine and Djilali Moussaoui and Mourad Hadjila and Wafaa Ferhi and Mohammed Hicham Hachemi},
+  title     = {Deep Learning-Based Anomaly and Intrusion Detection Using the {CSE-CIC-IDS2018} Dataset},
+  journal   = {Engineering, Technology \& Applied Science Research},
+  volume    = {15},
+  number    = {4},
+  pages     = {24782--24787},
+  year      = {2025},
+}
+
+@inproceedings{mirsky2018kitsune,
+  author    = {Yisroel Mirsky and Tomer Doitshman and Yuval Elovici and Asaf Shabtai},
+  title     = {Kitsune: An Ensemble of Autoencoders for Online Network Intrusion Detection},
+  booktitle = {Proc. Network and Distributed System Security Symposium (NDSS)},
+  year      = {2018},
+}
+
+@article{yang2022edgenids,
+  author    = {Li Yang and Abdallah Moubayed and Abdallah Shami},
+  title     = {{MTH-IDS}: A Multitiered Hybrid Intrusion Detection System for Internet of Vehicles},
+  journal   = {IEEE Internet of Things Journal},
+  volume    = {9},
+  number    = {1},
+  pages     = {616--632},
+  year      = {2022},
+}
+
+@article{ferrag2023deeplearningNIDS,
+  author    = {Mohamed Amine Ferrag and Othmane Friha and Djallel Hamouda and Leandros Maglaras and Helge Janicke},
+  title     = {Edge-{IIoTset}: A New Comprehensive Realistic Cyber Security Dataset of {IoT} and {IIoT} Applications for Centralized and Federated Learning},
+  journal   = {IEEE Access},
+  volume    = {10},
+  pages     = {40281--40306},
+  year      = {2023},
+}
+
+@article{apruzzese2023adversarialML,
+  author    = {Giovanni Apruzzese and Pavel Laskov and Michele Montuori and Wissam Siblini and Fabio Roli},
+  title     = {Modeling Realistic Adversarial Attacks against Network Intrusion Detection Systems},
+  journal   = {Digital Threats: Research and Practice},
+  volume    = {3},
+  number    = {3},
+  pages     = {1--19},
+  year      = {2023},
+  publisher = {ACM},
+}
+
+@article{lin2024edgeml,
+  author    = {Ji Lin and Ligeng Zhu and Wei-Ming Chen and Wei-Chen Wang and Chuang Gan and Song Han},
+  title     = {On-Device Training Under 256KB Memory},
+  journal   = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2024},
+}
+
+@article{aceto2024driftNIDS,
+  author    = {Giuseppe Aceto and Dominik Ciupak and Antonio Montieri and Valerio Persico and Antonio Pescap\'{e}},
+  title     = {Toward Effective Detection of Concept Drift in Network Traffic Classification},
+  journal   = {IEEE Transactions on Network and Service Management},
+  volume    = {21},
+  number    = {2},
+  pages     = {2310--2325},
+  year      = {2024},
+}
+
+@article{depren2024mlops,
+  author    = {Omer Depren and Mahir Ozdemir},
+  title     = {{MLOps} for Cybersecurity: Automating the Lifecycle of Machine-Learning-based Intrusion Detection},
+  journal   = {IEEE Security \& Privacy},
+  volume    = {22},
+  number    = {1},
+  pages     = {56--64},
+  year      = {2024},
+}
+
+@misc{mitre2024,
+  author       = {{MITRE Corporation}},
+  title        = {{MITRE ATT\&CK}$^{\textregistered}$: A Globally Accessible Knowledge Base of Adversary Tactics and Techniques},
+  year         = {2024},
+  howpublished = {\url{https://attack.mitre.org/}},
+}

@@ -58,6 +58,12 @@ evaluation:
   n_latency_iters: 1000
   ood_dataset: "ToN-IoT/NF-ToN-IoT-V2.parquet"
 
+  # ── Issue 3: Fixed-FPR, Failure-Mode Coverage & Ablation ──
+  fpr_budgets: [0.001, 0.01, 0.05]        # 0.1%, 1%, 5% target FPR operating points
+  zero_fill_levels: [0.10, 0.25, 0.50, 0.75, 1.00]  # partial corruption severities
+  n_bootstrap: 1000                         # bootstrap resamples for 95% CIs
+  n_failure_mode_samples: 5000              # samples per failure-mode dataset
+
 # ── Verdict Logic ──
 # Documented here for paper reference. Implementation is in
 # SemanticSecurityEngine.compute_verdict() (src/semantic_analyzer.py)

@@ -23,13 +23,17 @@ import joblib
 import argparse
 from pathlib import Path
 
-from model import ThreatMLP
+from model import ThreatMLP, ThreatCNN1D
 
 # ── CLI Arguments ──
-parser = argparse.ArgumentParser(description="Train ThreatMLP threat classifier")
+parser = argparse.ArgumentParser(description="Train threat classifier (MLP or CNN1D)")
 parser.add_argument(
     "--nf", action="store_true",
     help="Train using only the 13 NF-standardized features (NetFlow-compatible)"
+)
+parser.add_argument(
+    "--arch", type=str, default="mlp", choices=["mlp", "cnn1d"],
+    help="Model architecture: 'mlp' or 'cnn1d' (default: 'mlp')"
 )
 parser.add_argument(
     "--epochs", type=int, default=30,
@@ -38,6 +42,10 @@ parser.add_argument(
 parser.add_argument(
     "--batch-size", type=int, default=1024,
     help="Training batch size (default: 1024)"
+)
+parser.add_argument(
+    "--max-samples", type=int, default=None,
+    help="Maximum samples to load (default: None, loads all)"
 )
 args = parser.parse_args()
 
@@ -60,26 +68,48 @@ NF_FEATURES = [
 ]
 
 # ── Configuration ──
-mode_label = "NF-Standardized (13 features)" if args.nf else "Baseline (all features)"
+mode_label = f"NF-Standardized (13 features) [{args.arch.upper()}]" if args.nf else f"Baseline (all features) [{args.arch.upper()}]"
 print(f"Training mode: {mode_label}")
+print(f"Architecture: {args.arch.upper()}")
 print(f"Epochs: {args.epochs}, Batch size: {args.batch_size}")
 
 # ── Load and preprocess dataset — all 10 days ──
-print("\nLoading all CSE-CIC-IDS2018 CSV files...")
-dataset_dir = Path(__file__).parent.parent / "datasets" / "CSE-CIC-IDS2018"
+print("\nLoading CSE-CIC-IDS2018 data files...")
+base_datasets_dir = Path(__file__).parent.parent / "datasets"
+dataset_dir = base_datasets_dir / "CIC-IDS2018"
+if not dataset_dir.exists() or not list(dataset_dir.glob("*.parquet")):
+    dataset_dir = base_datasets_dir / "CSE-CIC-IDS2018"
+
+parquet_files = sorted(dataset_dir.glob("*.parquet"))
 csv_files = sorted(dataset_dir.glob("*.csv"))
-print(f"Found {len(csv_files)} CSV files")
 
 frames = []
-for csv_file in csv_files:
-    print(f"  Loading {csv_file.name}...")
-    chunk = pd.read_csv(csv_file, low_memory=False)
-    chunk.columns = chunk.columns.str.strip()
-    frames.append(chunk)
-    print(f"    → {chunk.shape[0]:,} rows, {chunk.shape[1]} cols")
+if parquet_files:
+    print(f"Found {len(parquet_files)} Parquet files in {dataset_dir}")
+    for pq_file in parquet_files:
+        print(f"  Loading {pq_file.name}...")
+        chunk = pd.read_parquet(pq_file)
+        chunk.columns = chunk.columns.str.strip()
+        frames.append(chunk)
+        print(f"    -> {chunk.shape[0]:,} rows, {chunk.shape[1]} cols")
+elif csv_files:
+    print(f"Found {len(csv_files)} CSV files in {dataset_dir}")
+    for csv_file in csv_files:
+        print(f"  Loading {csv_file.name}...")
+        chunk = pd.read_csv(csv_file, low_memory=False)
+        chunk.columns = chunk.columns.str.strip()
+        frames.append(chunk)
+        print(f"    -> {chunk.shape[0]:,} rows, {chunk.shape[1]} cols")
+else:
+    raise FileNotFoundError(f"No parquet or csv files found in {dataset_dir}")
 
 df = pd.concat(frames, ignore_index=True)
 del frames  # free memory
+
+if args.max_samples and len(df) > args.max_samples:
+    print(f"Subsampling dataset to {args.max_samples:,} rows...")
+    df = df.sample(n=args.max_samples, random_state=42)
+
 print(f"Combined dataset: {df.shape[0]:,} rows, {df.shape[1]} cols")
 
 # Drop Timestamp column if present
@@ -97,7 +127,6 @@ print(f"Dataset shape after preprocessing: {df.shape}")
 
 # ── Select features based on mode ──
 if args.nf:
-    # Use only the 21 NF-standardized features
     available_nf = [f for f in NF_FEATURES if f in df.columns]
     missing_nf = [f for f in NF_FEATURES if f not in df.columns]
     if missing_nf:
@@ -105,15 +134,29 @@ if args.nf:
     print(f"Using {len(available_nf)} NF-standardized features")
     X = df[available_nf].values
 else:
-    # Use all features except Label
     X = df.drop(columns=["Label"]).values
 
 y = df["Label"].values
 print(f"Feature matrix shape: {X.shape}")
 
+output_dir = Path(__file__).parent.parent / "experiments"
+output_dir.mkdir(parents=True, exist_ok=True)
+suffix = "_nf" if args.nf else ""
+model_prefix = f"threat_{args.arch}"
+
+encoder_path = output_dir / f"label_encoder{suffix}.joblib"
+scaler_path = output_dir / f"standard_scaler{suffix}.joblib"
+
 # ── Encode labels ──
-label_encoder = LabelEncoder()
-y_encoded = label_encoder.fit_transform(y)
+if encoder_path.exists():
+    print(f"Loading existing LabelEncoder from {encoder_path}...")
+    label_encoder = joblib.load(encoder_path)
+    # Filter any unexpected labels if necessary
+    y_encoded = label_encoder.transform(y)
+else:
+    label_encoder = LabelEncoder()
+    y_encoded = label_encoder.fit_transform(y)
+
 num_classes = len(label_encoder.classes_)
 print(f"Number of classes: {num_classes}")
 print(f"Classes: {label_encoder.classes_}")
@@ -125,11 +168,17 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 print(f"Training set size: {X_train.shape[0]}, Test set size: {X_test.shape[0]}")
 
-# ── Scale features AFTER split — fit only on training data ──
-print("Scaling features...")
-scaler = StandardScaler()
-X_train = scaler.fit_transform(X_train)   # fit only on training data
-X_test = scaler.transform(X_test)         # transform test using train stats
+# ── Scale features AFTER split ──
+if scaler_path.exists():
+    print(f"Loading existing StandardScaler from {scaler_path}...")
+    scaler = joblib.load(scaler_path)
+    X_train = scaler.transform(X_train)
+    X_test = scaler.transform(X_test)
+else:
+    print("Scaling features (fit on train)...")
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.transform(X_test)
 
 # ── Convert to PyTorch tensors ──
 X_train_tensor = torch.FloatTensor(X_train)
@@ -142,22 +191,26 @@ input_dim = X_train.shape[1]
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
-model = ThreatMLP(input_dim, num_classes).to(device)
+if args.arch == "cnn1d":
+    model = ThreatCNN1D(input_dim, num_classes).to(device)
+else:
+    model = ThreatMLP(input_dim, num_classes).to(device)
+
 total_params = sum(p.numel() for p in model.parameters())
-print(f"Model parameters: {total_params:,}")
+print(f"Model parameters ({args.arch.upper()}): {total_params:,}")
 
 # ── Compute class weights for balanced loss ──
 print("Computing class weights...")
-class_weights = compute_class_weight(
-    "balanced", classes=np.unique(y_train), y=y_train
-)
-class_weights_tensor = torch.FloatTensor(class_weights).to(device)
+counts = np.bincount(y_train, minlength=num_classes)
+total_samples = len(y_train)
+weights = np.where(counts > 0, total_samples / (num_classes * np.maximum(counts, 1)), 1.0).astype(np.float32)
+class_weights_tensor = torch.FloatTensor(weights).to(device)
 
 # ── Loss, optimizer, and scheduler ──
 criterion = nn.CrossEntropyLoss(weight=class_weights_tensor)
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
 scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-    optimizer, mode="min", factor=0.5, patience=3, verbose=True
+    optimizer, mode="min", factor=0.5, patience=3
 )
 
 # ── DataLoader ──
@@ -165,13 +218,8 @@ train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
 train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
 
 # ── Training loop ──
-print(f"\nTraining MLP classifier ({args.epochs} epochs)...")
+print(f"\nTraining {args.arch.upper()} classifier ({args.epochs} epochs)...")
 best_loss = float("inf")
-output_dir = Path(__file__).parent.parent / "experiments"
-output_dir.mkdir(parents=True, exist_ok=True)
-
-# File names based on mode
-suffix = "_nf" if args.nf else ""
 
 model.train()
 for epoch in range(args.epochs):
@@ -198,7 +246,7 @@ for epoch in range(args.epochs):
     # Save best model
     if avg_loss < best_loss:
         best_loss = avg_loss
-        best_path = output_dir / f"threat_mlp{suffix}_best.pth"
+        best_path = output_dir / f"{model_prefix}{suffix}_best.pth"
         torch.save(model.state_dict(), best_path)
 
 # ── Evaluate on test set ──
@@ -215,13 +263,15 @@ with torch.no_grad():
     print("\nClassification Report:")
     print(classification_report(
         y_test_np, predictions,
-        target_names=label_encoder.classes_
+        labels=np.arange(len(label_encoder.classes_)),
+        target_names=label_encoder.classes_,
+        zero_division=0
     ))
 
 # ── Save model artifacts ──
 print("\nSaving model artifacts...")
 
-model_path = output_dir / f"threat_mlp{suffix}.pth"
+model_path = output_dir / f"{model_prefix}{suffix}.pth"
 torch.save(model.state_dict(), model_path)
 print(f"Model saved to: {model_path}")
 

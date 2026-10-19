@@ -19,6 +19,7 @@ import json
 import time
 import sys
 import os
+import argparse
 import requests
 import numpy as np
 import joblib
@@ -30,6 +31,8 @@ from scipy.special import softmax
 BASE_DIR = Path(__file__).parent.parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
+
+from scripts.config_loader import load_paper_config, get_provenance_metadata
 
 EXPERIMENTS = BASE_DIR / "experiments"
 RESULTS_DIR = EXPERIMENTS / "results"
@@ -57,8 +60,8 @@ def run_offline_benchmarks(X_test: np.ndarray, model_path: Path):
     output_names = [o.name for o in session.get_outputs()]
     scaler = joblib.load(EXPERIMENTS / "standard_scaler_nf.joblib")
     
-    # ── Initialize Semantic Engine ──
-    engine = SemanticSecurityEngine(use_nf=True)
+    # ── Initialize Semantic Engine from frozen paper config ──
+    engine = SemanticSecurityEngine.from_config("configs/paper_v1.yaml")
     
     single_raw = X_test[0].tolist()
     single_scaled = scaler.transform([single_raw]).astype(np.float32)
@@ -220,7 +223,7 @@ def run_realtime_benchmarks(X_test: np.ndarray, server_url: str):
         "secure_rest_streaming": res_secure_rt
     }
 
-def generate_comparison_plots(offline_res: dict, realtime_res: dict):
+def generate_comparison_plots(offline_res: dict, realtime_res: dict, figures_dir=None):
     """Generate side-by-side visualization comparing Offline vs Real-Time Streaming."""
     import matplotlib
     matplotlib.use('Agg')
@@ -285,12 +288,37 @@ def generate_comparison_plots(offline_res: dict, realtime_res: dict):
     plt.setp(ax2.get_xticklabels(), rotation=15, ha='right')
     
     plt.tight_layout()
+    if figures_dir is not None:
+        canonical_plot = Path(figures_dir) / "realtime_vs_offline.png"
+        plt.savefig(canonical_plot, dpi=150, bbox_inches='tight')
+        print(f"\n[SAVED] {canonical_plot}")
+
     plot_path = IMAGES_DIR / "realtime_vs_offline.png"
     plt.savefig(plot_path, dpi=150, bbox_inches='tight')
     plt.close()
-    print(f"\n[SAVED] {plot_path}")
+    print(f"[SAVED] {plot_path}")
 
 def main():
+    parser = argparse.ArgumentParser(description="Real-time vs offline benchmark.")
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=str(EXPERIMENTS / "paper_results" / "json"),
+        help="Directory to save realtime_vs_offline_benchmark.json",
+    )
+    parser.add_argument(
+        "--figures-dir",
+        type=str,
+        default=str(EXPERIMENTS / "paper_results" / "figures"),
+        help="Directory to save realtime vs offline plots",
+    )
+    args = parser.parse_args()
+
+    output_dir = Path(args.output_dir)
+    figures_dir = Path(args.figures_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    figures_dir.mkdir(parents=True, exist_ok=True)
+
     print("=" * 70)
     print("  REAL-TIME VS OFFLINE INFERENCE COMPARISON BENCHMARK")
     print("=" * 70)
@@ -318,19 +346,31 @@ def main():
     
     # ── Save Consolidated Results ──
     consolidated = {
+        "provenance": get_provenance_metadata(),
         "experiment": "Real-Time Streaming vs. Offline Batch Inference Comparison",
         "model": "ThreatMLP NF (13 features, FP32)",
         "offline_in_memory": offline_results,
         "realtime_http_streaming": realtime_results,
     }
     
-    json_path = RESULTS_DIR / "realtime_vs_offline_benchmark.json"
-    with open(json_path, "w") as f:
+    canonical_json = output_dir / "realtime_vs_offline_benchmark.json"
+    with open(canonical_json, "w") as f:
         json.dump(consolidated, f, indent=2)
-    print(f"\n[SAVED] {json_path}")
+    print(f"\n[SAVED] {canonical_json}")
+
+    latency_json = output_dir / "latency_benchmark.json"
+    with open(latency_json, "w") as f:
+        json.dump(consolidated, f, indent=2)
+    print(f"[SAVED] {latency_json}")
+
+    legacy_json = RESULTS_DIR / "realtime_vs_offline_benchmark.json"
+    if legacy_json.parent.exists() and canonical_json != legacy_json:
+        with open(legacy_json, "w") as f:
+            json.dump(consolidated, f, indent=2)
+        print(f"[MIRRORED] {legacy_json}")
     
     # ── Generate Plots ──
-    generate_comparison_plots(offline_results, realtime_results)
+    generate_comparison_plots(offline_results, realtime_results, figures_dir=figures_dir)
     
     # ── Print Summary Table ──
     print(f"\n{'='*95}")

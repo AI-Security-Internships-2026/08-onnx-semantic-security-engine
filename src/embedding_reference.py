@@ -44,6 +44,10 @@ parser.add_argument(
     help="Use NF-standardized model (13 features)"
 )
 parser.add_argument(
+    "--arch", type=str, default="mlp", choices=["mlp", "cnn1d"],
+    help="Model architecture: 'mlp' or 'cnn1d' (default: 'mlp')"
+)
+parser.add_argument(
     "--num-samples", type=int, default=100000,
     help="Number of real samples to load for reference embeddings (default: 100000)"
 )
@@ -54,7 +58,8 @@ BASE_DIR = Path(__file__).parent.parent
 EXPERIMENTS = BASE_DIR / "experiments"
 
 suffix = "_nf" if args.nf else ""
-model_label = "NF-Standardized (13 features)" if args.nf else "Baseline (76 features)"
+arch_tag = f"_{args.arch}" if args.arch != "mlp" else ""
+model_label = f"{args.arch.upper()} - {'NF-Standardized (13 features)' if args.nf else 'Baseline (76 features)'}"
 
 # ── NF Feature Names (corrected 13-feature list) ──
 # Must match the retrained model's feature order exactly.
@@ -126,7 +131,7 @@ for i in range(n_features):
         "max_approx": round(mean + 4 * std, 6),
     })
 
-stats_path = EXPERIMENTS / f"training_feature_stats{suffix}.json"
+stats_path = EXPERIMENTS / f"training_feature_stats{arch_tag}{suffix}.json"
 with open(stats_path, "w") as f:
     json.dump(feature_stats, f, indent=2)
 print(f"  Saved: {stats_path}")
@@ -134,7 +139,7 @@ print(f"  Saved: {stats_path}")
 # ── Step 2: Load ONNX Model and Generate Embeddings ──
 print("\n[Step 2/3] Loading ONNX model and generating reference embeddings...")
 
-onnx_path = EXPERIMENTS / f"threat_mlp{suffix}_fp32.onnx"
+onnx_path = EXPERIMENTS / f"threat_{args.arch}{suffix}_fp32.onnx"
 if not onnx_path.exists():
     print(f"[FAIL] ONNX model not found: {onnx_path}")
     exit(1)
@@ -275,7 +280,7 @@ except np.linalg.LinAlgError:
     mahal_threshold = 3.0
 
 # Save reference embeddings
-ref_path = EXPERIMENTS / f"reference_embeddings{suffix}.npz"
+ref_path = EXPERIMENTS / f"reference_embeddings{arch_tag}{suffix}.npz"
 np.savez(
     ref_path,
     global_centroid=global_centroid,

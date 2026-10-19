@@ -1,0 +1,5 @@
+Profile,CPU Limit,Memory Limit,Runtime,Workload
+R0 (Reference),Unconstrained (Host),Unconstrained (Host),"Docker cgroups v2 / Linux (Python 3.14.3, ORT 1.24.4)","5,000 flows/run (5 repetitions, warm-up=500)"
+R1 (Low),1 vCPU,512 MB,"Docker cgroups v2 / Linux (Python 3.14.3, ORT 1.24.4)","5,000 flows/run (5 repetitions, warm-up=500)"
+R2 (Medium),2 vCPU,1024 MB,"Docker cgroups v2 / Linux (Python 3.14.3, ORT 1.24.4)","5,000 flows/run (5 repetitions, warm-up=500)"
+R3 (Higher),4 vCPU,2048 MB,"Docker cgroups v2 / Linux (Python 3.14.3, ORT 1.24.4)","5,000 flows/run (5 repetitions, warm-up=500)"

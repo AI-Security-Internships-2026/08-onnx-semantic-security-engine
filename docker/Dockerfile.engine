@@ -23,7 +23,10 @@ RUN pip install --no-cache-dir \
     pandas \
     scipy \
     joblib \
-    scikit-learn
+    scikit-learn \
+    psutil \
+    matplotlib \
+    pyyaml
 
 # Copy source code
 COPY src/ /app/src/
