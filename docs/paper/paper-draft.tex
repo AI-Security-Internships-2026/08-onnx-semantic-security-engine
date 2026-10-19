@@ -101,7 +101,7 @@ To answer these questions, we present \sysname{}, an ONNX-native runtime assuran
   \item \textbf{ONNX-native runtime assurance architecture:} We design and implement a dual-output ONNX execution pipeline that executes structural validation, confidence thresholding, and class-conditional Mahalanobis/cosine drift scoring directly on the deployed graph without external framework dependencies.
   \item \textbf{Comprehensive failure-mode coverage \& ablation:} We evaluate \sysname{} across nine operational failure modes (real cross-domain shift, non-finite values, varying zero-fill ratios, feature permutations, sensor scale errors, and Gaussian noise). We prove that deterministic validation and statistical drift monitors are strictly complementary: statistical detectors score 0.0\% on zero-filled inputs where validation achieves 100\%, while validation is blind to clean distribution shift where Mahalanobis achieves 0.9713 AUROC.
   \item \textbf{Authoritative semantic feature audit \& transfer negative result:} Grounded in IETF RFC 7012 and RFC 793, we perform a source-verified audit of 21 candidate flow features between NetFlow v9 and CICFlowMeter, revealing that 38.1\% represent physically incompatible quantities ($\kappa = 1.00$). We report that standardizing schemas eliminates zero-filling but exposes severe generalization collapse (multi-class F1 collapses from 0.766 to 0.057), confirming that baseline transfer relied on zero-fill patterns as a spurious shortcut.
-  \item \textbf{Containerized edge resource simulation \& quantization dynamics:} We benchmark \sysname{} across four Docker cgroups v2 resource profiles (1--4 vCPUs, 512--2048\,MB RAM). On a 1-vCPU edge profile, \sysname{} processes 1,101 flows/s with 0.911\,ms mean latency (+0.64\,ms overhead) and 124.5\,MB RSS. Furthermore, empirical activation profiling explains why static INT8 suffers a catastrophic 38.0\% F1 drop (activation outlier clipping), whereas weight-only INT4 preserves 97.8\% of classification F1 with 80.7\% compression.
+  \item \textbf{Simulated edge resource constraints \& quantization dynamics:} We benchmark \sysname{} across four controlled execution profiles (R0--R3) simulating 1--4 core edge deployment limits via ONNX Runtime thread execution controls on an x86\_64 host. On a 1-vCPU equivalent profile (R1), \sysname{} sustains 1,101 flows/s with 0.911\,ms mean latency (+0.64\,ms overhead) and 124.5\,MB RSS. Furthermore, empirical activation profiling explains why static INT8 suffers a catastrophic 38.0\% F1 drop (activation outlier clipping), whereas weight-only INT4 preserves 97.8\% of classification F1 with 80.7\% compression.
 \end{enumerate}
 
 The remainder of this paper is organized as follows. Section~\ref{sec:related} positions \sysname{} within the literature. Section~\ref{sec:method} specifies the proposed runtime assurance architecture. Section~\ref{sec:audit} details the NetFlow semantic audit and transfer negative result. Section~\ref{sec:evaluation} presents the comprehensive empirical evaluation. Section~\ref{sec:discussion} discusses architectural insights, the INT8 paradox, and simulation limitations. Section~\ref{sec:threats} examines threats to validity. Section~\ref{sec:conclusion} concludes the paper.
@@ -537,7 +537,7 @@ Evaluating mapping tiers confirms the audit: Tier 1 (8 exact features) yields me
 
 \begin{table*}[t]
   \centering
-  \caption{Simulated Edge Resource Constraints Profiling and Quantization Trade-offs (Docker cgroups v2)}
+  \caption{Simulated Edge Resource Constraints Profiling and Quantization Trade-offs (Controlled ONNX Runtime Thread Execution Profiles)}
   \label{tab:resource_quantization}
   \resizebox{\textwidth}{!}{%
   \begin{tabular}{lcccccccc}
@@ -604,7 +604,7 @@ Evaluating mapping tiers confirms the audit: Tier 1 (8 exact features) yields me
   \label{fig:quantization_int8_analysis}
 \end{figure*}
 
-Table~\ref{tab:resource_quantization} and Figs.~\ref{fig:resource_sim_plots}--\ref{fig:quantization_int8_analysis} evaluate deployment efficiency under Linux cgroups v2 resource profiles.
+Table~\ref{tab:resource_quantization} and Figs.~\ref{fig:resource_sim_plots}--\ref{fig:quantization_int8_analysis} evaluate deployment efficiency under simulated resource-constrained execution profiles (R0--R3) using ONNX Runtime thread execution controls.
 
 \textbf{Bounded Overhead Under Resource Constraints:}
 Across all profiles, \sysname{} adds a bounded computational overhead of $+0.610$\,ms to $+0.640$\,ms. On Profile R1 (1 vCPU, 512\,MB RAM), plain ONNX executes in 0.271\,ms (p95 0.347\,ms), while \sysname{} executes in 0.911\,ms (p95 1.340\,ms), sustaining over 1,100 flows/s with flat memory (124.5\,MB RSS). Memory consumption remains well within the 512\,MB budget.
@@ -636,7 +636,7 @@ The failure of static INT8 quantization on tabular telemetry contrasts sharply w
 
 \subsection{Mandatory Edge Simulation Limitation}
 \label{sec:sim_limitation}
-\textbf{Explicit Simulation Disclaimer:} The containerized cgroups v2 resource profiles (R0--R3) evaluate execution limits on a commodity x86 Linux kernel. They do \emph{not} reproduce physical ARM Big.LITTLE microarchitectures, embedded NPU/TPU acceleration cores, thermal throttling, memory bus bandwidth saturation, or physical NIC packet capture constraints. Physical embedded edge validation remains future work.
+\textbf{Explicit Simulation Disclaimer:} The controlled execution profiles (R0--R3) evaluate runtime latency under thread-constrained execution limits on a commodity x86\_64 host. They do \emph{not} reproduce physical ARM Big.LITTLE microarchitectures, embedded NPU/TPU hardware accelerators, dynamic thermal throttling, memory bus bandwidth saturation, or physical NIC line-rate packet capture constraints. Physical embedded edge validation remains future work.
 
 
 % ============================================================
@@ -649,7 +649,7 @@ The failure of static INT8 quantization on tabular telemetry contrasts sharply w
 CSE-CIC-IDS2018 and ToN-IoT were collected in controlled testbed networks. Synthetic attack traffic may exhibit artificial feature correlations that do not reflect complex enterprise traffic mixes.
 
 \subsection{Hardware and Simulation Fidelity}
-Our resource-constrained evaluation relies on Linux Docker cgroups v2 quotas rather than bare-metal embedded System-on-Chips (SoCs). While cgroups enforce strict CPU and memory limits, they do not emulate physical bus contention or hardware cache hierarchies.
+Our resource-constrained evaluation relies on simulated host execution profiles via ONNX Runtime thread execution controls rather than bare-metal embedded System-on-Chips (SoCs). While thread-constrained profiles establish upper-bound latency profiles under single-core and low-concurrency limits, they do not emulate physical bus contention, cache partitioning, or hardware thermal throttling on physical edge boards.
 
 \subsection{Architectural Generalizability}
 We primarily evaluate ThreatMLP (4 layers, 46,542 parameters) and replicate on ThreatCNN1D. While these architectures reflect edge deployment constraints, deeper vision transformers or graph neural networks may exhibit different embedding geometries.

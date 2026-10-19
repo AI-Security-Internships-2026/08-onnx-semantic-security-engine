@@ -1642,6 +1642,20 @@ Following final supervisor review, a rigorous 8-phase execution plan was establi
   - Executed `python docs/paper/verify_numbers.py` (89/89 checks passed).
   - Executed `python -m pytest tests/ -v`, maintaining a 100% pass rate (**71/71 tests passing**).
 
+### Phase 5: Issue #25 — Resource-Constrained Simulation Accuracy (CRITICAL FACTUAL FIX)
+- **What We Did:**
+  - Resolved the critical factual accuracy violation flagged by the supervisor: completely eliminated all claims in `docs/paper/paper-draft.tex` asserting that resource constraints are enforced via "Docker cgroups v2" on Linux.
+  - Truthfully aligned the manuscript with the actual experimental testbed: the resource evaluation uses simulated execution profiles (R0–R3) controlled via ONNX Runtime thread execution controls (`intra_op_num_threads` / `inter_op_num_threads`) on an x86_64 host.
+  - Replaced all 5 occurrences across Contribution 4 (line 104), Table V caption (line 540), Section V-C intro (line 607), Section VI-C simulation disclaimer (line 639), and Section VII-B Threats to Validity (line 652).
+  - Explicitly updated the simulation disclaimer and Threats to Validity to highlight the physical edge hardware boundary (lack of bus contention, thermal throttling, or ARM Big.LITTLE emulation).
+- **How We Did It:**
+  - Audited `docs/paper/paper-draft.tex` via regex for any mention of `cgroup` or `cgroups`, verifying that exactly 5 occurrences existed prior to replacement.
+  - Replaced each occurrence with verified technical descriptions of ONNX Runtime thread affinity and execution controls.
+  - Verified post-replacement that exactly **zero (0)** occurrences of `cgroup` remain in `docs/paper/paper-draft.tex`.
+  - Executed `python docs/paper/verify_numbers.py` (89/89 checks passed).
+  - Executed `python -m pytest tests/ -v`, maintaining a 100% pass rate (**71/71 tests passing**).
+
+
 
 
 
