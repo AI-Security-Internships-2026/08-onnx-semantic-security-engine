@@ -203,12 +203,12 @@
       "size_bytes": 3958
     },
     "docs/paper/paper-draft.tex": {
-      "sha256": "e2dca5b094537622076444dd0d2d950820dbd22349999ebbf40471cdfb905cd0",
-      "size_bytes": 56407
+      "sha256": "4f326d9f692c2d290acc9a78454caf0498ccc0fcabbab91827d9f97b149b8a44",
+      "size_bytes": 57750
     },
     "docs/paper/paper-draft.pdf": {
-      "sha256": "785ac833c7f4724a6861ffac0a6aa80c4232c96c8e3f320634be5225120a557c",
-      "size_bytes": 2473497
+      "sha256": "321485237f387bd2ca048d9ea3b3a541c6d5fb72914a452cf3c2a42e99fa751f",
+      "size_bytes": 2475539
     }
   },
   "simulation_disclaimer": "All edge resource profiles (R0-R3) use ONNX Runtime thread affinity controls on a commodity x86_64 host to simulate CPU-constrained execution. These results do NOT constitute validation on physical ARM edge hardware (Raspberry Pi, Jetson, etc.). Physical edge deployment remains future work."

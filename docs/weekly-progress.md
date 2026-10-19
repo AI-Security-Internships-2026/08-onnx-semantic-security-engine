@@ -1655,6 +1655,19 @@ Following final supervisor review, a rigorous 8-phase execution plan was establi
   - Executed `python docs/paper/verify_numbers.py` (89/89 checks passed).
   - Executed `python -m pytest tests/ -v`, maintaining a 100% pass rate (**71/71 tests passing**).
 
+### Phase 6: Issue #26 — Semantic Audit & Literature Claims Qualification
+- **What We Did:**
+  - Qualified the Cohen's $\kappa = 1.00$ inter-rater reliability metric in both the test suite and the manuscript: clarified that perfect agreement reflects deterministic adherence to formal RFC specifications (IETF RFC 7012 and RFC 793) and reference Java source code rather than unconstrained subjective human annotator consensus over ambiguous telemetry.
+  - Updated `tests/test_semantic_audit.py` docstring on `test_cohens_kappa_deterministic_agreement` to state explicitly that the evaluation measures specification-level determinism.
+  - Refined manuscript text across Contribution 3 (line 103), Section IV Inter-Rater Reliability paragraph (line 339), and Section VII-G (Threats to Validity) in `docs/paper/paper-draft.tex` to honestly contextualize the $\kappa = 1.00$ result.
+  - Audited `docs/paper/references.bib` and literature claims across the manuscript: verified all 35 citations are complete, accurate, and contain zero placeholders or broken entries.
+- **How We Did It:**
+  - Replaced unqualified $\kappa = 1.00$ mentions in `docs/paper/paper-draft.tex` with explicit explanations of formal rule-based concordance.
+  - Recompiled LaTeX manuscript to generate `docs/paper/paper-draft.pdf` and updated cryptographic hash records in `experiments/checksums.sha256` and `experiments/paper_results/RELEASE_METADATA.json`.
+  - Executed `tests/test_semantic_audit.py` and the full test suite via `python -m pytest tests/ -v` (**71/71 tests passing**).
+  - Executed `python docs/paper/verify_numbers.py`, confirming **89/89 automated assertion checks pass (100% agreement)**.
+
+
 
 
 

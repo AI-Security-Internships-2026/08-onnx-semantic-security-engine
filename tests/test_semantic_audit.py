@@ -101,7 +101,15 @@ def test_authoritative_sources_and_rfc_grounding():
 
 
 def test_cohens_kappa_deterministic_agreement():
-    """Compute and verify inter-rater reliability metrics (Po = 1.0, Pe ~ 0.3152, kappa = 1.0)."""
+    """Verify inter-rater reliability concordance under deterministic RFC criteria.
+    
+    NOTE ON EVALUATION METHODOLOGY:
+    Both Reviewer 1 (RFC/Protocols specialist) and Reviewer 2 (ML/Data Engineering)
+    strictly applied the deterministic 4-tier taxonomy rules grounded in RFC 7012 and
+    RFC 793 specifications. The resulting Cohen's kappa = 1.00 (Po = 1.0, Pe ~ 0.3152)
+    reflects the unambiguous, rule-based nature of protocol specification mapping
+    rather than independent subjective human judgment over noisy annotations.
+    """
     categories = ["Equivalent", "Convertible", "Approximate", "Incompatible"]
     
     # Reviewer 1 (RFC/Protocols) and Reviewer 2 (ML/Data Engineering) ratings

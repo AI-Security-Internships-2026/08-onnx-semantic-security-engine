@@ -100,7 +100,7 @@ To answer these questions, we present \sysname{}, an ONNX-native runtime assuran
 \begin{enumerate}[leftmargin=*]
   \item \textbf{ONNX-native runtime assurance architecture:} We design and implement a dual-output ONNX execution pipeline that executes structural validation, confidence thresholding, and class-conditional Mahalanobis/cosine drift scoring directly on the deployed graph without external framework dependencies.
   \item \textbf{Comprehensive failure-mode coverage \& ablation:} We evaluate \sysname{} across nine operational failure modes (real cross-domain shift, non-finite values, varying zero-fill ratios, feature permutations, sensor scale errors, and Gaussian noise). We prove that deterministic validation and statistical drift monitors are strictly complementary: statistical detectors score 0.0\% on zero-filled inputs where validation achieves 100\%, while validation is blind to clean distribution shift where Mahalanobis achieves 0.9713 AUROC.
-  \item \textbf{Authoritative semantic feature audit \& transfer negative result:} Grounded in IETF RFC 7012 and RFC 793, we perform a source-verified audit of 21 candidate flow features between NetFlow v9 and CICFlowMeter, revealing that 38.1\% represent physically incompatible quantities ($\kappa = 1.00$). We report that standardizing schemas eliminates zero-filling but exposes severe generalization collapse (multi-class F1 collapses from 0.766 to 0.057), confirming that baseline transfer relied on zero-fill patterns as a spurious shortcut.
+  \item \textbf{Authoritative semantic feature audit \& transfer negative result:} Grounded in IETF RFC 7012 and RFC 793, we perform a source-verified audit of 21 candidate flow features between NetFlow v9 and CICFlowMeter, revealing that 38.1\% represent physically incompatible quantities ($\kappa = 1.00$, reflecting deterministic concordance under formal RFC specifications). We report that standardizing schemas eliminates zero-filling but exposes severe generalization collapse (multi-class F1 collapses from 0.766 to 0.057), confirming that baseline transfer relied on zero-fill patterns as a spurious shortcut.
   \item \textbf{Simulated edge resource constraints \& quantization dynamics:} We benchmark \sysname{} across four controlled execution profiles (R0--R3) simulating 1--4 core edge deployment limits via ONNX Runtime thread execution controls on an x86\_64 host. On a 1-vCPU equivalent profile (R1), \sysname{} sustains 1,101 flows/s with 0.911\,ms mean latency (+0.64\,ms overhead) and 124.5\,MB RSS. Furthermore, empirical activation profiling explains why static INT8 suffers a catastrophic 38.0\% F1 drop (activation outlier clipping), whereas weight-only INT4 preserves 97.8\% of classification F1 with 80.7\% compression.
 \end{enumerate}
 
@@ -336,7 +336,7 @@ We conducted an exhaustive field-by-field audit across all 21 candidate pairs ag
   \item \textbf{Incompatible (8 pairs, 38.1\%):} Severe dimensional, semantic, or structural mismatches (Table~\ref{tab:mismatches}).
 \end{enumerate}
 
-\textbf{Inter-Rater Reliability.} A dual-review protocol between a network protocol specialist and an ML data engineer produced an observed agreement $P_o = 1.00$ ($21/21$ exact matches). With chance agreement $P_e = 0.3152$, Cohen's Kappa evaluates to $\kappa = 1.00$, confirming deterministic agreement rooted in RFC specifications.
+\textbf{Inter-Rater Reliability.} A dual-review protocol between a network protocol specialist and an ML data engineer produced an observed agreement $P_o = 1.00$ ($21/21$ exact matches). With chance agreement $P_e = 0.3152$, Cohen's Kappa evaluates to $\kappa = 1.00$. Crucially, this perfect concordance reflects the unambiguous, rule-based determinism of formal IETF RFC 7012 and RFC 793 specifications rather than unconstrained subjective annotator consensus across noisy observations.
 
 \subsection{The ``Cleaning Hurts Transfer'' Negative Result}
 To eliminate negative transfer, \sysname{} discards all 8 Incompatible features, retaining the 13 verified features (7 Equivalent, 1 Convertible, 5 Approximate). 
@@ -663,8 +663,8 @@ Calibrated thresholds ($\tau_{\text{conf}}, \tau_{\cos}, \tau_M$) depend on an i
 \subsection{Label Taxonomy Mismatch}
 CSE-CIC-IDS2018 contains 15 classes, whereas NF-ToN-IoT-v2 contains 10 classes. Approximately 23\% of ToN-IoT attack samples have no semantic equivalent in the training taxonomy, partially inflating the perceived cross-dataset generalization drop.
 
-\subsection{Semantic Audit Subjectivity}
-Although our semantic audit is grounded in IETF RFCs and achieved $\kappa = 1.00$ between two reviewers, telemetry mappings inherently involve engineering judgment regarding acceptable directional approximations.
+\subsection{Semantic Audit and Inter-Rater Reliability}
+The reported inter-rater reliability ($\kappa = 1.00$, $P_o = 1.00$) between protocol engineering and ML evaluation perspectives was achieved by codifying mapping decisions strictly against unambiguous IETF RFC 7012 and RFC 793 definitions and reference Java source code (\texttt{FlowFeature.java}). While this confirms specification-level determinism, practical telemetry reconciliation across proprietary sensor implementations may still require localized engineering judgment regarding acceptable directional approximations.
 
 \subsection{Historical Implementation and Evaluation Consistency}
 To ensure reproducibility, all canonical results in this manuscript trace directly to the frozen baseline configuration in \texttt{configs/paper\_v1.yaml} and verified machine-readable JSON artifacts.
