@@ -1680,6 +1680,21 @@ Following final supervisor review, a rigorous 8-phase execution plan was establi
   - Executed full 5-tier paper verification via `python experiments/reproduce_paper.py --verify`, confirming 19 JSONs, 23 figures, 19 CSV tables, 23 SHA-256 checksums, and 89 numerical claims.
   - Executed `python -m pytest tests/ -v`, maintaining a 100% pass rate (**71/71 tests passing**).
 
+### Phase 8: Issue #28 & PR #31 — Reproducibility, Release Tagging & PR Integration
+- **What We Did:**
+  - Completed end-to-end multi-tier pipeline reproduction and verification across all 19 JSON results, 23 figures, 19 canonical CSV tables, 23 cryptographic SHA-256 artifact hashes, and 89 numerical claims.
+  - Re-synchronized `experiments/paper_results/RELEASE_METADATA.json` with the updated paper title, active git branch `sikandarhussain6858-issue-1`, commit hash `9175c761306fea218d9bb3490d44e756895f51bb`, and updated UTC release timestamp.
+  - Aligned paper title and simulation disclaimers across `REPRODUCE.md`, `paper_artifact_manifest.md`, and `RELEASE_METADATA.json`.
+  - Recreated release tag `paper-v1.0` pointing to the finalized commit on branch `sikandarhussain6858-issue-1`.
+  - Finalized Pull Request #31 merge readiness, successfully closing all supervisor review action items across GitHub Issues #21, #22, #23, #24, #25, #26, #27, and #28.
+- **How We Did It:**
+  - Executed `python experiments/reproduce_paper.py --verify` with 100% pass across all 5 verification tiers.
+  - Executed `python docs/paper/verify_numbers.py`, confirming all 89 numerical assertion checks pass.
+  - Executed `python scripts/download_artifacts.py --verify-checksums`, verifying all 23 SHA-256 hashes match.
+  - Executed `python -m pytest tests/ -v`, maintaining a 100% pass rate (**71/71 tests passing**).
+  - Force-updated git tag `paper-v1.0` and pushed tag to `origin`.
+
+
 
 
 

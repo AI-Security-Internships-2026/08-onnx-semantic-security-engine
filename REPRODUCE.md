@@ -2,7 +2,7 @@
 
 This guide provides complete, step-by-step instructions to reproduce all experimental findings, machine-readable datasets, canonical CSV tables, publication figures, and the compiled PDF manuscript reported in:
 
-> **"SEMANTICSHIELD: Invariant-Aware and Drift-Calibrated Semantic Runtime Assurance for Edge NIDS in ONNX"**  
+> **"SEMANTICSHIELD: An ONNX-Native Runtime Assurance Layer for Network Intrusion Detection at the Edge"**  
 > *Release Tag:* `paper-v1.0` | *Frozen Config:* `configs/paper_v1.yaml`
 
 ---
