@@ -1667,6 +1667,20 @@ Following final supervisor review, a rigorous 8-phase execution plan was establi
   - Executed `tests/test_semantic_audit.py` and the full test suite via `python -m pytest tests/ -v` (**71/71 tests passing**).
   - Executed `python docs/paper/verify_numbers.py`, confirming **89/89 automated assertion checks pass (100% agreement)**.
 
+### Phase 7: Issue #27 — Manuscript Global Consistency Revision
+- **What We Did:**
+  - Performed an exhaustive, end-to-end consistency pass across `docs/paper/paper-draft.tex`, ensuring holistic alignment across Abstract, Introduction, Methodology, Evaluation, Discussion, Threats to Validity, and Conclusion.
+  - Centered the manuscript's primary narrative around **ONNX-native runtime assurance and failure-mode coverage**, rather than raw OOD detection ensemble superiority, directly addressing the supervisor's core philosophical feedback.
+  - Replaced lingering terminology in the Abstract (e.g., "containerized resource-constrained edge simulation") with truthful edge simulation framing ("simulated edge resource constraints via ONNX Runtime thread execution controls on an x86_64 host"), ensuring 100% vocabulary consistency across all sections.
+  - Formally validated that all mathematical scoring equations in Section III line up with canonical engine logic in `src/semantic_analyzer.py` and frozen configuration in `configs/paper_v1.yaml`.
+  - Re-verified all 89 numerical claims in the manuscript against canonical machine-readable results via `docs/paper/verify_numbers.py` (89/89 checks passed, 100% agreement).
+- **How We Did It:**
+  - Audited `docs/paper/paper-draft.tex` against prohibited terms (`cgroup`, `docker`, `containerized`), achieving 0 unauthorized mentions.
+  - Synchronized updated `docs/paper/paper-draft.tex` SHA-256 hash in `experiments/checksums.sha256` and `experiments/paper_results/RELEASE_METADATA.json`.
+  - Executed full 5-tier paper verification via `python experiments/reproduce_paper.py --verify`, confirming 19 JSONs, 23 figures, 19 CSV tables, 23 SHA-256 checksums, and 89 numerical claims.
+  - Executed `python -m pytest tests/ -v`, maintaining a 100% pass rate (**71/71 tests passing**).
+
+
 
 
 
