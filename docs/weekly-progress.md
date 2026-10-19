@@ -1579,3 +1579,25 @@ Following formal review of the preliminary research artifacts, a systematic reso
 | **Repository Hygiene & Secrets** | Secrets & Credentials Scan | 0 secrets found | [PASS] |
 | **Tagged Git Release** | Release tag `paper-v1.0` | Commit `2088840` | [PASS] |
 
+---
+
+## Phase-by-Phase Review & Supervisor Feedback Resolution Sprint (Branch `sikandarhussain6858-issue-1`)
+
+Following final supervisor review, a rigorous 8-phase execution plan was established to systematically close all acceptance criteria across Issues #21 through #28 and finalize PR #31 for merge to `dev`.
+
+### Phase 1: Issue #21 — Configuration Authority & Scoring Consistency
+- **What We Did:**
+  - Formally established `configs/paper_v1.yaml` as the sole authoritative configuration governing all scientific evaluations, benchmark scripts, and published paper numbers.
+  - Clarified the precise architectural role of `experiments/calibration_config.json` as a derived deployment artifact generated during Phase 7 of reproduction and read *only* by the default runtime constructor for live FastAPI inference demonstrations.
+  - Audited mathematical scoring and verdict equations line-by-line between `configs/paper_v1.yaml` and `src/semantic_analyzer.py`.
+  - Audited the entire codebase for obsolete, duplicated, or conflicting scoring logic.
+  - Verified the complete unit and integration test suite pass count.
+- **How We Did It:**
+  - Added comprehensive class and method docstrings to `DriftDetector.__init__`, `SemanticSecurityEngine.__init__`, and `SemanticSecurityEngine.from_config()` in `src/semantic_analyzer.py` explicitly distinguishing the runtime deployment path from the frozen evaluation path.
+  - Inserted Subsection 1.1 into `RESULTS_PROVENANCE.md` (and its synchronized mirror in `experiments/paper_results/RESULTS_PROVENANCE.md`) detailing the strict separation between `configs/paper_v1.yaml` (authority) and `calibration_config.json` (runtime artifact).
+  - Verified equation correspondence for Maximum Softmax Probability ($1 - \text{MSP}$), class-conditional Cosine distance ($d_{\cos}$), class-conditional Mahalanobis distance ($d_M$), and normalized composite drift ($S_{\text{drift}}$).
+  - Confirmed via static analysis that `SemanticSecurityEngine.compute_verdict()` is the single source of truth across the repository.
+  - Executed `python -m pytest tests/ -v`, achieving a verified pass rate of **71/71 tests (100% pass)** in 1.28s.
+  - Executed `python docs/paper/verify_numbers.py`, confirming **89/89 numerical assertion checks pass (100% truthful)**.
+
+

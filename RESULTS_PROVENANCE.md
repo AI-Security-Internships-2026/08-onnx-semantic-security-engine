@@ -24,6 +24,10 @@ All canonical results in `experiments/paper_results/` are governed by `configs/p
   - Evaluation partition: $N = 10,000$ in-distribution samples, $N = 10,000$ OOD samples
   - Evaluation OOD dataset: CSE-CIC-IDS2018 $\to$ ToN-IoT (`NF-ToN-IoT-V2.parquet`)
 
+### 1.1 Configuration Authority vs. Runtime Deployment Separation
+- **Sole Authoritative Configuration (`configs/paper_v1.yaml`):** `configs/paper_v1.yaml` is the single source of truth governing all experimental evaluations, benchmark scripts, and manuscript claims. All paper evaluation scripts load thresholds exclusively via `config_loader.py` or `SemanticSecurityEngine.from_config("configs/paper_v1.yaml")`.
+- **Runtime Deployment Artifact (`experiments/calibration_config.json`):** `experiments/calibration_config.json` is a convenience artifact generated during Phase 7 of the reproduction pipeline (`scripts/evaluate_semantic_engine.py`). It is read *only* by the default `SemanticSecurityEngine()` constructor for live serving / FastAPI inference demonstrations. It does NOT govern, override, or influence any scientific evaluation script or paper table.
+
 ---
 
 ## 2. Root Cause Analysis: Why Historical Values Changed
