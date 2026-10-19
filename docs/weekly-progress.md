@@ -1628,6 +1628,21 @@ Following final supervisor review, a rigorous 8-phase execution plan was establi
   - Executed `python docs/paper/verify_numbers.py` (89/89 checks passed).
   - Executed `python -m pytest tests/ -v`, maintaining a 100% pass rate (**71/71 tests passing**).
 
+### Phase 4: Issue #24 — Cross-Dataset & Cross-Model Metric Qualification
+- **What We Did:**
+  - Audited and disambiguated classifier evaluation metrics across all reporting surfaces: explicitly differentiated binary threat classification F1 ($\approx 0.77$) from fine-grained multi-class macro-F1 (which collapses to $0.057$ under external transfer).
+  - Explicitly qualified in-distribution performance: ThreatMLP achieves an overall accuracy of 87.19%, weighted-average F1 of 91.98%, and macro-average F1 of 78.01% across 15 threat classes.
+  - Updated manuscript Table IV header in `docs/paper/paper-draft.tex` from ambiguous `Multi F1` to `Multi-Class Macro-F1`.
+  - Reconciled the "cleaning hurts transfer" narrative in Section IV to highlight that schema standardization eliminates zero-fill crutches, exposing true multi-class generalization collapse ($0.7801 \to 0.057$).
+  - Verified formal Track A (same-schema distribution shift: NF-BoT-IoT-v2) vs. Track B (semantic mismatch / feature tiers) partitioning in `cross_dataset_generalization.json`.
+  - Validated cross-model replication on `ThreatCNN1D`, appropriately bounding claims to show that 1D-CNN representation geometry does not automatically yield separable Gaussian clusters in penultimate layers (AUROC = 0.3549).
+- **How We Did It:**
+  - Inspected `experiments/paper_results/json/classifier_metrics.json` and `experiments/paper_results/json/cross_dataset_generalization.json` field structures.
+  - Refined manuscript text in `docs/paper/paper-draft.tex` (line 346 and line 503 Table IV header).
+  - Executed `python docs/paper/verify_numbers.py` (89/89 checks passed).
+  - Executed `python -m pytest tests/ -v`, maintaining a 100% pass rate (**71/71 tests passing**).
+
+
 
 
 

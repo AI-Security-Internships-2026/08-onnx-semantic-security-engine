@@ -13,6 +13,9 @@
 \usepackage{cite}
 \usepackage{booktabs}
 \usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{makecell}
 \usepackage{url}
 \usepackage{hyperref}
 \usepackage{algorithm}
@@ -114,13 +117,12 @@ Runtime assurance for edge NIDS intersects out-of-distribution detection, base-r
 
 \begin{table*}[t]
   \centering
-  \small
   \caption{Systematic Prior-Work Comparison Matrix Across Telemetry, OOD, Precision, and Edge Evaluation Dimensions}
   \label{tab:prior_work}
-  \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lcccccccc@{}}
+  \resizebox{\textwidth}{!}{%
+  \begin{tabular}{lcccccccc}
     \toprule
-    \textbf{System / Study} & \textbf{Deployment} & \textbf{Flow Ingestion} & \textbf{Feature Reconciliation} & \textbf{Fixed-FPR} & \textbf{Quantization} & \textbf{Edge Environment} & \textbf{Root-Cause} \\
-     & \textbf{Domain} & \textbf{Format} & \textbf{Methodology} & \textbf{Evaluated} & \textbf{Investigated} & \textbf{Evaluated} & \textbf{Error Diagnostics} \\
+    \textbf{\makecell[l]{System /\\Study}} & \textbf{\makecell[l]{Deployment\\Domain}} & \textbf{\makecell[l]{Flow Ingestion\\Format}} & \textbf{\makecell[l]{Feature Reconciliation\\Methodology}} & \textbf{\makecell[c]{Fixed-FPR\\Evaluated}} & \textbf{\makecell[c]{Quantization\\Investigated}} & \textbf{\makecell[l]{Edge Environment\\Evaluated}} & \textbf{\makecell[l]{Root-Cause Error\\Diagnostics}} \\
     \midrule
     Kitsune~\cite{mirsky2018kitsune} & Edge / IoT Gateway & Raw Packet Damped Stats & None (Single stream) & No & No & Physical RPi 3B & No (Score only) \\
     McLaughlin~\etal~\cite{mclaughlin2023oodforNIDS} & Datacenter / Server & Tabular (CIC / NetFlow) & None (Uniform schemas) & Partial (FPR@95) & No & None (GPU Server) & Partial (Algorithm) \\
@@ -132,7 +134,8 @@ Runtime assurance for edge NIDS intersects out-of-distribution detection, base-r
     \midrule
     \textbf{\sysname{}} & \textbf{Edge Gateway} & \textbf{Hybrid (NetFlow $\leftrightarrow$ CIC)} & \textbf{Physical Audit (4 Tiers, $\kappa=1.0$)} & \textbf{Yes ($\le 0.1\%/1.0\%$)} & \textbf{Yes (FP/INT8/INT4)} & \textbf{Yes (Simulated R0--R3)} & \textbf{Yes (Field \& Tensor)} \\
     \bottomrule
-  \end{tabular*}
+  \end{tabular}%
+  }
 \end{table*}
 
 \subsection{OOD Detection Foundations in Machine Learning}
@@ -187,7 +190,10 @@ Before invoking the neural network, the raw input flow vector $\mathbf{x} \in \m
   \item \textbf{Schema dimensionality:} Assert $\dim(\mathbf{x}) = d = 13$. Mismatches indicate upstream ingestion pipeline breakage.
   \item \textbf{Non-finite values:} Assert $\mathbf{x}$ contains no $\text{NaN}$, $+\infty$, or $-\infty$. In flow extractors, division-by-zero during duration calculations frequently injects non-finite floats.
   \item \textbf{Zero-fill tampering check:} Network flows naturally contain zero-valued counters (\eg, unidirectional UDP flows have zero backward packets). However, extreme zero-filling indicates unmapped schemas or tampering. An input is flagged as structurally zero-filled if:
-  $$\frac{1}{d} \sum_{i=1}^d \mathbb{I}(x_i = 0.0) \ge 0.80 \quad \lor \quad (x_0=0 \land x_1=0 \land x_2=0 \land x_5=0)$$
+  \begin{equation}
+    \frac{1}{d}\sum_{i=1}^d \mathbb{I}(x_i = 0) \ge 0.80 \;\;\lor\;\; (x_0 = x_1 = x_2 = x_5 = 0)
+    \label{eq:zerofill}
+  \end{equation}
   where $x_0, x_1, x_2, x_5$ correspond to core packet and duration telemetry.
   \item \textbf{Range tolerance check (soft warning):} Flags any feature outside $\mu_i \pm 15\sigma_i$, where $\mu_i, \sigma_i$ are pre-computed training distribution statistics.
   \item \textbf{Extreme z-score outlier check (soft warning):} Flags features where $|z_i| = |(x_i - \mu_i)/\sigma_i| > 15.0$.
@@ -239,7 +245,7 @@ An active drift alert is generated ($\texttt{DRIFT} \in \mathcal{A}$) if $D_{\co
 The engine aggregates signals from all three analyzers into a four-level verdict:
 \begin{equation}
   V(\mathbf{x}) = \begin{cases}
-    \texttt{REJECTED}   & \text{if any hard structural validation check fails} \\
+    \texttt{REJECTED}   & \text{if hard validation check fails} \\
     \texttt{HIGH\_RISK}  & \text{if } |\mathcal{A}| \geq 2 \\
     \texttt{SUSPICIOUS} & \text{if } |\mathcal{A}| = 1 \\
     \texttt{CLEAN}      & \text{if } |\mathcal{A}| = 0
@@ -295,30 +301,31 @@ Cross-dataset transfer studies in NIDS frequently pair feature extractors by col
 
 \begin{table}[t]
   \centering
-  \small
   \caption{Representative Physical Incompatibilities Between nProbe NetFlow v9 and CICFlowMeter (8 of 21 Mapped Pairs)}
   \label{tab:mismatches}
-  \begin{tabular}{@{}p{2.6cm}p{2.1cm}p{3.0cm}@{}}
+  \resizebox{\columnwidth}{!}{%
+  \begin{tabular}{@{}p{3.3cm}p{2.6cm}p{4.0cm}@{}}
     \toprule
     \textbf{NetFlow Field} & \textbf{CIC Field} & \textbf{Physical Incompatibility} \\
     \midrule
-    SRC\_TO\_DST\_\newline AVG\_THROUGHPUT & Fwd Header Len & Rate (bps) vs.\ cumulative header memory footprint (bytes) \\
+    \texttt{SRC\_TO\_DST\_}\newline\texttt{AVG\_THROUGHPUT} & Fwd Header Len & Rate (bps) vs.\ cumulative header memory footprint (bytes) \\
     \addlinespace
-    DST\_TO\_SRC\_\newline AVG\_THROUGHPUT & Bwd Header Len & Rate (bps) vs.\ cumulative header memory footprint (bytes) \\
+    \texttt{DST\_TO\_SRC\_}\newline\texttt{AVG\_THROUGHPUT} & Bwd Header Len & Rate (bps) vs.\ cumulative header memory footprint (bytes) \\
     \addlinespace
-    TCP\_FLAGS & Fwd PSH Flags & 8-bit cumulative bitmask (0--255) vs.\ discrete forward packet count \\
+    \texttt{TCP\_FLAGS} & Fwd PSH Flags & 8-bit cumulative bitmask (0--255) vs.\ discrete forward packet count \\
     \addlinespace
-    RETRANSMITTED\_\newline IN\_PKTS & Fwd Avg Pkts/\newline Bulk & TCP packet loss recovery vs.\ bulk data transfer estimator \\
+    \texttt{RETRANSMITTED\_}\newline\texttt{IN\_PKTS} & Fwd Avg Pkts/\newline Bulk & TCP packet loss recovery vs.\ bulk data transfer estimator \\
     \addlinespace
-    RETRANSMITTED\_\newline OUT\_PKTS & Bwd Avg Pkts/\newline Bulk & TCP packet loss recovery vs.\ bulk data transfer estimator \\
+    \texttt{RETRANSMITTED\_}\newline\texttt{OUT\_PKTS} & Bwd Avg Pkts/\newline Bulk & TCP packet loss recovery vs.\ bulk data transfer estimator \\
     \addlinespace
-    RETRANSMITTED\_\newline IN\_BYTES & Fwd Avg Bytes/\newline Bulk & Congestion loss volume vs.\ bulk payload size estimator \\
+    \texttt{RETRANSMITTED\_}\newline\texttt{IN\_BYTES} & Fwd Avg Bytes/\newline Bulk & Congestion loss volume vs.\ bulk payload size estimator \\
     \addlinespace
-    RETRANSMITTED\_\newline OUT\_BYTES & Bwd Avg Bytes/\newline Bulk & Congestion loss volume vs.\ bulk payload size estimator \\
+    \texttt{RETRANSMITTED\_}\newline\texttt{OUT\_BYTES} & Bwd Avg Bytes/\newline Bulk & Congestion loss volume vs.\ bulk payload size estimator \\
     \addlinespace
-    NUM\_PKTS\_UP\_\newline TO\_128\_BYTES & Subflow Fwd Pkts & Length histogram bin ($\le 128$\,B) vs.\ subflow partition count \\
+    \texttt{NUM\_PKTS\_UP\_}\newline\texttt{TO\_128\_BYTES} & Subflow Fwd Pkts & Length histogram bin ($\le 128$\,B) vs.\ subflow partition count \\
     \bottomrule
-  \end{tabular}
+  \end{tabular}%
+  }
 \end{table}
 
 We conducted an exhaustive field-by-field audit across all 21 candidate pairs against IETF RFC 7012 (IPFIX Information Elements)~\cite{rfc7012}, RFC 793 (TCP Control Bits)~\cite{rfc793}, the nProbe v9 manual, and the CICFlowMeter source code (\texttt{FlowFeature.java}). Candidate pairs were categorized into four deterministic tiers:
@@ -336,7 +343,7 @@ To eliminate negative transfer, \sysname{} discards all 8 Incompatible features,
 
 Counterintuitively, our empirical evaluation reveals that \emph{schema standardization does not rescue cross-dataset classification}. While a 76-feature unstandardized baseline achieves a binary F1 of 0.800 on ToN-IoT, 55 of its 76 features are zero-filled when applied cross-dataset. The unstandardized model exploits the \emph{pattern of zero-filling} as a spurious shortcut to separate benign from attack flows.
 
-When the model is trained strictly on the 13 verified NetFlow features, this artificial crutch is eliminated: binary F1 remains moderate at 0.766, but multi-class attack classification collapses to $\text{F1} = 0.057$. This negative result proves that feature standardization alone cannot resolve cross-domain transfer collapse in NIDS without active runtime assurance.
+When the model is trained strictly on the 13 verified NetFlow features, this artificial crutch is eliminated: binary F1 remains moderate at 0.766, but fine-grained multi-class classification collapses to macro-$F_1 = 0.057$ (compared to in-distribution macro-$F_1 = 0.7801$). This negative result proves that feature standardization alone cannot resolve cross-domain transfer collapse in NIDS without active runtime assurance.
 
 
 % ============================================================
@@ -349,10 +356,11 @@ When the model is trained strictly on the 13 verified NetFlow features, this art
 
 \begin{table}[t]
   \centering
-  \small
+  \footnotesize
   \caption{Benchmark Datasets, Model Architectures, and Protocol Specifications}
   \label{tab:datasets_models}
-  \begin{tabular}{@{}ll@{}}
+  \setlength{\tabcolsep}{3pt}
+  \begin{tabularx}{\columnwidth}{@{}p{2.6cm}>{\raggedright\arraybackslash}X@{}}
     \toprule
     \textbf{Component} & \textbf{Specification} \\
     \midrule
@@ -366,7 +374,7 @@ When the model is trained strictly on the 13 verified NetFlow features, this art
     Calibration Split & $N=10{,}000$ benign validation flows (target 5\% FPR) \\
     Resource Profiles & R0 (Ref), R1 (1 vCPU/512MB), R2 (2 vCPU/1GB), R3 (4 vCPU/2GB) \\
     \bottomrule
-  \end{tabular}
+  \end{tabularx}
 \end{table}
 
 Table~\ref{tab:datasets_models} summarizes the evaluation configuration governed by \texttt{configs/paper\_v1.yaml}. On in-distribution CSE-CIC-IDS2018 test traffic, the 13-feature ThreatMLP baseline achieves an overall accuracy of 85.15\% (0.8515), a weighted-average F1 of 91.98\% (0.9198), and a macro-average F1 of 78.01\% (0.7801), demonstrating strong multi-class discrimination across 15 attack classes. Across 5 evaluation seeds, clean in-distribution traffic yields an empirical clean rate of $86.94\% \pm 0.44\%$ (composite false alarm rate of $13.06\% \pm 0.44\%$).
@@ -375,12 +383,15 @@ Table~\ref{tab:datasets_models} summarizes the evaluation configuration governed
 
 \begin{table*}[t]
   \centering
-  \small
+  \footnotesize
   \caption{Main Out-of-Distribution Benchmark on Cross-Domain Shift (NF-ToN-IoT-v2) Across Operational Fixed-FPR Budgets}
   \label{tab:main_ood_benchmark}
+  \setlength{\tabcolsep}{3pt}
   \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lccccccc@{}}
     \toprule
-    \textbf{Assurance / Detector Method} & \textbf{AUROC} & \textbf{AUROC 95\% CI} & \textbf{AUPRC} & \textbf{FPR@95TPR} & \textbf{TPR@0.1\% FPR} & \textbf{TPR@1.0\% FPR} & \textbf{TPR@5.0\% FPR} \\
+    \multirow{2}{*}{\textbf{Assurance / Detector Method}} & \multirow{2}{*}{\textbf{AUROC}} & \multirow{2}{*}{\textbf{AUROC 95\% CI}} & \multirow{2}{*}{\textbf{AUPRC}} & \multirow{2}{*}{\textbf{FPR@95TPR}} & \multicolumn{3}{c}{\textbf{TPR at Fixed Operational FPR}} \\
+    \cmidrule(lr){6-8}
+     & & & & & \textbf{@0.1\% FPR} & \textbf{@1.0\% FPR} & \textbf{@5.0\% FPR} \\
     \midrule
     MSP (1 $-$ Confidence)~\cite{hendrycks2017baseline} & 0.8501 & [0.8406, 0.8576] & 0.9073 & 0.7212 & 0.0110 & \textbf{0.7922} & 0.7930 \\
     Cosine Distance (Class-Cond.) & 0.9455 & [0.9406, 0.9503] & 0.9447 & 0.1452 & 0.0000 & 0.0000 & 0.7604 \\
@@ -422,9 +433,10 @@ Table~\ref{tab:main_ood_benchmark} reports OOD detection performance on real cro
 
 \begin{table*}[t]
   \centering
-  \small
+  \footnotesize
   \caption{Failure-Mode Detection Coverage Matrix and Architectural Component Ablation (at 1\% FPR Budget)}
   \label{tab:failure_coverage_ablation}
+  \setlength{\tabcolsep}{5pt}
   \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lccccc@{}}
     \toprule
     \textbf{Deployment Failure Mode / Configuration} & \textbf{MSP Conf.} & \textbf{Cosine Dist.} & \textbf{Mahalanobis} & \textbf{Input Validator} & \textbf{Full \sysname{}} \\
@@ -480,14 +492,15 @@ By combining both regimes into a single state machine, \sysname{} achieves 100\%
 
 \subsection{External Validity: Cross-Dataset and Cross-Model Generalization}
 
-\begin{table}[t]
+\begin{table*}[t]
   \centering
-  \small
+  \footnotesize
   \caption{Cross-Dataset \& Cross-Model Generalization Across Target Datasets}
   \label{tab:cross_dataset_models}
-  \begin{tabular}{@{}lcccc@{}}
+  \setlength{\tabcolsep}{10pt}
+  \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lcccc@{}}
     \toprule
-    \textbf{Target Dataset / Architecture} & \textbf{Binary F1} & \textbf{Multi F1} & \textbf{Mahal AUROC} & \textbf{Assurance} \\
+    \textbf{Target Dataset / Architecture} & \textbf{Binary F1} & \textbf{Multi-Class Macro-F1} & \textbf{Mahal AUROC} & \textbf{Assurance AUROC} \\
     \midrule
     \multicolumn{5}{@{}l}{\emph{ThreatMLP (13 features, 46,542 params, 2.48 KB ONNX)}} \\
     \quad CSE-CIC-IDS2018 (In-Dist) & 0.9198 & 0.7801 & 1.0000 (Ref) & 1.0000 (Ref) \\
@@ -499,8 +512,8 @@ By combining both regimes into a single state machine, \sysname{} achieves 100\%
     \quad NF-ToN-IoT-v2 & 0.5896 & 0.0384 & 0.3495 & 0.3549 \\
     \quad NF-BoT-IoT-v2 & 0.2194 & 0.0152 & 0.4952 & 0.4952 \\
     \bottomrule
-  \end{tabular}
-\end{table}
+  \end{tabular*}
+\end{table*}
 
 \begin{figure}[t]
   \centering
@@ -524,36 +537,37 @@ Evaluating mapping tiers confirms the audit: Tier 1 (8 exact features) yields me
 
 \begin{table*}[t]
   \centering
-  \small
   \caption{Simulated Edge Resource Constraints Profiling and Quantization Trade-offs (Docker cgroups v2)}
   \label{tab:resource_quantization}
-  \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lcccccccc@{}}
+  \resizebox{\textwidth}{!}{%
+  \begin{tabular}{lcccccccc}
     \toprule
-    \textbf{Profile / Mode} & \textbf{CPU Limit} & \textbf{RAM Limit} & \textbf{Mean (ms)} & \textbf{p50 (ms)} & \textbf{p95 (ms)} & \textbf{Throughput} & \textbf{RSS (MB)} & \textbf{Accuracy / F1} \\
+    \textbf{Profile / Mode} & \textbf{CPU} & \textbf{RAM} & \textbf{\makecell[c]{Mean\\(ms)}} & \textbf{\makecell[c]{p50\\(ms)}} & \textbf{\makecell[c]{p95\\(ms)}} & \textbf{\makecell[c]{Throughput\\(flows/s)}} & \textbf{\makecell[c]{RSS\\(MB)}} & \textbf{Accuracy / F1 / Operational Note} \\
     \midrule
-    \multicolumn{9}{@{}l}{\emph{Profile R0: Reference Unconstrained Host}} \\
-    \quad Plain ONNX & Host & Host & 0.2781 & 0.2555 & 0.3863 & 3,582 flows/s & 123.7 & Acc = 0.8515 / F1 = 0.7801 \\
-    \quad \sysname{} & Host & Host & 0.8883 & 0.8441 & 1.1920 & 1,124 flows/s & 124.9 & Bounded Overhead: +0.610 ms \\
+    \multicolumn{9}{l}{\emph{Profile R0: Reference Unconstrained Host}} \\
+    \quad Plain ONNX & Host & Host & 0.2781 & 0.2555 & 0.3863 & 3,582 & 123.7 & Acc = 0.8515 / F1 = 0.7801 \\
+    \quad \sysname{} & Host & Host & 0.8883 & 0.8441 & 1.1920 & 1,124 & 124.9 & Bounded Overhead: +0.610 ms \\
     \addlinespace
-    \multicolumn{9}{@{}l}{\emph{Profile R1: Constrained IoT Gateway}} \\
-    \quad Plain ONNX & 1 vCPU & 512 MB & 0.2705 & 0.2533 & 0.3473 & 3,680 flows/s & 122.4 & Acc = 0.8515 / F1 = 0.7801 \\
-    \quad \sysname{} & 1 vCPU & 512 MB & 0.9111 & 0.8324 & 1.3404 & 1,101 flows/s & 124.5 & Bounded Overhead: +0.640 ms \\
+    \multicolumn{9}{l}{\emph{Profile R1: Constrained IoT Gateway}} \\
+    \quad Plain ONNX & 1 vCPU & 512 MB & 0.2705 & 0.2533 & 0.3473 & 3,680 & 122.4 & Acc = 0.8515 / F1 = 0.7801 \\
+    \quad \sysname{} & 1 vCPU & 512 MB & 0.9111 & 0.8324 & 1.3404 & 1,101 & 124.5 & Bounded Overhead: +0.640 ms \\
     \addlinespace
-    \multicolumn{9}{@{}l}{\emph{Profile R2: Industrial Edge Controller}} \\
-    \quad Plain ONNX & 2 vCPU & 1024 MB & 0.2775 & 0.2559 & 0.3608 & 3,590 flows/s & 123.4 & Acc = 0.8515 / F1 = 0.7801 \\
-    \quad \sysname{} & 2 vCPU & 1024 MB & 0.9034 & 0.8418 & 1.2790 & 1,107 flows/s & 124.3 & Bounded Overhead: +0.625 ms \\
+    \multicolumn{9}{l}{\emph{Profile R2: Industrial Edge Controller}} \\
+    \quad Plain ONNX & 2 vCPU & 1024 MB & 0.2775 & 0.2559 & 0.3608 & 3,590 & 123.4 & Acc = 0.8515 / F1 = 0.7801 \\
+    \quad \sysname{} & 2 vCPU & 1024 MB & 0.9034 & 0.8418 & 1.2790 & 1,107 & 124.3 & Bounded Overhead: +0.625 ms \\
     \addlinespace
-    \multicolumn{9}{@{}l}{\emph{Profile R3: Multi-Core Edge Appliance}} \\
-    \quad Plain ONNX & 4 vCPU & 2048 MB & 0.2988 & 0.2692 & 0.4280 & 3,354 flows/s & 123.0 & Acc = 0.8515 / F1 = 0.7801 \\
-    \quad \sysname{} & 4 vCPU & 2048 MB & 0.9309 & 0.8528 & 1.4049 & 1,073 flows/s & 124.0 & Bounded Overhead: +0.632 ms \\
+    \multicolumn{9}{l}{\emph{Profile R3: Multi-Core Edge Appliance}} \\
+    \quad Plain ONNX & 4 vCPU & 2048 MB & 0.2988 & 0.2692 & 0.4280 & 3,354 & 123.0 & Acc = 0.8515 / F1 = 0.7801 \\
+    \quad \sysname{} & 4 vCPU & 2048 MB & 0.9309 & 0.8528 & 1.4049 & 1,073 & 124.0 & Bounded Overhead: +0.632 ms \\
     \midrule
-    \multicolumn{9}{@{}l}{\textbf{Multi-Precision Quantization Comparison under Profile R1 (1 vCPU, 512 MB RAM):}} \\
-    \quad FP32 Baseline & 1 vCPU & 512 MB & 0.0379 (p95) & --- & 0.1765 MB & 38,064 flows/s & 135.7 & Acc = 0.8719 / Macro-F1 = 0.7801 \\
-    \quad FP16 Converted & 1 vCPU & 512 MB & 0.0482 (p95) & --- & 0.0889 MB ($-$49.6\%) & 32,467 flows/s & 136.5 & Acc = 0.8721 / Macro-F1 = 0.7802 ($\Delta\text{F1} = -0.01\%$) \\
-    \quad INT8 Static & 1 vCPU & 512 MB & 0.0444 (p95) & --- & 0.0479 MB ($-$72.9\%) & 35,944 flows/s & 137.9 & Acc = 0.5569 / Macro-F1 = 0.4833 ($\Delta\text{F1} = -38.04\%$) \\
-    \quad INT4 Weight-Only & 1 vCPU & 512 MB & 0.0554 (p95) & --- & 0.0340 MB ($-$80.7\%) & 29,986 flows/s & 143.7 & Acc = 0.8516 / Macro-F1 = 0.7627 ($\Delta\text{F1} = -2.24\%$) \\
+    \multicolumn{9}{l}{\textbf{Multi-Precision Quantization Comparison under Profile R1 (1 vCPU, 512 MB RAM):}} \\
+    \quad FP32 Baseline & 1 vCPU & 512 MB & 0.0379 (p95) & --- & 0.1765 MB & 38,064 & 135.7 & Acc = 0.8719 / Macro-F1 = 0.7801 \\
+    \quad FP16 Converted & 1 vCPU & 512 MB & 0.0482 (p95) & --- & 0.0889 MB ($-$49.6\%) & 32,467 & 136.5 & Acc = 0.8721 / Macro-F1 = 0.7802 ($\Delta\text{F1} = -0.01\%$) \\
+    \quad INT8 Static & 1 vCPU & 512 MB & 0.0444 (p95) & --- & 0.0479 MB ($-$72.9\%) & 35,944 & 137.9 & Acc = 0.5569 / Macro-F1 = 0.4833 ($\Delta\text{F1} = -38.04\%$) \\
+    \quad INT4 Weight-Only & 1 vCPU & 512 MB & 0.0554 (p95) & --- & 0.0340 MB ($-$80.7\%) & 29,986 & 143.7 & Acc = 0.8516 / Macro-F1 = 0.7627 ($\Delta\text{F1} = -2.24\%$) \\
     \bottomrule
-  \end{tabular*}
+  \end{tabular}%
+  }
 \end{table*}
 
 \begin{figure*}[t]
