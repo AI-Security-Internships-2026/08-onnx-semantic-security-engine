@@ -1615,5 +1615,19 @@ Following final supervisor review, a rigorous 8-phase execution plan was establi
   - Executed `python experiments/reproduce_paper.py --verify`, verifying all 19 JSONs, 23 publication figures, 19 canonical CSV tables, SHA-256 hashes, and 89 numerical claims.
   - Executed `python -m pytest tests/ -v`, maintaining a 100% pass rate (**71/71 tests passing**).
 
+### Phase 3: Issue #23 — Fixed-FPR, Failure Modes & Ablation Verification
+- **What We Did:**
+  - Audited multi-threshold fixed-FPR sensitivity evaluations across 0.1%, 1.0%, and 5.0% false-alarm budgets for all five detector configurations: Maximum Softmax Probability (MSP), class-conditional Cosine, class-conditional Mahalanobis, Input Validator, and Full SEMANTICSHIELD.
+  - Verified the 12-row failure-mode coverage matrix spanning operational failure modes E1 through E8 with $B=1{,}000$ bootstrap 95% confidence intervals.
+  - Validated systematic ablation experiments (Full, −MSP, −Cosine, −Mahalanobis, −Validator) proving that deterministic structural validation and statistical distance scoring are strictly complementary.
+  - Confirmed that structural input validation maintains zero false alarms on clean in-distribution data ($\text{FPR} = 0.0\%$) while providing 100% deterministic interception against zero-filled tampering where all statistical detectors collapse to 0.0%.
+- **How We Did It:**
+  - Audited `experiments/paper_results/json/fixed_fpr_evaluation.json`, confirming empirical threshold calibration and observed ID false alarm rates at 0.1%, 1.0%, and 5.0% FPR.
+  - Verified `experiments/paper_results/json/failure_mode_coverage_matrix.json` entries and aligned canonical CSV `experiments/paper_results/tables/table_failure_mode_coverage.csv`.
+  - Reconciled `experiments/paper_results/json/ablation_fixed_fpr.json` metrics with manuscript Table III.
+  - Executed `python docs/paper/verify_numbers.py` (89/89 checks passed).
+  - Executed `python -m pytest tests/ -v`, maintaining a 100% pass rate (**71/71 tests passing**).
+
+
 
 
