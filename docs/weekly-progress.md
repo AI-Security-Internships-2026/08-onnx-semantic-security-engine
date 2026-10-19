@@ -1600,4 +1600,20 @@ Following final supervisor review, a rigorous 8-phase execution plan was establi
   - Executed `python -m pytest tests/ -v`, achieving a verified pass rate of **71/71 tests (100% pass)** in 1.28s.
   - Executed `python docs/paper/verify_numbers.py`, confirming **89/89 numerical assertion checks pass (100% truthful)**.
 
+### Phase 2: Issue #22 — Results Consolidation & Provenance Audit
+- **What We Did:**
+  - Audited and verified all 19 machine-readable canonical JSON results under `experiments/paper_results/json/` to ensure 100% compliance with frozen configuration `paper_v1.yaml` provenance standards.
+  - Confirmed strict isolation and archival of all legacy, prototype, and superseding artifacts in `experiments/results/_archived/`, ensuring no active scripts reference unversioned outputs.
+  - Verified `experiments/paper_results/RELEASE_METADATA.json` integrity, ensuring explicit edge simulation disclaimers and thread execution controls (R0–R3 profiles) are documented accurately.
+  - Harmonized Section 4 ("Mandatory Edge Simulation Limitation") of `paper_artifact_manifest.md` to consistently reference ONNX Runtime thread execution controls on a commodity x86_64 host.
+  - Validated full 5-tier paper reproduction suite via `python experiments/reproduce_paper.py --verify` and 23 cryptographic SHA-256 artifact checksums via `python scripts/download_artifacts.py --verify-checksums`.
+- **How We Did It:**
+  - Ran automated provenance inspection scripts across all 19 JSON results in `experiments/paper_results/json/`, confirming each has valid `config_version: "paper_v1"`, UTC timestamp, and git commit tracking.
+  - Verified `experiments/results/` contains solely `.gitkeep` and `_archived/`.
+  - Audited `RELEASE_METADATA.json` and synchronized `paper_artifact_manifest.md` guardrail statements.
+  - Executed `python scripts/download_artifacts.py --verify-checksums` with all 23 SHA-256 checksums matching.
+  - Executed `python experiments/reproduce_paper.py --verify`, verifying all 19 JSONs, 23 publication figures, 19 canonical CSV tables, SHA-256 hashes, and 89 numerical claims.
+  - Executed `python -m pytest tests/ -v`, maintaining a 100% pass rate (**71/71 tests passing**).
+
+
 
