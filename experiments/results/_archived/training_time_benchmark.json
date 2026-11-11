@@ -1,4 +1,13 @@
 {
+  "provenance": {
+    "config_version": "paper_v1",
+    "config_frozen_date": "2026-09-11",
+    "git_commit": "3532595b2f3d78397df64e35f6f9659e5a541223",
+    "git_branch": "sikandarhussain6858-issue-1",
+    "timestamp_utc": "2026-09-22T16:52:29.534008+00:00",
+    "python_version": "3.14.3",
+    "platform": "win32"
+  },
   "experiment": "Training Time per Feature-Schema Stage Benchmark",
   "device": "cpu",
   "hyperparameters": {
@@ -15,10 +24,10 @@
       "parameter_count": 62926,
       "train_samples": 159567,
       "test_samples": 39892,
-      "total_train_time_sec": 83.196,
-      "mean_epoch_time_ms": 5546.4,
-      "std_epoch_time_ms": 379.65,
-      "train_throughput_samples_per_sec": 28769.4,
+      "total_train_time_sec": 78.034,
+      "mean_epoch_time_ms": 5202.25,
+      "std_epoch_time_ms": 350.55,
+      "train_throughput_samples_per_sec": 30672.6,
       "test_macro_f1": 0.5767,
       "test_accuracy": 0.6116,
       "epoch_losses": [
@@ -48,10 +57,10 @@
       "parameter_count": 48590,
       "train_samples": 159567,
       "test_samples": 39892,
-      "total_train_time_sec": 72.675,
-      "mean_epoch_time_ms": 4844.95,
-      "std_epoch_time_ms": 320.85,
-      "train_throughput_samples_per_sec": 32934.6,
+      "total_train_time_sec": 72.826,
+      "mean_epoch_time_ms": 4855.06,
+      "std_epoch_time_ms": 145.39,
+      "train_throughput_samples_per_sec": 32866.0,
       "test_macro_f1": 0.4008,
       "test_accuracy": 0.4312,
       "epoch_losses": [
@@ -71,8 +80,8 @@
         0.6171,
         0.5941
       ],
-      "speedup_vs_baseline": 1.14,
-      "time_reduction_pct": 12.65,
+      "speedup_vs_baseline": 1.07,
+      "time_reduction_pct": 6.67,
       "param_reduction_pct": 22.78
     },
     "13-Feature Standardized": {
@@ -81,10 +90,10 @@
       "parameter_count": 46542,
       "train_samples": 159567,
       "test_samples": 39892,
-      "total_train_time_sec": 78.824,
-      "mean_epoch_time_ms": 5254.92,
-      "std_epoch_time_ms": 588.78,
-      "train_throughput_samples_per_sec": 30365.2,
+      "total_train_time_sec": 75.447,
+      "mean_epoch_time_ms": 5029.76,
+      "std_epoch_time_ms": 192.2,
+      "train_throughput_samples_per_sec": 31724.4,
       "test_macro_f1": 0.374,
       "test_accuracy": 0.4447,
       "epoch_losses": [
@@ -104,8 +113,8 @@
         0.6502,
         0.6124
       ],
-      "speedup_vs_baseline": 1.06,
-      "time_reduction_pct": 5.26,
+      "speedup_vs_baseline": 1.03,
+      "time_reduction_pct": 3.32,
       "param_reduction_pct": 26.04
     }
   }

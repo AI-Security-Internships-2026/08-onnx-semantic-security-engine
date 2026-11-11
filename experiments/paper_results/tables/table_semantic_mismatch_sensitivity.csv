@@ -1,0 +1,7 @@
+Model,Mapping Tier,Features Active,Accuracy,Macro-F1,MSP AUROC,Mean Mahalanobis Dist
+ThreatMLP,Tier 1: Exact Only,8 Exact,0.7203,0.8372,0.6235,16.0791
+ThreatMLP,Tier 2: Standardized,13 Standardized,0.6309,0.7696,0.5657,219409429382212812216991744.0000
+ThreatMLP,Tier 3: With Mismatches,13 (3 Mismatched),0.6979,0.8211,0.3423,17.4818
+ThreatCNN1D,Tier 1: Exact Only,8 Exact,0.7202,0.8374,0.0001,87.3495
+ThreatCNN1D,Tier 2: Standardized,13 Standardized,0.4664,0.5809,0.4019,1352147963916388619893342208.0000
+ThreatCNN1D,Tier 3: With Mismatches,13 (3 Mismatched),0.4227,0.5254,0.4038,42.5031

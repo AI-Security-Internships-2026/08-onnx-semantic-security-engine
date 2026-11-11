@@ -1,0 +1,462 @@
+{
+  "provenance": {
+    "config_version": "paper_v1",
+    "config_frozen_date": "2026-09-11",
+    "git_commit": "9e55e61dd9f07c51b6cebf1e9a88d88e9e8ceaa8",
+    "git_branch": "sikandarhussain6858-issue-1",
+    "timestamp_utc": "2026-09-25T17:05:32.838485+00:00",
+    "python_version": "3.14.3",
+    "platform": "win32"
+  },
+  "experiment": "E2.3-E INT8 Quantization Degradation Investigation",
+  "methodology": {
+    "quantization_algorithm": "ONNX Runtime Static Post-Training Quantization (quantize_static)",
+    "quant_format": "QOperator",
+    "weight_type": "QInt8",
+    "activation_type": "QUInt8",
+    "calibration_reader": "Sequential slice (first 10,000 samples of X_test_nf.npy)"
+  },
+  "evidence_summary": {
+    "primary_cause": "Activation Range Disparity and Outlier Clipping under Asymmetric QUInt8",
+    "is_activation_clipping_confirmed": true,
+    "weight_quantization_impact": "Negligible (INT4 weight-only maintains 0.7627 Macro-F1 vs FP32 0.7801)",
+    "key_takeaway": "The severe degradation in static INT8 (Macro-F1 0.7801 -> 0.4833) is primarily caused by activation dynamic range compression and clipping on non-stationary network traffic features. Weight-only INT4 quantization preserves 97.8% of FP32 Macro-F1, providing direct empirical evidence that the degradation is concentrated in activation quantization rather than weight representation."
+  },
+  "calibration_inspection": {
+    "calibration_sample_count": 10000,
+    "total_test_samples": 138069,
+    "calibration_class_counts": {
+      "Benign": 1455,
+      "Bot": 273,
+      "Brute Force -Web": 65,
+      "Brute Force -XSS": 74,
+      "DDOS attack-HOIC": 1474,
+      "DDOS attack-LOIC-UDP": 88,
+      "DDoS attacks-LOIC-HTTP": 1455,
+      "DoS attacks-GoldenEye": 572,
+      "DoS attacks-Hulk": 1443,
+      "DoS attacks-SlowHTTPTest": 72,
+      "DoS attacks-Slowloris": 114,
+      "FTP-BruteForce": 74,
+      "Infilteration": 1437,
+      "SQL Injection": 61,
+      "SSH-Bruteforce": 1343
+    },
+    "full_class_counts": {
+      "Benign": 20000,
+      "Bot": 3802,
+      "Brute Force -Web": 1000,
+      "Brute Force -XSS": 1000,
+      "DDOS attack-HOIC": 20000,
+      "DDOS attack-LOIC-UDP": 1000,
+      "DDoS attacks-LOIC-HTTP": 20000,
+      "DoS attacks-GoldenEye": 8281,
+      "DoS attacks-Hulk": 20000,
+      "DoS attacks-SlowHTTPTest": 1000,
+      "DoS attacks-Slowloris": 1819,
+      "FTP-BruteForce": 1000,
+      "Infilteration": 20000,
+      "SQL Injection": 1000,
+      "SSH-Bruteforce": 18167
+    },
+    "calibration_class_pct": {
+      "Benign": 14.55,
+      "Bot": 2.73,
+      "Brute Force -Web": 0.65,
+      "Brute Force -XSS": 0.74,
+      "DDOS attack-HOIC": 14.74,
+      "DDOS attack-LOIC-UDP": 0.88,
+      "DDoS attacks-LOIC-HTTP": 14.55,
+      "DoS attacks-GoldenEye": 5.72,
+      "DoS attacks-Hulk": 14.43,
+      "DoS attacks-SlowHTTPTest": 0.72,
+      "DoS attacks-Slowloris": 1.14,
+      "FTP-BruteForce": 0.74,
+      "Infilteration": 14.37,
+      "SQL Injection": 0.61,
+      "SSH-Bruteforce": 13.43
+    },
+    "full_class_pct": {
+      "Benign": 14.49,
+      "Bot": 2.75,
+      "Brute Force -Web": 0.72,
+      "Brute Force -XSS": 0.72,
+      "DDOS attack-HOIC": 14.49,
+      "DDOS attack-LOIC-UDP": 0.72,
+      "DDoS attacks-LOIC-HTTP": 14.49,
+      "DoS attacks-GoldenEye": 6.0,
+      "DoS attacks-Hulk": 14.49,
+      "DoS attacks-SlowHTTPTest": 0.72,
+      "DoS attacks-Slowloris": 1.32,
+      "FTP-BruteForce": 0.72,
+      "Infilteration": 14.49,
+      "SQL Injection": 0.72,
+      "SSH-Bruteforce": 13.16
+    },
+    "classes_missing_in_calibration": [],
+    "feature_coverage_summary": [
+      {
+        "feature_index": 0,
+        "full_min": -0.38722407817840576,
+        "full_max": 4.10640811920166,
+        "full_p99": 4.0511393547058105,
+        "calib_min": -0.38722407817840576,
+        "calib_max": 4.1064066886901855,
+        "calib_p99": 4.074601173400879,
+        "range_coverage_pct": 100.0
+      },
+      {
+        "feature_index": 1,
+        "full_min": -0.08460653573274612,
+        "full_max": 29.54302978515625,
+        "full_p99": -0.0652775913476944,
+        "calib_min": -0.08460653573274612,
+        "calib_max": 14.543959617614746,
+        "calib_p99": -0.0652775913476944,
+        "range_coverage_pct": 49.37
+      },
+      {
+        "feature_index": 2,
+        "full_min": -0.07396901398897171,
+        "full_max": 73.98741149902344,
+        "full_p99": 0.35963326692581177,
+        "calib_min": -0.07396901398897171,
+        "calib_max": 39.15117263793945,
+        "calib_p99": 0.528843879699707,
+        "range_coverage_pct": 52.96
+      },
+      {
+        "feature_index": 3,
+        "full_min": -0.08642891049385071,
+        "full_max": 29.534992218017578,
+        "full_p99": 0.08123729377985,
+        "calib_min": -0.08642891049385071,
+        "calib_max": 14.539117813110352,
+        "calib_p99": 0.08197572082281113,
+        "range_coverage_pct": 49.37
+      },
+      {
+        "feature_index": 4,
+        "full_min": -0.02343357354402542,
+        "full_max": 74.28092193603516,
+        "full_p99": 0.1432621031999588,
+        "calib_min": -0.02343357354402542,
+        "calib_max": 38.8050537109375,
+        "calib_p99": 0.30644476413726807,
+        "range_coverage_pct": 52.26
+      },
+      {
+        "feature_index": 5,
+        "full_min": -1.065255045890808,
+        "full_max": 6.823026180267334,
+        "full_p99": 1.8053557872772217,
+        "calib_min": -1.065255045890808,
+        "calib_max": 6.823026180267334,
+        "calib_p99": 1.8053557872772217,
+        "range_coverage_pct": 100.0
+      },
+      {
+        "feature_index": 6,
+        "full_min": -0.19538012146949768,
+        "full_max": 31.368837356567383,
+        "full_p99": 1.847481608390808,
+        "calib_min": -0.19538012146949768,
+        "calib_max": 19.83267593383789,
+        "calib_p99": 1.8074254989624023,
+        "range_coverage_pct": 63.45
+      },
+      {
+        "feature_index": 7,
+        "full_min": -2.1275839805603027,
+        "full_max": 3.000586748123169,
+        "full_p99": 3.000586748123169,
+        "calib_min": -2.1275839805603027,
+        "calib_max": 3.000586748123169,
+        "calib_p99": 3.000586748123169,
+        "range_coverage_pct": 100.0
+      },
+      {
+        "feature_index": 8,
+        "full_min": -0.8684106469154358,
+        "full_max": 5.840972900390625,
+        "full_p99": 2.4684369564056396,
+        "calib_min": -0.8684106469154358,
+        "calib_max": 4.342067718505859,
+        "calib_p99": 2.4684369564056396,
+        "range_coverage_pct": 77.66
+      },
+      {
+        "feature_index": 9,
+        "full_min": -0.19374188780784607,
+        "full_max": 56.71943664550781,
+        "full_p99": 1.7943211793899536,
+        "calib_min": -0.19374188780784607,
+        "calib_max": 19.297073364257812,
+        "calib_p99": 1.755339503288269,
+        "range_coverage_pct": 34.25
+      },
+      {
+        "feature_index": 10,
+        "full_min": -0.0559840090572834,
+        "full_max": 209.72445678710938,
+        "full_p99": 0.7781850695610046,
+        "calib_min": -0.0559840090572834,
+        "calib_max": 40.5319709777832,
+        "calib_p99": 0.7696977853775024,
+        "range_coverage_pct": 19.35
+      },
+      {
+        "feature_index": 11,
+        "full_min": -0.8088918328285217,
+        "full_max": 2.2280030250549316,
+        "full_p99": 2.2280030250549316,
+        "calib_min": -0.8088918328285217,
+        "calib_max": 2.2280030250549316,
+        "calib_p99": 2.2280030250549316,
+        "range_coverage_pct": 100.0
+      },
+      {
+        "feature_index": 12,
+        "full_min": -0.25437986850738525,
+        "full_max": 4.6673583984375,
+        "full_p99": 4.467367649078369,
+        "calib_min": -0.25437986850738525,
+        "calib_max": 4.655117511749268,
+        "calib_p99": 4.467367649078369,
+        "range_coverage_pct": 99.75
+      }
+    ]
+  },
+  "onnx_quantization_parameters": {
+    "total_nodes": 7,
+    "quantized_nodes": [
+      {
+        "op_type": "QuantizeLinear",
+        "name": "input_QuantizeLinear",
+        "input": "input",
+        "output": "input_quantized",
+        "scale": 0.16729237139225006,
+        "zero_point": 13
+      },
+      {
+        "op_type": "DequantizeLinear",
+        "name": "embedding_DequantizeLinear",
+        "input": "getitem_6_quantized",
+        "output": "embedding",
+        "scale": 0.4953453838825226,
+        "zero_point": 0
+      },
+      {
+        "op_type": "DequantizeLinear",
+        "name": "output_DequantizeLinear",
+        "input": "output_quantized",
+        "output": "output",
+        "scale": 4.227878570556641,
+        "zero_point": 210
+      }
+    ],
+    "quant_format": "QOperator (Static INT8 weights, QUInt8 activations)",
+    "scale_distribution": {
+      "min_scale": 0.16729237139225006,
+      "max_scale": 4.227878570556641,
+      "mean_scale": 1.630172108610471
+    }
+  },
+  "layer_activations_summary": {
+    "output": {
+      "min": -889.931884765625,
+      "max": 188.17715454101562,
+      "mean": -10.086901664733887,
+      "p95": 7.772092342376709,
+      "p99": 14.347871780395508,
+      "p99_9": 16.404861450195312,
+      "skewness": -12.875809669494629
+    },
+    "embedding": {
+      "min": 0.0,
+      "max": 126.31307220458984,
+      "mean": 0.7186741828918457,
+      "p95": 2.8677926063537598,
+      "p99": 3.8963897228240967,
+      "p99_9": 7.086067199707031,
+      "skewness": 16.781999588012695
+    },
+    "getitem": {
+      "min": -153.1053009033203,
+      "max": 73.36528778076172,
+      "mean": -0.28360843658447266,
+      "p95": 0.4990590214729309,
+      "p99": 1.451066017150879,
+      "p99_9": 2.790073871612549,
+      "skewness": -7.662725925445557
+    },
+    "relu": {
+      "min": 0.0,
+      "max": 73.36528778076172,
+      "mean": 0.1018180176615715,
+      "p95": 0.4990590214729309,
+      "p99": 1.451066017150879,
+      "p99_9": 2.790073871612549,
+      "skewness": 30.660566329956055
+    },
+    "getitem_3": {
+      "min": -52.587745666503906,
+      "max": 17.98917007446289,
+      "mean": -0.42930203676223755,
+      "p95": 0.22747546434402466,
+      "p99": 0.5117039680480957,
+      "p99_9": 1.15396249294281,
+      "skewness": -5.238424301147461
+    },
+    "relu_1": {
+      "min": 0.0,
+      "max": 17.98917007446289,
+      "mean": 0.038846202194690704,
+      "p95": 0.22747546434402466,
+      "p99": 0.5117039680480957,
+      "p99_9": 1.15396249294281,
+      "skewness": 21.895065307617188
+    },
+    "getitem_6": {
+      "min": -111.20042419433594,
+      "max": 126.31307220458984,
+      "mean": 0.06867137551307678,
+      "p95": 2.8677926063537598,
+      "p99": 3.8963897228240967,
+      "p99_9": 7.086067199707031,
+      "skewness": 1.5011143684387207
+    }
+  },
+  "per_class_degradation": {
+    "overall": {
+      "fp32_macro_f1": 0.7801,
+      "int8_macro_f1": 0.4833,
+      "int4_macro_f1": 0.7627,
+      "fp32_accuracy": 0.8719,
+      "int8_accuracy": 0.5569,
+      "int4_accuracy": 0.8516
+    },
+    "per_class": {
+      "Benign": {
+        "support": 20000.0,
+        "f1_fp32": 0.5903,
+        "f1_int8": 0.4183,
+        "f1_int4": 0.5857,
+        "int8_drop": 0.172,
+        "int8_drop_pct": 29.14
+      },
+      "Bot": {
+        "support": 3802.0,
+        "f1_fp32": 0.9404,
+        "f1_int8": 0.0105,
+        "f1_int4": 0.9376,
+        "int8_drop": 0.93,
+        "int8_drop_pct": 98.89
+      },
+      "Brute Force -Web": {
+        "support": 1000.0,
+        "f1_fp32": 0.6654,
+        "f1_int8": 0.6903,
+        "f1_int4": 0.6573,
+        "int8_drop": -0.0249,
+        "int8_drop_pct": -3.74
+      },
+      "Brute Force -XSS": {
+        "support": 1000.0,
+        "f1_fp32": 0.6578,
+        "f1_int8": 0.6604,
+        "f1_int4": 0.6064,
+        "int8_drop": -0.0026,
+        "int8_drop_pct": -0.39
+      },
+      "DDOS attack-HOIC": {
+        "support": 20000.0,
+        "f1_fp32": 0.997,
+        "f1_int8": 0.892,
+        "f1_int4": 0.9967,
+        "int8_drop": 0.105,
+        "int8_drop_pct": 10.53
+      },
+      "DDOS attack-LOIC-UDP": {
+        "support": 1000.0,
+        "f1_fp32": 0.9872,
+        "f1_int8": 0.9852,
+        "f1_int4": 0.9857,
+        "int8_drop": 0.002,
+        "int8_drop_pct": 0.2
+      },
+      "DDoS attacks-LOIC-HTTP": {
+        "support": 20000.0,
+        "f1_fp32": 0.9826,
+        "f1_int8": 0.6378,
+        "f1_int4": 0.9749,
+        "int8_drop": 0.3448,
+        "int8_drop_pct": 35.09
+      },
+      "DoS attacks-GoldenEye": {
+        "support": 8281.0,
+        "f1_fp32": 0.9418,
+        "f1_int8": 0.7386,
+        "f1_int4": 0.9458,
+        "int8_drop": 0.2032,
+        "int8_drop_pct": 21.58
+      },
+      "DoS attacks-Hulk": {
+        "support": 20000.0,
+        "f1_fp32": 0.9638,
+        "f1_int8": 0.307,
+        "f1_int4": 0.9085,
+        "int8_drop": 0.6567,
+        "int8_drop_pct": 68.14
+      },
+      "DoS attacks-SlowHTTPTest": {
+        "support": 1000.0,
+        "f1_fp32": 0.6631,
+        "f1_int8": 0.0,
+        "f1_int4": 0.6629,
+        "int8_drop": 0.6631,
+        "int8_drop_pct": 100.0
+      },
+      "DoS attacks-Slowloris": {
+        "support": 1819.0,
+        "f1_fp32": 0.9585,
+        "f1_int8": 0.3179,
+        "f1_int4": 0.9188,
+        "int8_drop": 0.6406,
+        "int8_drop_pct": 66.83
+      },
+      "FTP-BruteForce": {
+        "support": 1000.0,
+        "f1_fp32": 0.0,
+        "f1_int8": 0.0,
+        "f1_int4": 0.0,
+        "int8_drop": 0.0,
+        "int8_drop_pct": 100.0
+      },
+      "Infilteration": {
+        "support": 20000.0,
+        "f1_fp32": 0.6956,
+        "f1_int8": 0.1219,
+        "f1_int4": 0.6238,
+        "int8_drop": 0.5737,
+        "int8_drop_pct": 82.48
+      },
+      "SQL Injection": {
+        "support": 1000.0,
+        "f1_fp32": 0.659,
+        "f1_int8": 0.4709,
+        "f1_int4": 0.6369,
+        "int8_drop": 0.1881,
+        "int8_drop_pct": 28.54
+      },
+      "SSH-Bruteforce": {
+        "support": 18167.0,
+        "f1_fp32": 0.9993,
+        "f1_int8": 0.9993,
+        "f1_int4": 0.9992,
+        "int8_drop": 0.0001,
+        "int8_drop_pct": 0.01
+      }
+    }
+  }
+}

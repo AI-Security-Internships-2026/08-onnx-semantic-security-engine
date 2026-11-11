@@ -1,0 +1,46 @@
+{
+  "R0": {
+    "id": "R0",
+    "name": "Reference",
+    "vcpu_limit": null,
+    "memory_limit_mb": null,
+    "docker_cpus": null,
+    "docker_memory": null,
+    "intra_threads": 0,
+    "inter_threads": 0,
+    "description": "Host/container reference (unconstrained baseline)"
+  },
+  "R1": {
+    "id": "R1",
+    "name": "Low",
+    "vcpu_limit": 1,
+    "memory_limit_mb": 512,
+    "docker_cpus": "1.0",
+    "docker_memory": "512m",
+    "intra_threads": 1,
+    "inter_threads": 1,
+    "description": "Strongly constrained edge profile (1 vCPU, 512 MB)"
+  },
+  "R2": {
+    "id": "R2",
+    "name": "Medium",
+    "vcpu_limit": 2,
+    "memory_limit_mb": 1024,
+    "docker_cpus": "2.0",
+    "docker_memory": "1024m",
+    "intra_threads": 2,
+    "inter_threads": 1,
+    "description": "Moderately constrained edge controller (2 vCPU, 1 GB)"
+  },
+  "R3": {
+    "id": "R3",
+    "name": "Higher",
+    "vcpu_limit": 4,
+    "memory_limit_mb": 2048,
+    "docker_cpus": "4.0",
+    "docker_memory": "2048m",
+    "intra_threads": 4,
+    "inter_threads": 2,
+    "description": "Less constrained edge gateway (4 vCPU, 2 GB)"
+  }
+}

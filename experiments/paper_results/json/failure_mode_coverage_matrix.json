@@ -1,0 +1,750 @@
+{
+  "provenance": {
+    "config_version": "paper_v1",
+    "config_frozen_date": "2026-09-11",
+    "git_commit": "f23a00164d8dbfbb18ff1f9da1047de344f05c90",
+    "git_branch": "sikandarhussain6858-issue-1",
+    "timestamp_utc": "2026-09-30T18:02:58.564228+00:00",
+    "python_version": "3.14.3",
+    "platform": "win32"
+  },
+  "experiment": "Failure-Mode Coverage Matrix",
+  "operating_point": "1% FPR (calibrated on D_cal)",
+  "matrix": {
+    "E1_id_test": {
+      "label": "E1: Clean ID Baseline (CSE-CIC-IDS2018)",
+      "msp": 0.0064,
+      "cosine": 0.0032,
+      "mahalanobis": 0.0074,
+      "composite": 0.007,
+      "validator": 0.0,
+      "full_system": 0.007,
+      "ci_95": {
+        "msp": [
+          0.0044,
+          0.0088
+        ],
+        "cosine": [
+          0.0016,
+          0.005
+        ],
+        "mahalanobis": [
+          0.0052,
+          0.01
+        ],
+        "composite": [
+          0.0048,
+          0.0092
+        ],
+        "validator": [
+          0.0,
+          0.0
+        ],
+        "full_system": [
+          0.0048,
+          0.0094
+        ]
+      }
+    },
+    "E2_real_ood": {
+      "label": "E2: Cross-Domain OOD (ToN-IoT)",
+      "msp": 0.7922,
+      "cosine": 0.0,
+      "mahalanobis": 0.0118,
+      "composite": 0.0114,
+      "validator": 0.0,
+      "full_system": 0.0114,
+      "ci_95": {
+        "msp": [
+          0.7804,
+          0.8038
+        ],
+        "cosine": [
+          0.0,
+          0.0
+        ],
+        "mahalanobis": [
+          0.009,
+          0.015
+        ],
+        "composite": [
+          0.0086,
+          0.0144
+        ],
+        "validator": [
+          0.0,
+          0.0
+        ],
+        "full_system": [
+          0.0084,
+          0.0144
+        ]
+      }
+    },
+    "E3_nan_inf_missing": {
+      "label": "E3: NaN/Inf/Missing Dims",
+      "msp": 0.0552,
+      "cosine": 0.1124,
+      "mahalanobis": 0.4636,
+      "composite": 0.4546,
+      "validator": 0.691,
+      "full_system": 0.7928,
+      "ci_95": {
+        "msp": [
+          0.049,
+          0.0616
+        ],
+        "cosine": [
+          0.1038,
+          0.1208
+        ],
+        "mahalanobis": [
+          0.4502,
+          0.4772
+        ],
+        "composite": [
+          0.4408,
+          0.4686
+        ],
+        "validator": [
+          0.6786,
+          0.7042
+        ],
+        "full_system": [
+          0.7812,
+          0.804
+        ]
+      }
+    },
+    "E4_zero_10pct": {
+      "label": "E4: 10% Zero-Fill",
+      "msp": 0.014,
+      "cosine": 0.004,
+      "mahalanobis": 0.0856,
+      "composite": 0.0616,
+      "validator": 0.0,
+      "full_system": 0.0616,
+      "ci_95": {
+        "msp": [
+          0.0108,
+          0.017
+        ],
+        "cosine": [
+          0.0024,
+          0.0058
+        ],
+        "mahalanobis": [
+          0.0784,
+          0.0938
+        ],
+        "composite": [
+          0.055,
+          0.0682
+        ],
+        "validator": [
+          0.0,
+          0.0
+        ],
+        "full_system": [
+          0.055,
+          0.0684
+        ]
+      }
+    },
+    "E4_zero_25pct": {
+      "label": "E4: 25% Zero-Fill",
+      "msp": 0.042,
+      "cosine": 0.0062,
+      "mahalanobis": 0.1988,
+      "composite": 0.1778,
+      "validator": 0.008,
+      "full_system": 0.1858,
+      "ci_95": {
+        "msp": [
+          0.0364,
+          0.0478
+        ],
+        "cosine": [
+          0.0042,
+          0.0084
+        ],
+        "mahalanobis": [
+          0.1876,
+          0.2094
+        ],
+        "composite": [
+          0.1676,
+          0.189
+        ],
+        "validator": [
+          0.0056,
+          0.0104
+        ],
+        "full_system": [
+          0.1752,
+          0.1976
+        ]
+      }
+    },
+    "E4_zero_50pct": {
+      "label": "E4: 50% Zero-Fill",
+      "msp": 0.079,
+      "cosine": 0.0344,
+      "mahalanobis": 0.2246,
+      "composite": 0.2118,
+      "validator": 0.0546,
+      "full_system": 0.26,
+      "ci_95": {
+        "msp": [
+          0.0714,
+          0.0864
+        ],
+        "cosine": [
+          0.0296,
+          0.0396
+        ],
+        "mahalanobis": [
+          0.2124,
+          0.2356
+        ],
+        "composite": [
+          0.2012,
+          0.2238
+        ],
+        "validator": [
+          0.0484,
+          0.0606
+        ],
+        "full_system": [
+          0.2478,
+          0.272
+        ]
+      }
+    },
+    "E4_zero_75pct": {
+      "label": "E4: 75% Zero-Fill",
+      "msp": 0.1524,
+      "cosine": 0.046,
+      "mahalanobis": 0.0598,
+      "composite": 0.0568,
+      "validator": 0.5446,
+      "full_system": 0.5772,
+      "ci_95": {
+        "msp": [
+          0.1428,
+          0.1626
+        ],
+        "cosine": [
+          0.0398,
+          0.0522
+        ],
+        "mahalanobis": [
+          0.0532,
+          0.0662
+        ],
+        "composite": [
+          0.0506,
+          0.0632
+        ],
+        "validator": [
+          0.5316,
+          0.5586
+        ],
+        "full_system": [
+          0.5638,
+          0.5906
+        ]
+      }
+    },
+    "E4_zero_100pct": {
+      "label": "E4: 100% Zero-Fill",
+      "msp": 0.0,
+      "cosine": 0.0,
+      "mahalanobis": 0.0,
+      "composite": 0.0,
+      "validator": 1.0,
+      "full_system": 1.0,
+      "ci_95": {
+        "msp": [
+          0.0,
+          0.0
+        ],
+        "cosine": [
+          0.0,
+          0.0
+        ],
+        "mahalanobis": [
+          0.0,
+          0.0
+        ],
+        "composite": [
+          0.0,
+          0.0
+        ],
+        "validator": [
+          1.0,
+          1.0
+        ],
+        "full_system": [
+          1.0,
+          1.0
+        ]
+      }
+    },
+    "E5_permutation": {
+      "label": "E5: Feature Permutation",
+      "msp": 0.016,
+      "cosine": 0.1002,
+      "mahalanobis": 0.964,
+      "composite": 0.9636,
+      "validator": 0.01,
+      "full_system": 0.965,
+      "ci_95": {
+        "msp": [
+          0.0126,
+          0.0194
+        ],
+        "cosine": [
+          0.0922,
+          0.108
+        ],
+        "mahalanobis": [
+          0.9588,
+          0.969
+        ],
+        "composite": [
+          0.9586,
+          0.9686
+        ],
+        "validator": [
+          0.0072,
+          0.0128
+        ],
+        "full_system": [
+          0.9596,
+          0.97
+        ]
+      }
+    },
+    "E6_scale_mismatch": {
+      "label": "E6: Unit/Scale Mismatch",
+      "msp": 0.0156,
+      "cosine": 0.147,
+      "mahalanobis": 0.6874,
+      "composite": 0.682,
+      "validator": 0.0,
+      "full_system": 0.682,
+      "ci_95": {
+        "msp": [
+          0.0122,
+          0.019
+        ],
+        "cosine": [
+          0.1378,
+          0.157
+        ],
+        "mahalanobis": [
+          0.674,
+          0.7
+        ],
+        "composite": [
+          0.6678,
+          0.6946
+        ],
+        "validator": [
+          0.0,
+          0.0
+        ],
+        "full_system": [
+          0.67,
+          0.6944
+        ]
+      }
+    },
+    "E7_extreme_plausible": {
+      "label": "E7: Extreme-but-Plausible",
+      "msp": 0.0252,
+      "cosine": 0.2868,
+      "mahalanobis": 0.9046,
+      "composite": 0.9032,
+      "validator": 0.0,
+      "full_system": 0.9032,
+      "ci_95": {
+        "msp": [
+          0.0208,
+          0.0294
+        ],
+        "cosine": [
+          0.2746,
+          0.2992
+        ],
+        "mahalanobis": [
+          0.8964,
+          0.913
+        ],
+        "composite": [
+          0.8952,
+          0.9112
+        ],
+        "validator": [
+          0.0,
+          0.0
+        ],
+        "full_system": [
+          0.8948,
+          0.9112
+        ]
+      }
+    },
+    "E8_gaussian_noise": {
+      "label": "E8 (Suppl.): Gaussian Noise",
+      "msp": 0.0025,
+      "cosine": 0.1315,
+      "mahalanobis": 0.9995,
+      "composite": 1.0,
+      "validator": 0.0,
+      "full_system": 1.0,
+      "ci_95": {
+        "msp": [
+          0.0005,
+          0.005
+        ],
+        "cosine": [
+          0.1165,
+          0.1475
+        ],
+        "mahalanobis": [
+          0.9985,
+          1.0
+        ],
+        "composite": [
+          1.0,
+          1.0
+        ],
+        "validator": [
+          0.0,
+          0.0
+        ],
+        "full_system": [
+          1.0,
+          1.0
+        ]
+      }
+    }
+  },
+  "confidence_intervals_95": {
+    "E1_id_test": {
+      "msp": [
+        0.0044,
+        0.0088
+      ],
+      "cosine": [
+        0.0016,
+        0.005
+      ],
+      "mahalanobis": [
+        0.0052,
+        0.01
+      ],
+      "composite": [
+        0.0048,
+        0.0092
+      ],
+      "validator": [
+        0.0,
+        0.0
+      ],
+      "full_system": [
+        0.0048,
+        0.0094
+      ]
+    },
+    "E2_real_ood": {
+      "msp": [
+        0.7804,
+        0.8038
+      ],
+      "cosine": [
+        0.0,
+        0.0
+      ],
+      "mahalanobis": [
+        0.009,
+        0.015
+      ],
+      "composite": [
+        0.0086,
+        0.0144
+      ],
+      "validator": [
+        0.0,
+        0.0
+      ],
+      "full_system": [
+        0.0084,
+        0.0144
+      ]
+    },
+    "E3_nan_inf_missing": {
+      "msp": [
+        0.049,
+        0.0616
+      ],
+      "cosine": [
+        0.1038,
+        0.1208
+      ],
+      "mahalanobis": [
+        0.4502,
+        0.4772
+      ],
+      "composite": [
+        0.4408,
+        0.4686
+      ],
+      "validator": [
+        0.6786,
+        0.7042
+      ],
+      "full_system": [
+        0.7812,
+        0.804
+      ]
+    },
+    "E4_zero_10pct": {
+      "msp": [
+        0.0108,
+        0.017
+      ],
+      "cosine": [
+        0.0024,
+        0.0058
+      ],
+      "mahalanobis": [
+        0.0784,
+        0.0938
+      ],
+      "composite": [
+        0.055,
+        0.0682
+      ],
+      "validator": [
+        0.0,
+        0.0
+      ],
+      "full_system": [
+        0.055,
+        0.0684
+      ]
+    },
+    "E4_zero_25pct": {
+      "msp": [
+        0.0364,
+        0.0478
+      ],
+      "cosine": [
+        0.0042,
+        0.0084
+      ],
+      "mahalanobis": [
+        0.1876,
+        0.2094
+      ],
+      "composite": [
+        0.1676,
+        0.189
+      ],
+      "validator": [
+        0.0056,
+        0.0104
+      ],
+      "full_system": [
+        0.1752,
+        0.1976
+      ]
+    },
+    "E4_zero_50pct": {
+      "msp": [
+        0.0714,
+        0.0864
+      ],
+      "cosine": [
+        0.0296,
+        0.0396
+      ],
+      "mahalanobis": [
+        0.2124,
+        0.2356
+      ],
+      "composite": [
+        0.2012,
+        0.2238
+      ],
+      "validator": [
+        0.0484,
+        0.0606
+      ],
+      "full_system": [
+        0.2478,
+        0.272
+      ]
+    },
+    "E4_zero_75pct": {
+      "msp": [
+        0.1428,
+        0.1626
+      ],
+      "cosine": [
+        0.0398,
+        0.0522
+      ],
+      "mahalanobis": [
+        0.0532,
+        0.0662
+      ],
+      "composite": [
+        0.0506,
+        0.0632
+      ],
+      "validator": [
+        0.5316,
+        0.5586
+      ],
+      "full_system": [
+        0.5638,
+        0.5906
+      ]
+    },
+    "E4_zero_100pct": {
+      "msp": [
+        0.0,
+        0.0
+      ],
+      "cosine": [
+        0.0,
+        0.0
+      ],
+      "mahalanobis": [
+        0.0,
+        0.0
+      ],
+      "composite": [
+        0.0,
+        0.0
+      ],
+      "validator": [
+        1.0,
+        1.0
+      ],
+      "full_system": [
+        1.0,
+        1.0
+      ]
+    },
+    "E5_permutation": {
+      "msp": [
+        0.0126,
+        0.0194
+      ],
+      "cosine": [
+        0.0922,
+        0.108
+      ],
+      "mahalanobis": [
+        0.9588,
+        0.969
+      ],
+      "composite": [
+        0.9586,
+        0.9686
+      ],
+      "validator": [
+        0.0072,
+        0.0128
+      ],
+      "full_system": [
+        0.9596,
+        0.97
+      ]
+    },
+    "E6_scale_mismatch": {
+      "msp": [
+        0.0122,
+        0.019
+      ],
+      "cosine": [
+        0.1378,
+        0.157
+      ],
+      "mahalanobis": [
+        0.674,
+        0.7
+      ],
+      "composite": [
+        0.6678,
+        0.6946
+      ],
+      "validator": [
+        0.0,
+        0.0
+      ],
+      "full_system": [
+        0.67,
+        0.6944
+      ]
+    },
+    "E7_extreme_plausible": {
+      "msp": [
+        0.0208,
+        0.0294
+      ],
+      "cosine": [
+        0.2746,
+        0.2992
+      ],
+      "mahalanobis": [
+        0.8964,
+        0.913
+      ],
+      "composite": [
+        0.8952,
+        0.9112
+      ],
+      "validator": [
+        0.0,
+        0.0
+      ],
+      "full_system": [
+        0.8948,
+        0.9112
+      ]
+    },
+    "E8_gaussian_noise": {
+      "msp": [
+        0.0005,
+        0.005
+      ],
+      "cosine": [
+        0.1165,
+        0.1475
+      ],
+      "mahalanobis": [
+        0.9985,
+        1.0
+      ],
+      "composite": [
+        1.0,
+        1.0
+      ],
+      "validator": [
+        0.0,
+        0.0
+      ],
+      "full_system": [
+        1.0,
+        1.0
+      ]
+    }
+  },
+  "note": "Validator column shows structural rejection rate (deterministic). Other columns show detection rate at 1% FPR threshold. Full System combines statistical detection OR validator rejection. E1 represents clean in-distribution baseline (CSE-CIC-IDS2018). confidence_intervals_95 provides empirical bootstrap 95% CIs (n=1000)."
+}

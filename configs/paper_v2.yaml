@@ -1,0 +1,88 @@
+# ═══════════════════════════════════════════════════════════════════════
+# SEMANTICSHIELD Paper Configuration — Version 2
+#
+# Multi-Model and Cross-Dataset Generalization Configuration.
+# Evaluates architecture generality across ThreatMLP and ThreatCNN1D,
+# and external generalization across NF-ToN-IoT-v2 and NF-BoT-IoT-v2.
+# ═══════════════════════════════════════════════════════════════════════
+
+version: "paper_v2"
+frozen_date: "2026-09-24"
+
+# ── Evaluated Neural Architectures ──
+models:
+  mlp:
+    name: "ThreatMLP"
+    onnx_path: "experiments/threat_mlp_nf_fp32.onnx"
+    weights_path: "experiments/threat_mlp_nf.pth"
+    features: 13
+    precision: "FP32"
+    scaler: "experiments/standard_scaler_nf.joblib"
+    encoder: "experiments/label_encoder_nf.joblib"
+    reference_embeddings: "experiments/reference_embeddings_nf.npz"
+    feature_stats: "experiments/training_feature_stats_nf.json"
+    thresholds:
+      confidence: 0.4743           # 5th percentile ID MSP
+      cosine_drift: 0.4341         # 95th percentile ID Cosine
+      mahalanobis_drift: 18.1593   # 95th percentile ID Mahalanobis
+      zscore: 15.0
+      zero_fill_ratio: 0.80
+      range_tolerance_sigmas: 15.0
+
+  cnn1d:
+    name: "ThreatCNN1D"
+    onnx_path: "experiments/threat_cnn1d_nf_fp32.onnx"
+    weights_path: "experiments/threat_cnn1d_nf.pth"
+    features: 13
+    precision: "FP32"
+    scaler: "experiments/standard_scaler_nf.joblib"
+    encoder: "experiments/label_encoder_nf.joblib"
+    reference_embeddings: "experiments/reference_embeddings_cnn1d_nf.npz"
+    feature_stats: "experiments/training_feature_stats_cnn1d_nf.json"
+    thresholds:
+      confidence: 0.4500           # Calibrated ID MSP
+      cosine_drift: 0.2620         # 95th percentile ID Cosine
+      mahalanobis_drift: 8.7492    # 95th percentile ID Mahalanobis
+      zscore: 15.0
+      zero_fill_ratio: 0.80
+      range_tolerance_sigmas: 15.0
+
+# ── Datasets ──
+datasets:
+  source:
+    name: "CSE-CIC-IDS2018"
+    path: "datasets/CIC-IDS2018"
+    extractor: "CICFlowMeter-V3"
+    role: "In-Distribution (ID) Training, Validation, and Calibration"
+  
+  external_same_schema:
+    toniot:
+      name: "NF-ToN-IoT-v2"
+      path: "datasets/ToN-IoT/NF-ToN-IoT-V2.parquet"
+      extractor: "nProbe (NetFlow v9/IPFIX)"
+      format: "parquet"
+    botiot:
+      name: "NF-BoT-IoT-v2"
+      path: "datasets/NF-BoT-IoT-V2/NF-BoT-IoT-V2.parquet"
+      extractor: "nProbe (NetFlow v9/IPFIX)"
+      format: "parquet"
+
+# ── Evaluation Operating Points ──
+evaluation:
+  seeds: [42, 123, 456, 789, 1024]
+  n_eval_samples: 50000
+  n_bootstrap: 1000
+  fpr_budgets: [0.001, 0.01, 0.05]   # 0.1%, 1.0%, 5.0% FPR operating points
+  fixed_tpr_target: 0.95              # 95% detection target
+
+# ── Experiment Tracks ──
+tracks:
+  track_a:
+    name: "Domain/Distribution Shift (Same Standardized Schema)"
+    description: "Evaluates shift across nProbe NetFlow v2 datasets (ToN-IoT and BoT-IoT) sharing the identical 43-column schema."
+  track_b:
+    name: "Extractor / Semantic Mismatch"
+    description: "Evaluates degradation introduced by CICFlowMeter to nProbe NetFlow feature mapping (Tier 1 Exact vs Tier 2 Approximate vs Tier 3 Mismatched)."
+  track_c:
+    name: "Cross-Model Replication"
+    description: "Evaluates assurance layer invariance across ThreatMLP and ThreatCNN1D."

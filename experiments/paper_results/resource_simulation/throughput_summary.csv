@@ -1,0 +1,5 @@
+Profile,Plain_Throughput,SEMANTICSHIELD_Throughput,Throughput_Retention_pct,Abs_Overhead_ms,Rel_Overhead_pct
+R0,3581.6,1124.1,31.39%,0.6102,219.42%
+R1,3679.8,1100.7,29.91%,0.6406,236.82%
+R2,3589.5,1107.4,30.85%,0.6259,225.55%
+R3,3353.9,1073.4,32.0%,0.6321,211.55%

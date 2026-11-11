@@ -1,0 +1,5 @@
+Precision Variant,Model File,Size (MB),Size Reduction (%),Macro F1,F1 Drop vs FP32 (%),Mean Latency (ms),Throughput B1 (flows/s),Throughput B128 (flows/s)
+FP32,threat_mlp_nf_fp32.onnx,0.1765,0.00%,0.7801,0.00%,0.0389,26676.2,781244.8
+FP16,threat_mlp_nf_fp16.onnx,0.0889,49.63%,0.7802,-0.01%,0.0412,25391.7,765076.2
+INT8,threat_mlp_nf_int8.onnx,0.0479,72.86%,0.4833,38.04%,0.0566,10590.1,704243.6
+INT4,threat_mlp_nf_int4.onnx,0.0340,80.74%,0.7627,2.24%,0.0700,15480.2,493656.9

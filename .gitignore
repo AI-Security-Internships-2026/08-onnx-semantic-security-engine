@@ -69,9 +69,10 @@ experiments/**/*.onnx.data
 experiments/*.pth
 experiments/*.joblib
 experiments/*.npz
-experiments/training_feature_stats_nf.json
+experiments/training_feature_stats*.json
 
 # Personal plans / notes (not for GitHub)
 sikandar-plans/
 scratch/
 scratch_test_api.py
+tools/
