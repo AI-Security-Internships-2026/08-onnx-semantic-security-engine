@@ -82,7 +82,7 @@ def benchmark_model(
     preds_id = (np.argmax(logits_id, axis=1) != 0).astype(int)
     
     id_acc = float(accuracy_score(y_id_bin, preds_id))
-    id_f1 = float(f1_score(y_id_bin, preds_id, zero_division=0))
+    id_f1 = float(f1_score(y_id_bin, preds_id, average="macro", zero_division=0))
 
     # Anomaly scores on ID
     msp_id = 1.0 - np.max(probs_id, axis=1)
