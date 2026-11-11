@@ -53,7 +53,7 @@ This document provides the authoritative mapping between every table, figure, an
 ## 4. Mandatory Edge Simulation Limitation
 
 > **IMPORTANT PAPER FRAMING GUARDRAIL:**
-> *"We evaluate SEMANTICSHIELD under controlled CPU- and memory-constrained deployment profiles to approximate resource-limited inference conditions. These simulated profiles (R0–R3) use ONNX Runtime thread execution controls on a commodity x86_64 host to evaluate latency under thread-constrained budgets, but do not reproduce physical ARM microarchitectures, dedicated NPU/TPU cores, thermal throttling, memory bus bandwidth saturation, or physical NIC line-rate packet capture. Physical edge hardware validation remains future work."*
+> *"We evaluate SEMANTICSHIELD under controlled CPU- and memory-constrained deployment profiles to approximate resource-limited inference conditions. These simulated profiles (R0–R3) use ONNX Runtime thread execution controls on a commodity x86_64 host to evaluate latency under thread-constrained budgets; they do not enforce OS-level cgroup memory quotas, and measured RSS (124.5 MB) demonstrates process footprint rather than containment under an enforced ceiling. Furthermore, they do not reproduce physical ARM microarchitectures, dedicated NPU/TPU cores, thermal throttling, memory bus bandwidth saturation, or physical NIC line-rate packet capture. Physical edge hardware validation remains future work."*
 
 ---
 

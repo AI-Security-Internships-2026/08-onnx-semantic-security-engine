@@ -89,20 +89,20 @@ To maintain scientific integrity, the manuscript strictly avoids claiming physic
 > *"We evaluate SEMANTICSHIELD under controlled CPU- and memory-constrained deployment profiles to approximate resource-limited inference conditions. Physical edge hardware validation remains future work."*
 
 ### 5.2 Resource Profiles & Execution Parameters
-Evaluated via ONNX Runtime `intra_op_num_threads` / `inter_op_num_threads` thread affinity controls on a commodity x86_64 host (Windows 11, AMD64, 6 physical cores / 12 logical threads, 16 GB RAM):
+Evaluated via ONNX Runtime `intra_op_num_threads` / `inter_op_num_threads` thread execution controls on a commodity x86_64 host (Windows 11, AMD64, 6 physical cores / 12 logical threads, 16 GB RAM):
 - **Profile R0 (Reference):** Unconstrained threads, unconstrained RAM. Host baseline.
-- **Profile R1 (Constrained):** 1 thread (`intra_threads=1, inter_threads=1`), simulating 1 vCPU / 512 MB edge device.
-- **Profile R2 (Moderate):** 2 threads (`intra_threads=2, inter_threads=1`), simulating 2 vCPU / 1024 MB edge controller.
-- **Profile R3 (Higher):** 4 threads (`intra_threads=4, inter_threads=2`), simulating 4 vCPU / 2048 MB edge gateway.
+- **Profile R1 (Constrained):** 1 thread (`intra_threads=1, inter_threads=1`), simulating a 1-core / 512 MB nominal edge appliance.
+- **Profile R2 (Moderate):** 2 threads (`intra_threads=2, inter_threads=1`), simulating a 2-core / 1024 MB nominal edge controller.
+- **Profile R3 (Higher):** 4 threads (`intra_threads=4, inter_threads=2`), simulating a 4-core / 2048 MB nominal edge gateway.
 
-> **Important:** These profiles simulate CPU-constrained execution via thread controls. They do NOT use Docker cgroups v2 on this host (Windows). Physical edge hardware validation (ARM, NPU/TPU, thermal throttling) remains future work.
+> **Important Framing:** These profiles simulate CPU-constrained execution via ONNX Runtime thread execution controls on an x86_64 host. They do NOT enforce OS-level cgroup CPU quotas or memory limits on this host. Process memory (RSS) was measured (124.5 MB), but no 512 MB hard cap was enforced. Physical edge hardware validation (ARM, NPU/TPU, thermal throttling) remains future work.
 
 ### 5.3 Runtime Overhead & Resource Sensitivity Findings
 Across 5 repeated measured runs (5,000 flows/run, 500-flow warm-up) per profile:
 - **Plain ONNX Latency:** Stable at $0.2705 - 0.2988$ ms (Mean), $0.2533 - 0.2692$ ms (p50), $0.3473 - 0.4280$ ms (p95), yielding $3,354 - 3,680$ flows/s throughput.
-- **SEMANTICSHIELD Latency:** Consistently scales to $0.8883 - 0.9309$ ms (Mean), $0.8324 - 0.8528$ ms (p50), $1.2790 - 1.4049$ ms (p95), maintaining $1,073 - 1,124$ flows/s throughput.
-- **Absolute Assurance Overhead:** Fixed at $+0.61 - +0.64$ ms across all resource profiles, demonstrating that assurance computational complexity remains constant and bounded even under tight CPU constraints (1 vCPU).
-- **Memory Footprint:** Peak RSS remains essentially flat ($122.4 - 124.9$ MB) across both Plain ONNX and SEMANTICSHIELD, operating well within the 512 MB memory boundary of Profile R1.
+- **SEMANTICSHIELD Latency:** Consistently scales to $0.8883 - 0.9309$ ms (Mean), $0.8324 - 0.8528$ ms (p50), $1.2790 - 1.4049$ ms (p95), maintaining $1,073 - 1,124$ flows/s throughput. Specifically, under Profile R1, p95 latency is 1.340 ms with 1,101 flows/s (compared to 1.192 ms p95 and 1,124 flows/s under unconstrained Profile R0).
+- **Absolute Assurance Overhead:** Fixed at $+0.61 - +0.64$ ms across all resource profiles, demonstrating that assurance computational complexity remains constant and bounded even under single-thread execution constraints.
+- **Memory Footprint:** Peak RSS remains essentially flat ($122.4 - 124.9$ MB) across both Plain ONNX and SEMANTICSHIELD, reflecting observed process footprint (operating below the 512 MB nominal target budget, though not constrained by an enforced OS memory quota).
 
 ### 5.4 INT8 Degradation Investigation Findings (E2.3-E)
 - **Empirical Observation:** Post-training static INT8 quantization (`threat_mlp_nf_int8.onnx`, 47.9 KB) suffers a severe drop in Macro-F1 ($0.7801 \to 0.4833$, a $38.0\%$ drop), whereas weight-only INT4 quantization (`threat_mlp_nf_int4.onnx`, 34.0 KB) preserves $0.7627$ Macro-F1 ($97.8\%$ retention).
@@ -122,7 +122,7 @@ Across 5 repeated measured runs (5,000 flows/run, 500-flow warm-up) per profile:
   - **Convertible (1 pair, 4.8%):** Identical physical duration differing solely by a known constant linear scaling factor (ms vs $\mu\text{s}$, convertible via $10^{-3}$ scaling).
   - **Approximate (5 pairs, 23.8%):** Compatible physical dimensions with documented directional scope or aggregation window variations.
   - **Incompatible (8 pairs, 38.1%):** Severe dimensional, state-representation, or semantic phenomenon mismatches (e.g. bitrate in bps mapped to header bytes, or cumulative 8-bit TCP control bitmask mapped to discrete forward PSH packet counter).
-- **Inter-Rater Reliability:** Dual-review protocol between Reviewer 1 (Network Protocols / RFC specialist) and Reviewer 2 (ML / Data Engineering specialist) yielded $P_o = 1.00$, $P_e = 0.3152$, and Cohen's Kappa $\kappa = 1.00$, grounded in RFC 7012, RFC 793, nProbe manuals, and CICFlowMeter source code (`FlowFeature.java`).
+- **Specification Grounding and Validation:** Codified strictly against formal deterministic criteria from RFC 7012, RFC 793, nProbe manuals, and CICFlowMeter source code (`FlowFeature.java`). Independent multi-reviewer validation was not conducted, which is documented as an explicit methodological limitation in the manuscript.
 - **Canonical Files:** `docs/semantic_feature_audit.csv`, `docs/semantic_feature_audit.md`, and `experiments/paper_results/tables/table_semantic_feature_audit.csv`.
 
 ### 6.2 Prior-Work Comparison Matrix & Eight Thematic Pillars
@@ -172,7 +172,7 @@ All 19 canonical JSON files now reference the same commit (`c32522fb`), matching
 
 ### 7.5 Resource Profile Naming Correction
 Resource profile definitions were inconsistent across `REPRODUCE.md`, `RELEASE_METADATA.json`, and `benchmark_resource_simulation.py`. All documents now use the authoritative script definitions:
-- R0 = Reference (unconstrained), R1 = Constrained (1 vCPU/512 MB), R2 = Moderate (2 vCPU/1 GB), R3 = Higher (4 vCPU/2 GB)
+- R0 = Reference (unconstrained host), R1 = Constrained (1 thread / 512 MB nominal), R2 = Moderate (2 threads / 1 GB nominal), R3 = Higher (4 threads / 2 GB nominal)
 - Removed erroneous "Raspberry Pi 4" description from `RELEASE_METADATA.json`
 - Clarified that profiles use ONNX Runtime thread controls, not Docker cgroups v2 on this Windows host
 

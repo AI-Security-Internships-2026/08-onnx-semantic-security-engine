@@ -677,7 +677,7 @@ def generate_table19_prior_work_comparison(base_dir: Path, out_dir: Path):
         ["Cantone et al. (2024)", "Offline Benchmark", "CICFlowMeter (CIC/LycoS)", "Manual Column Name Subset", "No", "No", "None (Offline Server)", "Partial (artifact memorization)"],
         ["Jajal et al. (2024)", "General DL Deployment", "N/A (General DNN Graphs)", "None (operator translation)", "No", "Partial (quantization node bugs)", "None (Host Workstation)", "Yes (graph/operator defects)"],
         ["Yang et al. (2022)", "IoV / Vehicle Edge", "CICFlowMeter / UNSW", "Per-Dataset Feature Selection", "No", "No", "Edge Node Emulation", "No (feature importance only)"],
-        ["SEMANTICSHIELD (This Work)", "Edge Gateway / Embedded NIDS", "Hybrid (NetFlow v9 <-> CICFlowMeter)", "Physical Semantic Audit (4 Tiers; kappa=1.0)", "Yes (Fixed-FPR <= 0.1% / 1.0%)", "Yes (FP32/FP16/INT8/INT4)", "Yes (Simulated R0-R3 Profiles)", "Yes (Per-Field & Tensor Outliers)"],
+        ["SEMANTICSHIELD (This Work)", "Edge Gateway / Embedded NIDS", "Hybrid (NetFlow v9 <-> CICFlowMeter)", "Physical Semantic Audit (4 Tiers; RFC-grounded)", "Yes (Fixed-FPR <= 0.1% / 1.0%)", "Yes (FP32/FP16/INT8/INT4)", "Yes (Simulated R0-R3 Profiles)", "Yes (Per-Field & Tensor Outliers)"],
     ]
     with open(out_file, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)

@@ -1,4 +1,4 @@
-# SEMANTICSHIELD: Invariant-Aware and Drift-Calibrated Semantic Runtime Assurance for Edge NIDS in ONNX
+# SEMANTICSHIELD: An ONNX-Native Runtime Assurance Layer for Network Intrusion Detection at the Edge
 
 [![Release](https://img.shields.io/badge/Release-paper--v1.0-blue.svg)](experiments/paper_results/RELEASE_METADATA.json)
 [![Paper PDF](https://img.shields.io/badge/Manuscript-PDF-red.svg)](docs/paper/paper-draft.pdf)
@@ -45,7 +45,7 @@ python -m pytest tests/ -v
 > 
 > We introduce **SEMANTICSHIELD**, a lightweight, invariant-aware, and drift-calibrated runtime assurance architecture integrated directly into the ONNX Runtime execution graph. SEMANTICSHIELD couples deterministic pre-inference invariant validation (enforcing physical networking bounds, IEEE-754 integrity, and zero-fill ratio constraints) with dual-output intermediate representation extraction to evaluate class-conditional Cosine and Mahalanobis manifold drift.
 > 
-> Evaluated on 10 days of CSE-CIC-IDS2018 (in-distribution), NF-ToN-IoT-v2 (13.1M flows), and NF-BoT-IoT-v2 (30.4M flows), SEMANTICSHIELD achieves **0.9713 AUROC** under real covariate shift and **100% rejection** on malformed inputs at **1.19 ms p95 latency** (1,124 flows/s) under simulated edge container profiles.
+> Evaluated on 10 days of CSE-CIC-IDS2018 (in-distribution), NF-ToN-IoT-v2 (13.1M flows), and NF-BoT-IoT-v2 (30.4M flows), SEMANTICSHIELD achieves **0.9713 AUROC** under real covariate shift and **100% rejection** on malformed inputs, sustaining **1,101 flows/s at 1.34 ms p95 latency** (0.911 ms mean, +0.640 ms overhead) under a thread-constrained R1 edge simulation profile (and 1,124 flows/s at 1.19 ms p95 on unconstrained host baseline R0).
 
 ---
 
@@ -125,7 +125,8 @@ $$\text{Verdict} = \begin{cases}
 | **Pipeline Truncation (Zero-Fill 100%)** | InputValidator: **1.0000** (Full System: **1.0000**, MSP: **0.0000**) | [OK] Match |
 | **Corrupted IEEE-754 Floats (NaN/Inf)** | Full System: **0.7928** (Validator: **0.6910**, MSP: **0.0000**) | [OK] Match |
 | **Statistical Rigor (5-Seed Repeated)** | In-Dist Clean: **86.94% ± 0.44%**, OOD Intercept: **61.72%**, Noise Intercept: **100%** | [OK] Match |
-| **Simulated Edge Overhead (R0 Profile)** | Plain ONNX p95: **0.386 ms** $\to$ SEMANTICSHIELD p95: **1.192 ms** (1,124 flows/s) | [OK] Match |
+| **Simulated Edge Overhead (R1 Profile)** | Plain ONNX p95: **0.347 ms** $\to$ SEMANTICSHIELD p95: **1.340 ms** (1,101 flows/s, +0.640 ms overhead) | [OK] Match |
+| **Host Reference Overhead (R0 Profile)** | Plain ONNX p95: **0.386 ms** $\to$ SEMANTICSHIELD p95: **1.192 ms** (1,124 flows/s, +0.610 ms overhead) | [OK] Match |
 | **Quantization Trade-off (FP32 $\to$ INT4)** | FP32 (0.176 MB, 78.01% F1) $\to$ INT4 (0.034 MB, 76.27% F1, **80.7% compression**) | [OK] Match |
 
 ---
