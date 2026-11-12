@@ -49,25 +49,25 @@
       "description": "Unconstrained host reference baseline"
     },
     "R1_constrained": {
-      "cpu_quota": "1.0 vCPU",
-      "memory_limit": "512 MB",
+      "cpu_quota": "1 thread (simulated)",
+      "memory_limit": "512 MB (nominal target)",
       "onnx_intra_threads": 1,
       "onnx_inter_threads": 1,
-      "description": "Strongly constrained edge profile (simulated via ONNX Runtime thread controls)"
+      "description": "Strongly constrained edge profile (simulated via ONNX Runtime thread controls on x86-64, memory unconstrained)"
     },
     "R2_moderate": {
-      "cpu_quota": "2.0 vCPUs",
-      "memory_limit": "1024 MB",
+      "cpu_quota": "2 threads (simulated)",
+      "memory_limit": "1024 MB (nominal target)",
       "onnx_intra_threads": 2,
       "onnx_inter_threads": 1,
-      "description": "Moderately constrained edge controller (simulated via ONNX Runtime thread controls)"
+      "description": "Moderately constrained edge controller (simulated via ONNX Runtime thread controls on x86-64, memory unconstrained)"
     },
     "R3_higher": {
-      "cpu_quota": "4.0 vCPUs",
-      "memory_limit": "2048 MB",
+      "cpu_quota": "4 threads (simulated)",
+      "memory_limit": "2048 MB (nominal target)",
       "onnx_intra_threads": 4,
       "onnx_inter_threads": 2,
-      "description": "Less constrained edge gateway (simulated via ONNX Runtime thread controls)"
+      "description": "Less constrained edge gateway (simulated via ONNX Runtime thread controls on x86-64, memory unconstrained)"
     }
   },
   "dependency_versions": {

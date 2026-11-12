@@ -5,7 +5,7 @@ Evaluates SEMANTICSHIELD and Plain ONNX under controlled CPU and memory constrai
 Supports:
   - Docker container cgroup limits (--cpus, --memory)
   - Native OS-level CPU affinity & ONNX Runtime thread execution controls
-  - 4 Profiles: R1 (Low: 1 vCPU, 512 MB), R2 (Med: 2 vCPU, 1 GB), R3 (High: 4 vCPU, 2 GB), R0 (Ref: Unconstrained)
+  - 4 Profiles: R1 (Low: 1 thread, 512 MB nominal), R2 (Med: 2 threads, 1 GB nominal), R3 (High: 4 threads, 2 GB nominal), R0 (Ref: Unconstrained)
   - 5 measured repetitions per profile with warm-up
   - Concurrency/workload levels (Low, Moderate, High)
   - Quantization trade-offs across FP32, FP16, static INT8, weight-only INT4
@@ -884,6 +884,7 @@ def main():
         results = orchestrate_docker_simulation(n_flows=args.n_flows, n_repetitions=args.repetitions)
     else:
         print("[MODE] Running natively using process affinity and thread controls.")
+        print("  [WARN] Native execution mode: CPU affinity and thread limits applied; OS-level memory limits are NOT enforced (requires Docker cgroup).")
         results = {}
         for pid in ["R0", "R1", "R2", "R3"]:
             results[pid] = run_worker_profile(pid, n_flows=args.n_flows, n_repetitions=args.repetitions)
