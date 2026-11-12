@@ -85,28 +85,28 @@ The table below provides the full audit matrix. It is also available in machine-
 
 ---
 
-## 4. Dual-Review Inter-Rater Reliability Analysis
+## 4. Specification Grounding, Rule Concordance, and Audit Limitations
 
-### 4.1 Review Protocol
-To ensure the audit is reproducible, rigorous, and free from subjective post-hoc rationalization, an independent dual-review coding methodology was executed:
-- **Reviewer 1 (R1):** Network Protocols and IETF Standards Specialist. Coded pairs based on RFC 7012 Information Element definitions, RFC 793 protocol state machines, and nProbe v9 telemetry specifications.
-- **Reviewer 2 (R2):** Machine Learning and Data Engineering Specialist. Coded pairs based on mathematical dimensionality, unit compatibility, and source code extraction in `CICFlowMeter` (`FlowFeature.java`).
+### 4.1 Specification Grounding Protocol
+To ensure the audit is grounded in verifiable network specifications rather than subjective post-hoc intuition, feature mappings were evaluated against formal standards:
+- **Standards Basis:** Evaluated against IETF RFC 7012 Information Element definitions, RFC 793 protocol state machines, RFC 5103 bidirectional flow exports, and nProbe v9 telemetry specifications.
+- **Implementation Grounding:** Verified directly against `CICFlowMeter` Java extraction source code (`FlowFeature.java`).
 
-Both reviewers independently assigned each of the $N=21$ pairs to one of the four categories:
+Each of the $N=21$ pairs was deterministically categorized into one of four compatibility tiers:
 $$\mathcal{C} = \{\text{Equivalent}, \text{Convertible}, \text{Approximate}, \text{Incompatible}\}$$
 
-### 4.2 Contingency Table
-The resulting $4 \times 4$ cross-tabulation matrix of assignments between R1 and R2 is shown below:
+### 4.2 Deterministic Rule Concordance Analysis
+When the four-tier taxonomy rules are applied deterministically across the protocol specifications (Reviewer Perspective 1: RFC/Protocol definitions; Reviewer Perspective 2: ML/Data engineering implementation), the formal concordance is summarized below:
 
-| Reviewer 1 \ Reviewer 2 | Equivalent | Convertible | Approximate | Incompatible | **Total R1** |
+| Protocol Standards \ Implementation Analysis | Equivalent | Convertible | Approximate | Incompatible | **Total Standards** |
 |:---|:---:|:---:|:---:|:---:|:---:|
 | **Equivalent** | 7 | 0 | 0 | 0 | **7** |
 | **Convertible** | 0 | 1 | 0 | 0 | **1** |
 | **Approximate** | 0 | 0 | 5 | 0 | **5** |
 | **Incompatible** | 0 | 0 | 0 | 8 | **8** |
-| **Total R2** | **7** | **1** | **5** | **8** | **21** |
+| **Total Implementation** | **7** | **1** | **5** | **8** | **21** |
 
-### 4.3 Inter-Rater Reliability Metrics
+### 4.3 Concordance Metrics
 1. **Observed Agreement ($P_o$):**
    $$P_o = \frac{\sum_{i=1}^4 c_{ii}}{N} = \frac{7 + 1 + 5 + 8}{21} = \frac{21}{21} = 1.0000 \quad (100.0\%)$$
 
@@ -114,14 +114,15 @@ The resulting $4 \times 4$ cross-tabulation matrix of assignments between R1 and
    $$P_e = \sum_{k \in \mathcal{C}} \left( \frac{n_{1,k}}{N} \times \frac{n_{2,k}}{N} \right) = \left(\frac{7}{21}\right)^2 + \left(\frac{1}{21}\right)^2 + \left(\frac{5}{21}\right)^2 + \left(\frac{8}{21}\right)^2$$
    $$P_e = \frac{49 + 1 + 25 + 64}{441} = \frac{139}{441} \approx 0.3152$$
 
-3. **Cohen's Kappa ($\kappa$):**
+3. **Nominal Cohen's Kappa Under Deterministic Rules ($\kappa$):**
    $$\kappa = \frac{P_o - P_e}{1 - P_e} = \frac{1.0000 - 0.3152}{1.0000 - 0.3152} = 1.0000$$
 
-### 4.4 Methodological Limitations and Discussion
-While a Cohen's Kappa of $\kappa = 1.00$ indicates perfect agreement according to Landis & Koch (1977) criteria, several methodological considerations must be explicitly qualified:
-1. **Determinism of Standards:** The perfect agreement is primarily a consequence of relying on formal RFC standards and open-source code rather than ambiguous human annotations. When one tool records a cumulative bitmask ($0 \le x \le 255$) and the other records an incremental counter ($0, 1, 2, \dots$), the classification as *Incompatible* is an objective mathematical fact, leaving little room for subjective divergence.
-2. **Sample Size ($N=21$):** The universe of candidate features was constrained to the 21 features historically mapped in legacy cross-dataset conversion scripts. Evaluating a larger, arbitrarily selected set of 100+ uncurated features from arbitrary flow extractors might introduce edge cases where borderlines between *Approximate* and *Incompatible* require consensus arbitration.
-3. **Thresholding Caveat:** The boundary between *Approximate* (acceptable semantic drift) and *Incompatible* (destructive semantic drift) was validated downstream by empirical AUROC evaluations. In particular, the 5 Approximate features retain monotonic correlation with their counterpart targets, whereas the 8 Incompatible features exhibit near-zero or inverted correlation.
+### 4.4 Methodological Limitations
+While deterministic rule application yields nominal mathematical concord ($\kappa = 1.00$), several important methodological limitations must be explicitly acknowledged:
+1. **Single-Reviewer Limitation:** The feature audit and classification was performed by a single primary investigator referencing the formal IETF RFCs and source code. Independent multi-expert double-blind coding was not conducted. Consequently, $\kappa = 1.00$ should not be interpreted as empirical inter-rater reliability across independent human annotators, but rather as mathematical concordance of deterministic lookup rules.
+2. **Determinism of Standards:** The concordance is a consequence of relying on formal RFC standards and open-source code rather than ambiguous human annotations. When one tool records a cumulative bitmask ($0 \le x \le 255$) and the other records an incremental counter ($0, 1, 2, \dots$), the classification as *Incompatible* is an objective mathematical fact, leaving little room for subjective divergence.
+3. **Sample Size ($N=21$):** The universe of candidate features was constrained to the 21 features historically mapped in legacy cross-dataset conversion scripts. Evaluating a larger, arbitrarily selected set of 100+ uncurated features from arbitrary flow extractors might introduce edge cases where borderlines between *Approximate* and *Incompatible* require community consensus arbitration.
+4. **Empirical Downstream Validation:** The boundary between *Approximate* (acceptable semantic drift) and *Incompatible* (destructive semantic drift) was validated downstream by empirical AUROC evaluations. In particular, the 5 Approximate features retain monotonic correlation with their counterpart targets, whereas the 8 Incompatible features exhibit near-zero or inverted correlation.
 
 ---
 

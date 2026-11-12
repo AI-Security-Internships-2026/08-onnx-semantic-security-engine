@@ -2,7 +2,7 @@
 Unit tests for Issue 6: Semantic Feature Audit, Reference Integrity, and Prior-Work Gap Matrix.
 Validates:
 1. 21-feature audit matrix structure, columns, units, and 4-tier verdicts.
-2. Inter-rater reliability (Cohen's Kappa computation).
+2. Deterministic rule concordance and nominal Cohen's Kappa computation under formal RFC rules.
 3. Prior-work comparison table schema and systems coverage.
 4. BibTeX reference integrity (no placeholder authors, proper entry types, foundational citations).
 """
@@ -101,14 +101,14 @@ def test_authoritative_sources_and_rfc_grounding():
 
 
 def test_cohens_kappa_deterministic_agreement():
-    """Verify inter-rater reliability concordance under deterministic RFC criteria.
+    """Verify deterministic rule concordance under RFC specifications and taxonomy rules.
     
-    NOTE ON EVALUATION METHODOLOGY:
-    Both Reviewer 1 (RFC/Protocols specialist) and Reviewer 2 (ML/Data Engineering)
-    strictly applied the deterministic 4-tier taxonomy rules grounded in RFC 7012 and
-    RFC 793 specifications. The resulting Cohen's kappa = 1.00 (Po = 1.0, Pe ~ 0.3152)
-    reflects the unambiguous, rule-based nature of protocol specification mapping
-    rather than independent subjective human judgment over noisy annotations.
+    NOTE ON EVALUATION METHODOLOGY & LIMITATIONS:
+    The 4-tier taxonomy rules are grounded in RFC 7012 and RFC 793 specifications.
+    The resulting Cohen's kappa = 1.00 (Po = 1.0, Pe ~ 0.3152) reflects the unambiguous,
+    rule-based nature of protocol specification lookup rather than an empirical panel of
+    independent double-blind human annotators. In the manuscript and audit documentation,
+    single-reviewer coding is explicitly acknowledged as a study limitation.
     """
     categories = ["Equivalent", "Convertible", "Approximate", "Incompatible"]
     

@@ -38,7 +38,7 @@ The table below contrasts SEMANTICSHIELD with key prior art across eight critica
 | **Cantone et al.**<br>*(Computers & Security 2024)* | Offline Benchmark | CICFlowMeter (CIC/LycoS) | Manual Column Name Subset | ❌ No | ❌ No | ❌ None (Offline Server) | ⚠️ Partial (artifact memorization) |
 | **Jajal et al.**<br>*(ACM ISSTA 2024)* | General DL Deployment | N/A (General DNN Graphs) | None (operator translation) | ❌ No | ⚠️ Partial (quantization node bugs) | ❌ None (Host Workstation) | ✅ Yes (graph/operator defects) |
 | **Yang et al.**<br>*(IEEE IoT-J 2022)* | IoV / Vehicle Edge | CICFlowMeter / UNSW | Per-Dataset Feature Selection | ❌ No | ❌ No | Edge Node Emulation | ❌ No (feature importance only) |
-| **SEMANTICSHIELD**<br>*(This Work)* | **Edge Gateway / Embedded NIDS** | **Hybrid (NetFlow v9 $\leftrightarrow$ CICFlowMeter)** | **Physical Semantic Audit (4 Tiers; $\kappa=1.0$)** | **✅ Yes ($FPR \le 0.1\% / 1.0\%$)** | **✅ Yes (FP32/FP16/INT8/INT4)** | **✅ Yes (Simulated R0–R3 Profiles)** | **✅ Yes (Per-Field & Tensor Outliers)** |
+| **SEMANTICSHIELD**<br>*(This Work)* | **Edge Gateway / Embedded NIDS** | **Hybrid (NetFlow v9 $\leftrightarrow$ CICFlowMeter)** | **Physical Semantic Audit (4 Tiers, RFC-grounded)** | **✅ Yes ($FPR \le 0.1\% / 1.0\%$)** | **✅ Yes (FP32/FP16/INT8/INT4)** | **✅ Yes (Simulated R0–R3 Profiles)** | **✅ Yes (Per-Field & Tensor Outliers)** |
 
 ---
 
@@ -81,6 +81,6 @@ The table below contrasts SEMANTICSHIELD with key prior art across eight critica
 ## 4. Distinct Positioning of SEMANTICSHIELD
 
 SEMANTICSHIELD directly addresses the intersections of these eight pillars:
-1. **Physical Reconciliation Over Blind Alignment:** Rather than blindly intersecting feature names or projecting onto coarse schemas, SEMANTICSHIELD provides a source-verified physical audit ($N=21$, $\kappa=1.0$), identifying the exact 8 incompatible features responsible for negative transfer.
+1. **Physical Reconciliation Over Blind Alignment:** Rather than blindly intersecting feature names or projecting onto coarse schemas, SEMANTICSHIELD provides a source-verified physical audit ($N=21$, RFC-grounded), identifying the exact 8 incompatible features responsible for negative transfer.
 2. **Base-Rate Calibrated Operational Rigor:** Evaluates detection under strict operational envelopes ($FPR \le 0.1\%$ and $FPR \le 1.0\%$) and reports AUPRC alongside AUROC across multiple random seeds with 95% confidence intervals.
-3. **Hardware-Aware Edge Precision Profiling:** Replaces theoretical hardware claims with controlled, containerized resource-constrained profiling (R0–R3 profiles: 1–4 vCPUs, 512 MB–2 GB RAM), uncovering the exact activation outlier mechanism that degrades standard INT8 quantization on tabular network telemetry.
+3. **Hardware-Aware Edge Precision Profiling:** Replaces theoretical hardware claims with controlled thread-constrained simulation profiling (R0–R3 profiles: 1–4 threads, 512 MB–2 GB nominal RAM target on x86-64), uncovering the exact activation outlier mechanism that degrades standard INT8 quantization on tabular network telemetry.

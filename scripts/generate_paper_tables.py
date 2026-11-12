@@ -559,17 +559,17 @@ def generate_table15_resource_profiles(json_dir: Path, out_dir: Path):
     out_file = out_dir / "table_resource_profiles.csv"
     with open(out_file, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerow(["Profile", "CPU Limit", "Memory Limit", "Runtime", "Workload"])
+        writer.writerow(["Profile", "Thread Quota", "Nominal RAM Target", "Runtime / Simulation", "Workload"])
         for pid in ["R0", "R1", "R2", "R3"]:
             p = profiles.get(pid, {})
-            cpu_lim = f"{p.get('vcpu_limit')} vCPU" if p.get("vcpu_limit") else "Unconstrained (Host)"
-            mem_lim = f"{p.get('memory_limit_mb')} MB" if p.get("memory_limit_mb") else "Unconstrained (Host)"
-            runtime = f"Docker cgroups v2 / Linux (Python {env.get('python_version', '3.11')}, ORT {env.get('onnxruntime_version', '1.28')})"
+            threads = f"{p.get('vcpu_limit')} Thread(s)" if p.get("vcpu_limit") else "Unconstrained (Host)"
+            mem_target = f"{p.get('memory_limit_mb')} MB (Nominal)" if p.get("memory_limit_mb") else "Unconstrained (Host)"
+            runtime = f"ORT Thread Limits / x86-64 (Python {env.get('python_version', '3.14.3')}, ORT {env.get('onnxruntime_version', '1.24.4')})" if p.get("vcpu_limit") else f"ORT Host / x86-64 (Python {env.get('python_version', '3.14.3')}, ORT {env.get('onnxruntime_version', '1.24.4')})"
             workload = "5,000 flows/run (5 repetitions, warm-up=500)"
             writer.writerow([
                 f"{pid} ({p.get('name')})",
-                cpu_lim,
-                mem_lim,
+                threads,
+                mem_target,
                 runtime,
                 workload,
             ])
